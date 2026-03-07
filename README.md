@@ -4,7 +4,21 @@ A game built with [Bevy](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.1.0** - Initial project setup. Minimal Bevy application with a window. The foundation is in place, ready for gameplay development.
+**v0.2.0** - Tile-based board editor with multiple tile types and a multi-level inventory system.
+
+### Features
+- Resizable board (1x1 to 12x12) with smooth scale animations
+- Adaptive camera (30° isometric view, resolution-independent)
+- **Floor tiles** with procedural gray textures and dark edge borders
+- **Source tiles** with circle+arrow shape, emission-colored glow, and directional rotation
+- **Delete tool** for removing placed tiles
+- **Multi-level accordion inventory**:
+  - L1: Floor, Source, Delete
+  - L2: 4 directional variants (N/E/S/W)
+  - L3: 10 distinct emission colors (max 1 per color on board)
+- Ghost preview and highlight on hover
+- Smooth accordion-style animations for inventory transitions
+- Count tracking: placed colors collapse out of inventory, deleted ones reappear
 
 ## Building
 
