@@ -4,13 +4,13 @@ A game built with [Bevy](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.3.0** - Polished tile editor with smooth animations, isometric 3D inventory icons, and streamlined UX.
+**v0.3.1** - Polished tile editor with smooth animations, isometric 3D inventory icons, and streamlined UX.
 
 ### Features
 - Resizable board (3x3 to 12x12) with smooth scale animations
 - Adaptive camera (30° isometric view, resolution-independent)
 - **Floor tiles** with procedural gray textures and dark edge borders
-- **Source tiles** with circle+arrow symbol (top face only), 10 distinct colors, directional rotation
+- **Source tiles** with circle+arrow symbol (top face only), 10 distinct colors, directional rotation, replaceable
 - **Delete tool** with smooth red overlay fade-in/out and fade trails between cells
 - **Multi-level accordion inventory** with auto-selection:
   - L1: Floor, Source, Delete — switching tools collapses/expands as needed

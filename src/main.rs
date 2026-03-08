@@ -1529,7 +1529,7 @@ fn update_ghost_and_highlight(
     hl_target.0 = Vec3::ONE;
 
     let can_place_floor = matches!(kind, TileKind::Empty | TileKind::Source(_, _));
-    let can_place_source = !matches!(kind, TileKind::Source(_, _));
+    let can_place_source = matches!(kind, TileKind::Empty | TileKind::Floor);
     let can_delete = matches!(kind, TileKind::Floor | TileKind::Source(_, _));
 
     match selected_tool.0 {
@@ -1616,7 +1616,7 @@ fn handle_tile_click(
             commands.entity(entity).insert((TargetScale(Vec3::ZERO), DespawnAtZeroScale));
             spawn_tile_at_scale(&mut commands, col, row, board_size.0, TileKind::Floor, &assets, ghost_scale);
         }
-        (Tool::Source, TileKind::Empty | TileKind::Floor) => {
+        (Tool::Source, TileKind::Empty | TileKind::Floor | TileKind::Source(_, _)) => {
             if let (Some(dir), Some(ci)) = (inv_state.direction, inv_state.color_index) {
                 if !placed_sources.0.contains(&ci) {
                     placed_sources.0.insert(ci);
