@@ -352,12 +352,12 @@ pub fn create_isometric_icon(
 }
 
 pub fn create_play_icon(images: &mut Assets<Image>) -> Handle<Image> {
-    ui_icon(images, |fx, fy| fx >= 0.3 && fx <= 0.8 && (fy - 0.5).abs() <= 0.3 * (1.0 - (fx - 0.3) / 0.5),
+    ui_icon(images, |fx, fy| (0.3..=0.8).contains(&fx) && (fy - 0.5).abs() <= 0.3 * (1.0 - (fx - 0.3) / 0.5),
         PLAY_ICON_COLOR)
 }
 
 pub fn create_stop_icon(images: &mut Assets<Image>) -> Handle<Image> {
-    ui_icon(images, |fx, fy| fx >= 0.28 && fx <= 0.72 && fy >= 0.28 && fy <= 0.72,
+    ui_icon(images, |fx, fy| (0.28..=0.72).contains(&fx) && (0.28..=0.72).contains(&fy),
         STOP_ICON_COLOR)
 }
 

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#![allow(clippy::too_many_arguments, clippy::type_complexity, clippy::collapsible_if)]
 
 mod constants;
 mod types;
@@ -41,8 +42,7 @@ fn main() {
         }))
         .insert_resource(BoardSize(3))
         .insert_resource(SelectedTool::default())
-        .insert_resource(HoveredCell::default())
-        .insert_resource(HiddenTileEntity::default())
+        .insert_resource(HoveredCell::default()).insert_resource(HiddenTileEntity::default())
         .insert_resource(GhostCell::default())
         .insert_resource(InventoryState { level: 1, direction: None, color_index: None, last_placed_color: None })
         .insert_resource(PlacedTeleports::default())

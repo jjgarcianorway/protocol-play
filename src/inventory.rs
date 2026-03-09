@@ -357,7 +357,7 @@ pub fn update_status_bar(
         .find(|(i, _)| matches!(i, Interaction::Hovered | Interaction::Pressed))
         .map(|(_, s)| slot_description(s));
     let target = if desc.is_some() { 0.85 } else { 0.0 };
-    if let Some(d) = desc { if **text != d { **text = d.to_string(); } }
+    if let Some(d) = desc { if **text != d { **text = d.to_string() } }
     let cur = color.0.alpha();
     let new = cur + (target - cur) * STATUS_FADE_SPEED * time.delta_secs();
     color.0.set_alpha(if (new - target).abs() < 0.01 { target } else { new });

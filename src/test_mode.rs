@@ -12,9 +12,7 @@ pub fn mark_button_interaction(
     mut border_q: Query<&mut BorderColor, With<MarkButton>>,
 ) {
     if !matches!(*play_mode, PlayMode::Marking) {
-        if let Ok(mut b) = border_q.get_single_mut() {
-            if b.0 != border_unsel() { *b = BorderColor(border_unsel()); }
-        }
+        if let Ok(mut b) = border_q.get_single_mut() { if b.0 != border_unsel() { *b = BorderColor(border_unsel()); } }
     }
     for interaction in &interaction_query {
         if *interaction != Interaction::Pressed { continue; }

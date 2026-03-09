@@ -219,11 +219,9 @@ fn spawn_load_dialog(commands: &mut Commands) {
     if let Ok(readdir) = fs::read_dir(&dir) {
         for entry in readdir.flatten() {
             let path = entry.path();
-            if path.extension().is_some_and(|e| e == "json") {
-                if let Some(stem) = path.file_stem() {
-                    entries.push(stem.to_string_lossy().to_string());
-                }
-            }
+            if path.extension().is_some_and(|e| e == "json") { if let Some(stem) = path.file_stem() {
+                entries.push(stem.to_string_lossy().to_string());
+            }}
         }
     }
     entries.sort();

@@ -75,7 +75,7 @@ pub fn update_bot_formation(
 
     // Compute formation targets
     let mut targets: HashMap<Entity, (Vec2, f32)> = HashMap::new();
-    for (_, idxs) in &groups {
+    for idxs in groups.values() {
         let n = idxs.len();
         let scale = formation_scale(n);
         let dirs: Vec<Direction> = idxs.iter().map(|&i| data[i].4).collect();

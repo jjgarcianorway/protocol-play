@@ -82,7 +82,7 @@ pub fn play_stop_interaction(
         let mut si = 0usize;
         for (coord, kind, _) in &tiles {
             if let TileKind::Source(ci, dir) = *kind {
-                let pos = tile_world_pos(coord.col, coord.row, board_size.0, &kind);
+                let pos = tile_world_pos(coord.col, coord.row, board_size.0, kind);
                 let by = FLOOR_TOP_Y + BOT_SIZE / 2.0;
                 commands.spawn((
                     Mesh3d(assets.bot_mesh.clone()), MeshMaterial3d(assets.bot_materials[ci].clone()),
@@ -116,19 +116,16 @@ pub fn play_stop_interaction(
         for (col, row, was_open) in door_states.0.drain(..) {
             for (coord, mut kind, children) in &mut tiles {
                 if coord.col == col && coord.row == row {
-                    if let TileKind::Door(ref mut open) = *kind {
-                        if *open != was_open {
-                            *open = was_open;
-                            let mat = if was_open { assets.door_open_material.clone() }
-                                else { assets.door_closed_material.clone() };
-                            if let Some(children) = children {
-                                for &child in children.iter() {
-                                    if let Ok(mut m) = mat_q.get_mut(child) { m.0 = mat.clone(); }
-                                }
+                    if let TileKind::Door(ref mut open) = *kind { if *open != was_open {
+                        *open = was_open;
+                        let mat = if was_open { assets.door_open_material.clone() }
+                            else { assets.door_closed_material.clone() };
+                        if let Some(children) = children {
+                            for &child in children.iter() {
+                                if let Ok(mut m) = mat_q.get_mut(child) { m.0 = mat.clone(); }
                             }
                         }
-                    }
-                    break;
+                    }} break;
                 }
             }
         }
@@ -382,16 +379,14 @@ pub fn paint_bots(
         } else if matches!(mov.phase, BotPhase::Cruising | BotPhase::Accelerating) {
             if let Some(TileKind::Painter(ci)) = tiles.iter()
                 .find(|(c, _)| c.col as i32 == mov.col && c.row as i32 == mov.row).map(|(_, k)| *k)
-            {
-                if ci != mov.color_index {
+            { if ci != mov.color_index {
                     let (r, g, b) = SOURCE_COLORS[mov.color_index];
                     let unique = materials.add(StandardMaterial { base_color: Color::srgb(r, g, b), ..default() });
                     *mat = MeshMaterial3d(unique.clone());
                     commands.entity(entity).insert(BotColorTransition {
                         from_color: mov.color_index, to_color: ci, progress: 0.0, material: unique,
                     });
-                }
-            }
+            }}
         }
     }
 }

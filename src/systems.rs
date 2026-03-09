@@ -150,9 +150,7 @@ pub fn update_ghost_and_highlight(
 ) {
     // Restore previous suppressed tile
     if let Some(old_entity) = hidden_tile.0.take() {
-        if let Ok(mut target) = tile_scale_q.get_mut(old_entity) {
-            target.0 = Vec3::ONE;
-        }
+        if let Ok(mut target) = tile_scale_q.get_mut(old_entity) { target.0 = Vec3::ONE; }
     }
 
     let (mut ghost_tf, mut ghost_target, mut ghost_mesh, mut ghost_mat) = ghost_q.single_mut();
@@ -267,9 +265,8 @@ pub fn handle_tile_click(
     let Some((entity, _, kind)) = tile else { return; };
     let ghost_scale = ghost_q.single().scale;
     if let TileKind::Teleport(num) = kind {
-        if selected_tool.0 != Tool::Teleport || inv_state.color_index != Some(*num) {
-            placed_teleports.0[*num] = placed_teleports.0[*num].saturating_sub(1);
-        }
+        if selected_tool.0 != Tool::Teleport || inv_state.color_index != Some(*num)
+        { placed_teleports.0[*num] = placed_teleports.0[*num].saturating_sub(1); }
     }
 
     let same = matches!((selected_tool.0, kind),
@@ -311,8 +308,7 @@ pub fn handle_tile_click(
             }
         }
         Tool::Teleport => {
-            if let Some(num) = inv_state.color_index {
-                if placed_teleports.0[num] < 2 {
+            if let Some(num) = inv_state.color_index { if placed_teleports.0[num] < 2 {
                     placed_teleports.0[num] += 1;
                     despawn(&mut commands, entity);
                     spawn_tile_at_scale(&mut commands, col, row, board_size.0, TileKind::Teleport(num), &assets, ghost_scale);
@@ -346,10 +342,7 @@ pub fn handle_tile_click(
             }
         }
         Tool::Delete => {
-            if let TileKind::Source(ci, _) = kind {
-                if inv_state.level >= 2 { inv_state.color_index = Some(*ci); }
-            }
-            if let TileKind::Goal(ci) = kind {
+            if let TileKind::Source(ci, _) | TileKind::Goal(ci) = kind {
                 if inv_state.level >= 2 { inv_state.color_index = Some(*ci); }
             }
             if let TileKind::Teleport(num) = kind {
