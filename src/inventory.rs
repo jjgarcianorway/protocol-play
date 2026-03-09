@@ -16,9 +16,7 @@ pub fn inventory_interaction(
     l3_slots: Query<(Entity, &InventorySlot), With<Level3Slot>>,
     expansion_q: Query<Entity, With<ExpansionContainer>>,
     icons: Res<InventoryIcons>,
-    placed_sources: Res<PlacedSources>,
     play_mode: Res<PlayMode>,
-    placed_goals: Res<PlacedGoals>,
     placed_teleports: Res<PlacedTeleports>,
     children_q: Query<&Children>,
     mut image_q: Query<&mut ImageNode>,
@@ -47,17 +45,15 @@ pub fn inventory_interaction(
                 }
                 let dir = inv_state.direction.unwrap_or(Direction::North);
                 inv_state.direction = Some(dir);
-                let preferred = inv_state.last_placed_color.or(inv_state.color_index);
-                inv_state.color_index = preferred.filter(|ci| !placed_sources.0.contains(ci))
-                    .or_else(|| (0..NUM_COLORS).find(|ci| !placed_sources.0.contains(ci)));
+                inv_state.color_index = Some(inv_state.last_placed_color.or(inv_state.color_index).unwrap_or(0));
                 inv_state.level = 3;
                 selected_tool.0 = Tool::Source;
                 let expansion = expansion_q.single();
                 spawn_l2_directions(&mut commands, expansion,
                     Direction::all().map(|d| (InventorySlot::SourceDir(d), icons.source_dir(d))), Some(dir));
                 rebuild_l3_colors(&mut commands, expansion,
-                    (0..NUM_COLORS).map(|ci| (InventorySlot::SourceColor(ci), icons.source_color_dir(ci, dir), !placed_sources.0.contains(&ci))).collect(),
-                    inv_state.color_index, "1");
+                    (0..NUM_COLORS).map(|ci| (InventorySlot::SourceColor(ci), icons.source_color_dir(ci, dir), true)).collect(),
+                    inv_state.color_index, "\u{221e}");
             } else {
                 collapse_and_reset(&mut commands, &l2_slots, &l3_slots, &mut inv_state, &mut selected_tool);
             }
@@ -75,8 +71,7 @@ pub fn inventory_interaction(
                     inv_state.color_index = preferred.filter(|ci| *ci < NUM_TELEPORTS && placed_teleports.0[*ci] < 2)
                         .or_else(|| (0..NUM_TELEPORTS).find(|n| placed_teleports.0[*n] < 2));
                 } else {
-                    inv_state.color_index = preferred.filter(|ci| !placed_goals.0.contains(ci))
-                        .or_else(|| (0..NUM_COLORS).find(|ci| !placed_goals.0.contains(ci)));
+                    inv_state.color_index = Some(preferred.unwrap_or(0));
                 }
                 inv_state.level = 3;
                 selected_tool.0 = tool;
@@ -87,8 +82,8 @@ pub fn inventory_interaction(
                         inv_state.color_index, "2");
                 } else {
                     rebuild_l3_colors(&mut commands, expansion,
-                        (0..NUM_COLORS).map(|ci| (InventorySlot::GoalColor(ci), icons.goal_color(ci), !placed_goals.0.contains(&ci))).collect(),
-                        inv_state.color_index, "1");
+                        (0..NUM_COLORS).map(|ci| (InventorySlot::GoalColor(ci), icons.goal_color(ci), true)).collect(),
+                        inv_state.color_index, "\u{221e}");
                 }
             } else {
                 collapse_and_reset(&mut commands, &l2_slots, &l3_slots, &mut inv_state, &mut selected_tool);
@@ -198,11 +193,10 @@ pub fn inventory_interaction(
             let expansion = expansion_q.single();
             if inv_state.level == 2 {
                 inv_state.level = 3;
-                inv_state.color_index = inv_state.color_index.filter(|ci| !placed_sources.0.contains(ci))
-                    .or_else(|| (0..NUM_COLORS).find(|ci| !placed_sources.0.contains(ci)));
+                if inv_state.color_index.is_none() { inv_state.color_index = Some(0); }
                 rebuild_l3_colors(&mut commands, expansion,
-                    (0..NUM_COLORS).map(|ci| (InventorySlot::SourceColor(ci), icons.source_color_dir(ci, dir), !placed_sources.0.contains(&ci))).collect(),
-                    inv_state.color_index, "1");
+                    (0..NUM_COLORS).map(|ci| (InventorySlot::SourceColor(ci), icons.source_color_dir(ci, dir), true)).collect(),
+                    inv_state.color_index, "\u{221e}");
             } else if inv_state.level == 3 && old_dir != Some(dir) {
                 for (entity, slot) in &l3_slots {
                     if let InventorySlot::SourceColor(ci) = slot {
@@ -253,16 +247,12 @@ pub fn inventory_interaction(
             }
         }
         InventorySlot::SourceColor(ci) => {
-            if !placed_sources.0.contains(&ci) {
-                inv_state.color_index = Some(ci);
-                selected_tool.0 = Tool::Source;
-            }
+            inv_state.color_index = Some(ci);
+            selected_tool.0 = Tool::Source;
         }
         InventorySlot::GoalColor(ci) => {
-            if !placed_goals.0.contains(&ci) {
-                inv_state.color_index = Some(ci);
-                selected_tool.0 = Tool::Goal;
-            }
+            inv_state.color_index = Some(ci);
+            selected_tool.0 = Tool::Goal;
         }
         InventorySlot::TurnColor(ci) | InventorySlot::TurnButColor(ci)
         | InventorySlot::BounceColor(ci) | InventorySlot::BounceButColor(ci)

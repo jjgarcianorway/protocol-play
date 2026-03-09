@@ -81,22 +81,15 @@ pub fn rebuild_l3_colors(
 
 pub fn update_l3_availability(
     mut commands: Commands,
-    placed_sources: Res<PlacedSources>,
-    placed_goals: Res<PlacedGoals>,
     placed_teleports: Res<PlacedTeleports>,
     inv_state: Res<InventoryState>,
     l3_slots: Query<(Entity, &InventorySlot, &Node), With<Level3Slot>>,
 ) {
     if inv_state.level != 3 { return; }
-    let sources_changed = placed_sources.is_changed();
-    let goals_changed = placed_goals.is_changed();
-    let teleports_changed = placed_teleports.is_changed();
-    if !sources_changed && !goals_changed && !teleports_changed { return; }
+    if !placed_teleports.is_changed() { return; }
     for (entity, slot, node) in &l3_slots {
         let should_show = match slot {
-            InventorySlot::SourceColor(ci) if sources_changed => Some(!placed_sources.0.contains(ci)),
-            InventorySlot::GoalColor(ci) if goals_changed => Some(!placed_goals.0.contains(ci)),
-            InventorySlot::TeleportNum(num) if teleports_changed => Some(placed_teleports.0[*num] < 2),
+            InventorySlot::TeleportNum(num) => Some(placed_teleports.0[*num] < 2),
             _ => None,
         };
         if let Some(show) = should_show {

@@ -2,7 +2,6 @@
 
 use bevy::prelude::*;
 use serde::{Serialize, Deserialize};
-use std::collections::HashSet;
 use std::f32::consts::{FRAC_PI_2, PI};
 
 
@@ -101,12 +100,6 @@ pub struct InventoryState {
     pub color_index: Option<usize>,
     pub last_placed_color: Option<usize>,
 }
-
-#[derive(Resource, Default)]
-pub struct PlacedSources(pub HashSet<usize>);
-
-#[derive(Resource, Default)]
-pub struct PlacedGoals(pub HashSet<usize>);
 
 #[derive(Resource, Default)]
 pub struct PlacedTeleports(pub [u8; 10]);
@@ -309,8 +302,6 @@ pub enum InventorySlot {
 #[derive(Resource, Default)]
 pub struct SavedBoardState {
     pub tiles: Vec<(u32, u32, TileKind, bool)>,
-    pub placed_sources: HashSet<usize>,
-    pub placed_goals: HashSet<usize>,
     pub placed_teleports: [u8; 10],
     pub inv_state: InventoryState,
     pub selected_tool: Tool,

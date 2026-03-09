@@ -5,6 +5,7 @@ use crate::constants::*;
 use crate::types::*;
 use crate::ui_helpers::*;
 use crate::board::spawn_tile;
+use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
 
@@ -21,18 +22,59 @@ fn sanitize_filename(name: &str) -> String {
         .collect::<String>().trim().to_string()
 }
 
+// === Validation ===
+fn validate_level(
+    tiles: &Query<(&TileCoord, &TileKind, Option<&InventoryMarker>), (With<Tile>, Without<DespawnAtZeroScale>)>,
+    placed_teleports: &PlacedTeleports, validated: &LevelValidated,
+) -> Vec<String> {
+    let mut errors = Vec::new();
+    let mut sources: HashSet<usize> = HashSet::new();
+    let mut goals: HashSet<usize> = HashSet::new();
+    let mut painters: HashSet<usize> = HashSet::new();
+    for (_, kind, _) in tiles.iter() {
+        match kind {
+            TileKind::Source(ci, _) => { sources.insert(*ci); }
+            TileKind::Goal(ci) => { goals.insert(*ci); }
+            TileKind::Painter(ci) => { painters.insert(*ci); }
+            _ => {}
+        }
+    }
+    if sources.is_empty() { errors.push("No source tiles on the board".into()); }
+    if goals.is_empty() { errors.push("No goal tiles on the board".into()); }
+    for &ci in &goals {
+        if !sources.contains(&ci) && !painters.contains(&ci) {
+            errors.push(format!("{} goal has no matching source or painter", COLOR_NAMES[ci]));
+        }
+    }
+    for i in 0..NUM_TELEPORTS {
+        if placed_teleports.0[i] == 1 {
+            errors.push(format!("Teleport {} needs a pair", i + 1));
+        }
+    }
+    if !validated.0 { errors.push("Level has not been tested successfully".into()); }
+    errors
+}
+
 // === Save ===
 pub fn save_button_interaction(
     interaction_query: Query<&Interaction, (With<SaveButton>, Changed<Interaction>)>,
     play_mode: Res<PlayMode>,
     mut commands: Commands,
-    existing_dialog: Query<Entity, Or<(With<SaveDialog>, With<LoadDialog>)>>,
+    existing_dialog: Query<Entity, Or<(With<SaveDialog>, With<LoadDialog>, With<ValidationErrorDialog>)>>,
+    tiles: Query<(&TileCoord, &TileKind, Option<&InventoryMarker>), (With<Tile>, Without<DespawnAtZeroScale>)>,
+    placed_teleports: Res<PlacedTeleports>,
+    validated: Res<LevelValidated>,
 ) {
     if *play_mode != PlayMode::Editing { return; }
     for interaction in &interaction_query {
         if *interaction != Interaction::Pressed { continue; }
         if !existing_dialog.is_empty() { return; }
-        spawn_save_dialog(&mut commands);
+        let errors = validate_level(&tiles, &placed_teleports, &validated);
+        if errors.is_empty() {
+            spawn_save_dialog(&mut commands);
+        } else {
+            spawn_validation_error(&mut commands, &errors);
+        }
     }
 }
 
@@ -55,6 +97,32 @@ fn spawn_save_dialog(commands: &mut Commands) {
                     .with_child((Text::new("Cancel"), tf, tc));
             });
     });
+}
+
+fn spawn_validation_error(commands: &mut Commands, errors: &[String]) {
+    let tf = TextFont { font_size: DIALOG_TITLE_FONT, ..default() };
+    let bf = TextFont { font_size: DIALOG_BODY_FONT, ..default() };
+    let tc = TextColor(Color::WHITE);
+    spawn_dialog(commands, ValidationErrorDialog, dialog_panel_node(DIALOG_ROW_GAP), |panel| {
+        panel.spawn((Text::new("Cannot Save"), tf.clone(), TextColor(rgb(SIM_ERROR_COLOR))));
+        for err in errors {
+            panel.spawn((Text::new(format!("• {err}")), bf.clone(), tc));
+        }
+        panel.spawn((Button, ValidationErrorOk, dialog_btn_node(), BackgroundColor(btn_bg())))
+            .with_child((Text::new("OK"), tf, tc));
+    });
+}
+
+pub fn validation_error_ok(
+    mut commands: Commands,
+    q: Query<&Interaction, (With<ValidationErrorOk>, Changed<Interaction>)>,
+    dialog: Query<Entity, With<ValidationErrorDialog>>,
+    keys: Res<ButtonInput<KeyCode>>,
+) {
+    let ok = q.iter().any(|i| *i == Interaction::Pressed) || keys.just_pressed(KeyCode::Escape)
+        || keys.just_pressed(KeyCode::Enter);
+    if !ok || dialog.is_empty() { return; }
+    fade_out::<ValidationErrorDialog>(&mut commands, &dialog);
 }
 
 pub fn save_dialog_input(
@@ -193,15 +261,13 @@ pub fn load_dialog_buttons(
     tiles: Query<Entity, With<Tile>>,
     assets: Res<GameAssets>,
     mut board_size: ResMut<BoardSize>,
-    mut placed_sources: ResMut<PlacedSources>,
-    mut placed_goals: ResMut<PlacedGoals>,
     mut placed_teleports: ResMut<PlacedTeleports>,
     mut inv_state: ResMut<InventoryState>,
     mut selected_tool: ResMut<SelectedTool>,
     keys: Res<ButtonInput<KeyCode>>,
-    size_text: Query<Entity, With<BoardSizeText>>,
-    mut text_writer: Query<&mut Text>,
+    mut size_text_q: Query<&mut Text, With<BoardSizeText>>,
     expansion: Query<(Entity, &Children), With<ExpansionContainer>>,
+    mut validated: ResMut<LevelValidated>,
 ) {
     let cancel = cancel_q.iter().any(|i| *i == Interaction::Pressed) || keys.just_pressed(KeyCode::Escape);
     if cancel { fade_out(&mut commands, &dialog); return; }
@@ -230,8 +296,6 @@ pub fn load_dialog_buttons(
     }
 
     // Rebuild tracking state
-    placed_sources.0.clear();
-    placed_goals.0.clear();
     placed_teleports.0 = [0; 10];
     for &(col, row, kind, is_marked) in &level.tiles {
         if col >= board_size.0 || row >= board_size.0 { continue; }
@@ -246,25 +310,17 @@ pub fn load_dialog_buttons(
                 ));
             });
         }
-        match kind {
-            TileKind::Source(ci, _) => { placed_sources.0.insert(ci); }
-            TileKind::Goal(ci) => { placed_goals.0.insert(ci); }
-            TileKind::Teleport(n) => { placed_teleports.0[n] += 1; }
-            _ => {}
-        }
+        if let TileKind::Teleport(n) = kind { placed_teleports.0[n] += 1; }
     }
-    // Reset inventory state and collapse any expanded L2/L3 slots
+    validated.0 = false;
     *inv_state = InventoryState::default();
     inv_state.level = 1;
     selected_tool.0 = Tool::Floor;
     if let Ok((_, children)) = expansion.get_single() {
         for &child in children.iter() { commands.entity(child).despawn_recursive(); }
     }
-    // Update board size text
-    if let Ok(entity) = size_text.get_single() {
-        if let Ok(mut text) = text_writer.get_mut(entity) {
-            text.0 = format!("{}x{}", board_size.0, board_size.0);
-        }
+    if let Ok(mut text) = size_text_q.get_single_mut() {
+        text.0 = format!("{}x{}", board_size.0, board_size.0);
     }
     fade_out(&mut commands, &dialog);
 }

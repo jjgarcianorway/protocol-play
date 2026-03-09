@@ -174,8 +174,6 @@ pub fn button_interaction(
     tiles: Query<Entity, With<Tile>>,
     assets: Res<GameAssets>,
     mut size_text: Query<&mut Text, With<BoardSizeText>>,
-    mut placed_sources: ResMut<PlacedSources>,
-    mut placed_goals: ResMut<PlacedGoals>,
     mut placed_teleports: ResMut<PlacedTeleports>,
     play_mode: Res<PlayMode>,
     mut validated: ResMut<LevelValidated>,
@@ -189,8 +187,6 @@ pub fn button_interaction(
         };
         if new_size == board_size.0 { continue; }
         board_size.0 = new_size; validated.0 = false;
-        placed_sources.0.clear();
-        placed_goals.0.clear();
         placed_teleports.0 = [0; 10];
         for entity in &tiles { commands.entity(entity).despawn_recursive(); }
         spawn_board(&mut commands, new_size, &assets);

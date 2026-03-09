@@ -20,7 +20,7 @@ pub enum BotPhase {
 pub struct BotMovement {
     pub direction: Direction, pub color_index: usize,
     pub col: i32, pub row: i32,
-    pub progress: f32, pub speed: f32, pub phase: BotPhase,
+    pub progress: f32, pub speed: f32, pub phase: BotPhase, pub spawn_index: usize,
 }
 
 #[derive(Resource)]
@@ -79,6 +79,7 @@ pub fn play_stop_interaction(
         for (coord, kind, _) in &tiles {
             if let TileKind::Door(open) = *kind { door_states.0.push((coord.col, coord.row, open)); }
         }
+        let mut si = 0usize;
         for (coord, kind, _) in &tiles {
             if let TileKind::Source(ci, dir) = *kind {
                 let pos = tile_world_pos(coord.col, coord.row, board_size.0, &kind);
@@ -89,7 +90,7 @@ pub fn play_stop_interaction(
                         .with_rotation(Quat::from_rotation_y(dir.rotation())).with_scale(Vec3::ZERO),
                     TargetScale(Vec3::ONE), Bot,
                     BotMovement { direction: dir, color_index: ci, col: coord.col as i32,
-                        row: coord.row as i32, progress: 0.5, speed: 0.0, phase: BotPhase::Accelerating },
+                        row: coord.row as i32, progress: 0.5, speed: 0.0, phase: BotPhase::Accelerating, spawn_index: si },
                 )).with_children(|parent| {
                     let ez = -(BOT_SIZE / 2.0 + BOT_EYE_D / 2.0 + OVERLAY_MESH_THICKNESS);
                     for ex in [-BOT_EYE_SPACING, BOT_EYE_SPACING] {
@@ -98,6 +99,7 @@ pub fn play_stop_interaction(
                             Transform::from_translation(Vec3::new(ex, BOT_EYE_Y_OFFSET, ez))));
                     }
                 });
+                si += 1;
             }
         }
     } else if can_stop {
@@ -161,6 +163,7 @@ pub fn move_bots(
     };
 
     for (mut transform, mut mov, mut target_scale) in &mut bots {
+        let (ox, oz) = BOT_XZ_OFFSETS[mov.spawn_index % BOT_XZ_OFFSETS.len()];
         match mov.phase {
             BotPhase::Stopped => continue,
             BotPhase::Accelerating => {
@@ -198,16 +201,16 @@ pub fn move_bots(
                 if mov.progress >= 0.5 { mov.progress = 0.5; mov.speed = 0.0; mov.phase = BotPhase::FallingPause(FALL_PAUSE); }
             }
             BotPhase::FallingPause(ref mut t) => { *t -= dt; if *t <= 0.0 { mov.phase = BotPhase::Falling(0.0); }
-                transform.translation = Vec3::new(mov.col as f32 - half, bot_y, mov.row as f32 - half); continue; }
+                transform.translation = Vec3::new(mov.col as f32 - half + ox, bot_y, mov.row as f32 - half + oz); continue; }
             BotPhase::Falling(ref mut p) => { *p = (*p + dt / FALL_DURATION).min(1.0); let s = (1.0 - *p).max(0.0);
                 transform.translation.y = bot_y - *p * *p * FALL_DISTANCE;
                 transform.scale = Vec3::splat(s); target_scale.0 = Vec3::splat(s); continue; }
-            BotPhase::Spinning => { transform.translation = Vec3::new(mov.col as f32 - half, bot_y, mov.row as f32 - half);
+            BotPhase::Spinning => { transform.translation = Vec3::new(mov.col as f32 - half + ox, bot_y, mov.row as f32 - half + oz);
                 transform.rotation = Quat::from_rotation_y(time.elapsed_secs() * BOT_SPIN_SPEED); continue; }
             BotPhase::TeleportShrink { target_col, target_row } => {
                 if transform.scale.x < TELEPORT_SHRINK_DONE {
                     mov.col = target_col; mov.row = target_row; mov.progress = 0.5; mov.speed = 0.0;
-                    transform.translation = Vec3::new(target_col as f32 - half, bot_y, target_row as f32 - half);
+                    transform.translation = Vec3::new(target_col as f32 - half + ox, bot_y, target_row as f32 - half + oz);
                     transform.scale = Vec3::ZERO; target_scale.0 = Vec3::ONE; mov.phase = BotPhase::TeleportGrow;
                 } continue; }
             BotPhase::TeleportGrow => { if transform.scale.x > TELEPORT_GROW_DONE { transform.scale = Vec3::ONE; mov.phase = BotPhase::Accelerating; } continue; }
@@ -216,7 +219,7 @@ pub fn move_bots(
                 transform.rotation = Quat::from_rotation_y(entry_dir.rotation())
                     .slerp(Quat::from_rotation_y(exit_dir.rotation()), *progress);
                 if *progress >= 1.0 { mov.direction = exit_dir; mov.phase = BotPhase::Accelerating; }
-                transform.translation = Vec3::new(mov.col as f32 - half, bot_y, mov.row as f32 - half);
+                transform.translation = Vec3::new(mov.col as f32 - half + ox, bot_y, mov.row as f32 - half + oz);
                 continue;
             }
         }
@@ -248,14 +251,11 @@ pub fn move_bots(
             }
         }
 
-        // Update world position
         let (dc, dr) = mov.direction.grid_delta();
-        let cx = mov.col as f32 - half;
-        let cz = mov.row as f32 - half;
         transform.translation = Vec3::new(
-            cx + (mov.progress - 0.5) * dc as f32,
+            mov.col as f32 - half + (mov.progress - 0.5) * dc as f32 + ox,
             bot_y,
-            cz + (mov.progress - 0.5) * dr as f32,
+            mov.row as f32 - half + (mov.progress - 0.5) * dr as f32 + oz,
         );
     }
 }

@@ -139,8 +139,6 @@ pub fn test_button_interaction(
     mut saved_board: ResMut<SavedBoardState>,
     mut saved_test: ResMut<SavedTestState>,
     mut test_inv: ResMut<TestInventory>,
-    placed_sources: Res<PlacedSources>,
-    placed_goals: Res<PlacedGoals>,
     placed_teleports: Res<PlacedTeleports>,
     inv_state: Res<InventoryState>,
     selected_tool: Res<SelectedTool>,
@@ -153,8 +151,6 @@ pub fn test_button_interaction(
 
         saved_board.tiles.clear();
         for (_, c, k, m) in &tiles { saved_board.tiles.push((c.col, c.row, *k, m.is_some())); }
-        saved_board.placed_sources = placed_sources.0.clone();
-        saved_board.placed_goals = placed_goals.0.clone();
         saved_board.placed_teleports = placed_teleports.0;
         saved_board.inv_state = inv_state.clone();
         saved_board.selected_tool = selected_tool.0;
@@ -238,8 +234,6 @@ pub fn stop_test_interaction(
     assets: Res<GameAssets>,
     board_size: Res<BoardSize>,
     saved_board: Res<SavedBoardState>,
-    mut placed_sources: ResMut<PlacedSources>,
-    mut placed_goals: ResMut<PlacedGoals>,
     mut placed_teleports: ResMut<PlacedTeleports>,
     mut inv_state: ResMut<InventoryState>,
     mut selected_tool: ResMut<SelectedTool>,
@@ -258,8 +252,6 @@ pub fn stop_test_interaction(
         let e = spawn_tile(&mut commands, col, row, board_size.0, kind, &assets);
         if marked { add_marker(&mut commands, e, &assets); }
     }
-    placed_sources.0 = saved_board.placed_sources.clone();
-    placed_goals.0 = saved_board.placed_goals.clone();
     placed_teleports.0 = saved_board.placed_teleports;
     *inv_state = saved_board.inv_state.clone();
     selected_tool.0 = saved_board.selected_tool;

@@ -43,8 +43,6 @@ fn main() {
         .insert_resource(HiddenTileEntity::default())
         .insert_resource(GhostCell::default())
         .insert_resource(InventoryState { level: 1, direction: None, color_index: None, last_placed_color: None })
-        .insert_resource(PlacedSources::default())
-        .insert_resource(PlacedGoals::default())
         .insert_resource(PlacedTeleports::default())
         .insert_resource(PlayMode::default())
         .insert_resource(DoorToggleCount::default())
