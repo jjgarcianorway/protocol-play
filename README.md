@@ -4,14 +4,14 @@ A game built with [Bevy](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.9.0** - Arrow and ArrowBut tiles with full simulation logic.
+**v0.10.0** - Multiple same-color sources/goals allowed; bots form visible clusters instead of z-fighting.
 
 ### Features
 - Resizable board (3x3 to 12x12) with smooth scale animations
 - Adaptive camera (30° isometric view, resolution-independent)
 - **Floor tiles** with procedural gray textures and dark edge borders
-- **Source tiles** with circle+arrow symbol, 10 distinct colors, directional rotation, replaceable
-- **Goal tiles** with star symbol, 10 colors, max 1 per color
+- **Source tiles** with circle+arrow symbol, 10 distinct colors, directional rotation, replaceable, unlimited per color
+- **Goal tiles** with star symbol, 10 colors, unlimited per color
 - **Turn tiles** with L-shaped corner piece, 11 colors (10 + grey for all bots), directional, unlimited
 - **TurnBut tiles** with L-shape + forbidden symbol, affects all bots except matching color, 10 colors
 - **Teleport tiles** with ring + 7-segment number, max 2 per number (10 pairs), bot shrinks/grows between paired teleports
@@ -39,6 +39,7 @@ A game built with [Bevy](https://bevyengine.org/) (Rust).
 - Placed source/goal/teleport colors collapse out of inventory, deleted ones smoothly reappear
 - **UI helper library** (`ui_helpers.rs`): reusable color helpers, node builders, dialog spawner for consistent UX
 - **Comprehensive constants** (`constants.rs`): all colors, sizes, speeds, thresholds centralized
+- **Bot cluster rendering**: each bot gets a unique fixed XZ offset so overlapping bots form a visible cluster instead of z-fighting
 - Modular codebase: 14 modules, all files ≤400 lines
 
 ## Building
