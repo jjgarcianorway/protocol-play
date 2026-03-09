@@ -371,14 +371,9 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
                 column_gap: Val::Vw(INVENTORY_GAP_VW), align_items: AlignItems::Center, ..default() },
             BackgroundColor(rgba(INVENTORY_BG)),
         )).with_children(|container| {
-            let sf = TextFont { font_size: COUNT_FONT, ..default() };
-            let sc = TextColor(Color::srgba(0.0, 0.0, 0.0, 0.0));
             for (slot_type, icon_handle, selected) in &l1_slots {
                 container.spawn((Button, sn.clone(), BackgroundColor(slot_bg()), border_for(*selected), *slot_type))
-                    .with_children(|slot| {
-                        slot.spawn((icon_node(), ImageNode::new(icon_handle.clone())));
-                        slot.spawn((Text::new(" "), sf.clone(), sc));
-                    });
+                    .with_child((icon_node(), ImageNode::new(icon_handle.clone())));
             }
             container.spawn((
                 Node { flex_direction: FlexDirection::Row, column_gap: Val::Vw(INVENTORY_GAP_VW),
@@ -386,10 +381,7 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
                 ExpansionContainer,
             ));
             container.spawn((Button, sn, BackgroundColor(slot_bg()), border_for(false), InventorySlot::Delete))
-                .with_children(|slot| {
-                    slot.spawn((icon_node(), ImageNode::new(delete_icon)));
-                    slot.spawn((Text::new(" "), sf, sc));
-                });
+                .with_child((icon_node(), ImageNode::new(delete_icon)));
             // Status tooltip overlays the top of the inventory panel
             container.spawn(Node { position_type: PositionType::Absolute, top: Val::Px(-20.0),
                 width: Val::Percent(100.0), justify_content: JustifyContent::Center, ..default() })

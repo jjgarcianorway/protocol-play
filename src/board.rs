@@ -215,11 +215,11 @@ pub fn adapt_camera(
     let dist_h = radius / half_fov_h.sin();
     let distance = dist_v.max(dist_h) * CAMERA_MARGIN;
     let dir = camera_direction();
-    // Shift look-at up to center board between top bar and inventory
-    // Inventory ~5% from bottom, top bar ~4% from top → net shift ~0.5% upward in NDC
-    let inv_frac = 0.06; // fraction of screen taken by bottom inventory
-    let top_frac = 0.04; // fraction of screen taken by top bar
-    let shift = (inv_frac - top_frac) / 2.0 * distance * fov;
+    // Shift look-at up to center board between top bar (~50px) and inventory (~4vw + slide)
+    let inv_px = window.height() * 0.04 + 4.0; // inventory height in px
+    let top_px = 54.0; // top bar approximate height in px
+    let shift_px = (inv_px - top_px) / 2.0; // net pixel shift
+    let shift = shift_px / window.height() * distance * fov;
     let look_at = Vec3::new(0.0, shift, 0.0);
     *transform = Transform::from_translation(look_at + dir * distance).looking_at(look_at, Vec3::Y);
 }
