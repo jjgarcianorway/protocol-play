@@ -4,7 +4,7 @@ A game built with [Bevy](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.8.0** - UI helper library, polished animations, comprehensive constants.
+**v0.9.0** - Arrow and ArrowBut tiles with full simulation logic.
 
 ### Features
 - Resizable board (3x3 to 12x12) with smooth scale animations
@@ -18,13 +18,15 @@ A game built with [Bevy](https://bevyengine.org/) (Rust).
 - **Bouncer tiles** with diamond shape, reverses bot direction 180°, 11 colors (10 + grey), unlimited
 - **BounceBut tiles** with diamond + forbidden symbol, reverses all except matching color, 10 colors
 - **Door tiles** (open/closed) with switch tile interaction
+- **Arrow tiles** with arrow symbol, forces all bots to follow its direction (including 180° U-turns), 11 colors (10 + grey)
+- **ArrowBut tiles** with arrow + forbidden symbol, bounces matching color bots, redirects all others, 10 colors
 - **Delete tool** with smooth red overlay fade-in/out and fade trails between cells
 - **Two-texture emission system**: base texture for shape/stroke, color mask for programmatic coloring via emissive
 - **Editable file-based textures** (`assets/textures/`): base and mask PNGs auto-generated on first run, editable afterwards
 - **Color memory**: switching tools remembers last placed color instead of auto-cycling
 - **Multi-level accordion inventory** with auto-selection:
-  - L1: Floor, Source, Goal, Turn, TurnBut, Teleport, Bounce, BounceBut, Door, Switch, Delete
-  - L2: 4 directional variants (N/E/S/W) for Source, Turn, TurnBut; Open/Closed for Door
+  - L1: Floor, Source, Goal, Turn, TurnBut, Teleport, Bounce, BounceBut, Door, Switch, Painter, Arrow, ArrowBut, Delete
+  - L2: 4 directional variants (N/E/S/W) for Source, Turn, TurnBut, Arrow, ArrowBut; Open/Closed for Door
   - L3: Color/number selection with count indicators and availability tracking
 - **Test mode**: mark tiles for inventory, flat sorted test inventory, remove tool, reset
 - **Level save/load** with fade-in/out dialog animations
