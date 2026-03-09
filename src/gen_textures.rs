@@ -1,0 +1,104 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// Generates symbol textures and saves them as PNG files in assets/textures/.
+// The game loads these files at runtime, so you can edit the PNGs to customize appearance.
+
+use image::{RgbaImage, Rgba};
+use std::path::Path;
+use crate::constants::*;
+
+fn in_turn_shape(x: f32, y: f32, expand: f32) -> bool {
+    let half_width = 0.06 + expand;
+    if x > -expand && x < 0.75 + expand && y.abs() < half_width { return true; }
+    if y > -(0.75 + expand) && y < expand && x.abs() < half_width { return true; }
+    let end_r = half_width;
+    let dx = x - 0.75;
+    if (dx * dx + y * y).sqrt() < end_r { return true; }
+    let dy = y + 0.75;
+    if (x * x + dy * dy).sqrt() < end_r { return true; }
+    false
+}
+
+fn in_turn_center(x: f32, y: f32) -> bool {
+    (x * x + y * y).sqrt() < 0.14
+}
+
+fn in_source_shape(x: f32, y: f32, expand: f32) -> bool {
+    let dist = (x * x + y * y).sqrt();
+    if dist < 0.35 + expand { return true; }
+    if x.abs() < 0.05 + expand && y < -(0.35 - expand) && y > -(0.62 + expand) { return true; }
+    let tip_y = -0.82;
+    let base_y = -0.58;
+    if y > tip_y - expand && y < base_y + expand {
+        let t = ((y - tip_y) / (base_y - tip_y)).clamp(0.0, 1.0);
+        if x.abs() < 0.14 * t + expand { return true; }
+    }
+    false
+}
+
+fn generate_symbol_textures(
+    size: u32, dir: &Path,
+    name: &str,
+    shape_fn: fn(f32, f32, f32) -> bool,
+    center_fn: Option<fn(f32, f32) -> bool>,
+    center_brightness: f32,
+) {
+    let c = size as f32 / 2.0;
+    let mut base = RgbaImage::new(size, size);
+    let mut mask = RgbaImage::new(size, size);
+
+    for py in 0..size {
+        for px in 0..size {
+            let (nx, ny) = ((px as f32 - c) / c, (py as f32 - c) / c);
+            if center_fn.is_some_and(|cf| cf(nx, ny)) {
+                // Center: black in base (opaque), dark gray in mask
+                base.put_pixel(px, py, Rgba([0, 0, 0, 255]));
+                let b = (center_brightness * 255.0) as u8;
+                mask.put_pixel(px, py, Rgba([b, b, b, 255]));
+            } else if shape_fn(nx, ny, 0.0) {
+                // Fill: black in base (opaque), white in mask
+                base.put_pixel(px, py, Rgba([0, 0, 0, 255]));
+                mask.put_pixel(px, py, Rgba([255, 255, 255, 255]));
+            } else if shape_fn(nx, ny, STROKE_EXPAND) {
+                // Stroke: dark gray in base, black in mask (no color applied)
+                base.put_pixel(px, py, Rgba(SYMBOL_STROKE));
+                mask.put_pixel(px, py, Rgba([0, 0, 0, 255]));
+            }
+            // else: both stay transparent [0,0,0,0]
+        }
+    }
+
+    base.save(dir.join(format!("{name}_base.png"))).expect("Failed to save base texture");
+    mask.save(dir.join(format!("{name}_mask.png"))).expect("Failed to save mask texture");
+}
+
+fn generate_floor_texture(size: u32, border: u32, dir: &Path) {
+    let mut img = RgbaImage::new(size, size);
+    for y in 0..size {
+        for x in 0..size {
+            let on_edge = x < border || x >= size - border || y < border || y >= size - border;
+            let color = if on_edge { TILE_DARK } else { TILE_GRAY };
+            img.put_pixel(x, y, Rgba(color));
+        }
+    }
+    img.save(dir.join("floor.png")).expect("Failed to save floor texture");
+}
+
+/// Generates all symbol textures as PNG files in assets/textures/.
+/// Call once at startup; the PNGs can then be edited by hand.
+pub fn ensure_textures() {
+    let dir = Path::new("assets/textures");
+    // Skip if textures already exist (user may have edited them)
+    if dir.join("source_base.png").exists()
+        && dir.join("source_mask.png").exists()
+        && dir.join("turn_base.png").exists()
+        && dir.join("turn_mask.png").exists()
+        && dir.join("floor.png").exists()
+    {
+        return;
+    }
+    std::fs::create_dir_all(dir).expect("Failed to create textures directory");
+    generate_symbol_textures(TILE_TEX_SIZE, dir, "source", in_source_shape, None, 0.0);
+    generate_symbol_textures(TILE_TEX_SIZE, dir, "turn", in_turn_shape, Some(in_turn_center), TURN_CENTER_BRIGHTNESS);
+    generate_floor_texture(TILE_TEX_SIZE, TILE_TEX_BORDER, dir);
+}

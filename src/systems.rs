@@ -285,6 +285,7 @@ pub fn handle_tile_click(
             if let (Some(dir), Some(ci)) = (inv_state.direction, inv_state.color_index) {
                 if !placed_sources.0.contains(&ci) {
                     placed_sources.0.insert(ci);
+                    inv_state.last_placed_color = Some(ci);
                     commands.entity(entity).insert((TargetScale(Vec3::ZERO), DespawnAtZeroScale));
                     spawn_tile_at_scale(&mut commands, col, row, board_size.0, TileKind::Source(ci, dir), &assets, ghost_scale);
                     let next = (1..NUM_COLORS)
@@ -299,6 +300,7 @@ pub fn handle_tile_click(
         }
         (Tool::Turn, TileKind::Empty | TileKind::Floor | TileKind::Source(_, _) | TileKind::Turn(_, _)) => {
             if let (Some(dir), Some(ci)) = (inv_state.direction, inv_state.color_index) {
+                inv_state.last_placed_color = Some(ci);
                 commands.entity(entity).insert((TargetScale(Vec3::ZERO), DespawnAtZeroScale));
                 spawn_tile_at_scale(&mut commands, col, row, board_size.0, TileKind::Turn(ci, dir), &assets, ghost_scale);
             }

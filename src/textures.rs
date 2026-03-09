@@ -12,22 +12,26 @@ fn make_image(images: &mut Assets<Image>, data: Vec<u8>, size: u32) -> Handle<Im
     ))
 }
 
-pub fn color_to_u8(r: f32, g: f32, b: f32) -> [u8; 4] {
-    [(r * 255.0).clamp(0.0, 255.0) as u8, (g * 255.0).clamp(0.0, 255.0) as u8,
-     (b * 255.0).clamp(0.0, 255.0) as u8, 255]
+/// Load a PNG file synchronously and create a Bevy Image asset.
+/// `is_srgb` controls whether the texture uses sRGB or linear format.
+pub fn load_png_texture(images: &mut Assets<Image>, path: &str, is_srgb: bool) -> Handle<Image> {
+    let img = image::open(path).unwrap_or_else(|e| panic!("Failed to load {path}: {e}"));
+    let rgba = img.to_rgba8();
+    let (w, h) = (rgba.width(), rgba.height());
+    let format = if is_srgb { TextureFormat::Rgba8UnormSrgb } else { TextureFormat::Rgba8Unorm };
+    images.add(Image::new(
+        Extent3d { width: w, height: h, depth_or_array_layers: 1 },
+        TextureDimension::D2, rgba.into_raw(), format, default(),
+    ))
 }
 
 pub fn create_tile_texture(images: &mut Assets<Image>, size: u32, border: u32) -> Handle<Image> {
-    let mut data = vec![0u8; (size * size * 4) as usize];
-    for y in 0..size {
-        for x in 0..size {
-            let on_edge = x < border || x >= size - border || y < border || y >= size - border;
-            let color = if on_edge { TILE_DARK } else { TILE_GRAY };
-            let i = ((y * size + x) * 4) as usize;
-            data[i..i + 4].copy_from_slice(&color);
-        }
-    }
-    make_image(images, data, size)
+    make_image(images, tile_texture_data(size, border), size)
+}
+
+pub fn color_to_u8(r: f32, g: f32, b: f32) -> [u8; 4] {
+    [(r * 255.0).clamp(0.0, 255.0) as u8, (g * 255.0).clamp(0.0, 255.0) as u8,
+     (b * 255.0).clamp(0.0, 255.0) as u8, 255]
 }
 
 pub fn create_delete_icon(images: &mut Assets<Image>) -> Handle<Image> {
@@ -49,34 +53,26 @@ pub fn create_delete_icon(images: &mut Assets<Image>) -> Handle<Image> {
     make_image(images, data, ICON_SIZE)
 }
 
-pub fn create_empty_marker_texture(images: &mut Assets<Image>) -> Handle<Image> {
-    const SIZE: u32 = 64;
-    const BORDER: u32 = 3;
-    let mut data = vec![0u8; (SIZE * SIZE * 4) as usize];
-    for y in 0..SIZE {
-        for x in 0..SIZE {
-            let on_edge = x < BORDER || x >= SIZE - BORDER || y < BORDER || y >= SIZE - BORDER;
-            let color: [u8; 4] = if on_edge { [100, 100, 100, 120] } else { [0, 0, 0, 0] };
-            let i = ((y * SIZE + x) * 4) as usize;
-            data[i..i + 4].copy_from_slice(&color);
+fn create_border_texture(images: &mut Assets<Image>, size: u32, border: u32, edge: [u8; 4]) -> Handle<Image> {
+    let mut data = vec![0u8; (size * size * 4) as usize];
+    for y in 0..size {
+        for x in 0..size {
+            let on_edge = x < border || x >= size - border || y < border || y >= size - border;
+            if on_edge {
+                let i = ((y * size + x) * 4) as usize;
+                data[i..i + 4].copy_from_slice(&edge);
+            }
         }
     }
-    make_image(images, data, SIZE)
+    make_image(images, data, size)
+}
+
+pub fn create_empty_marker_texture(images: &mut Assets<Image>) -> Handle<Image> {
+    create_border_texture(images, 64, 3, [100, 100, 100, 120])
 }
 
 pub fn create_highlight_texture(images: &mut Assets<Image>) -> Handle<Image> {
-    const SIZE: u32 = 64;
-    const BORDER: u32 = 4;
-    let mut data = vec![0u8; (SIZE * SIZE * 4) as usize];
-    for y in 0..SIZE {
-        for x in 0..SIZE {
-            let on_edge = x < BORDER || x >= SIZE - BORDER || y < BORDER || y >= SIZE - BORDER;
-            let color: [u8; 4] = if on_edge { [255, 255, 255, 200] } else { [0, 0, 0, 0] };
-            let i = ((y * SIZE + x) * 4) as usize;
-            data[i..i + 4].copy_from_slice(&color);
-        }
-    }
-    make_image(images, data, SIZE)
+    create_border_texture(images, 64, 4, [255, 255, 255, 200])
 }
 
 // === Shape tests ===
@@ -107,48 +103,6 @@ fn in_source_shape(x: f32, y: f32, expand: f32) -> bool {
         if x.abs() < 0.14 * t + expand { return true; }
     }
     false
-}
-
-// === Symbol textures ===
-pub fn create_source_symbol_texture(images: &mut Assets<Image>, size: u32) -> Handle<Image> {
-    let fill: [u8; 4] = [255, 255, 255, 255];
-    let center = size as f32 / 2.0;
-    let scale = size as f32 / 2.0;
-    let mut data = vec![0u8; (size * size * 4) as usize];
-    for py in 0..size {
-        for px in 0..size {
-            let nx = (px as f32 - center) / scale;
-            let ny = (py as f32 - center) / scale;
-            let color = if in_source_shape(nx, ny, 0.0) { fill }
-                else if in_source_shape(nx, ny, STROKE_EXPAND) { SYMBOL_STROKE }
-                else { [0, 0, 0, 0] };
-            let i = ((py * size + px) * 4) as usize;
-            data[i..i + 4].copy_from_slice(&color);
-        }
-    }
-    make_image(images, data, size)
-}
-
-pub fn create_turn_symbol_texture(images: &mut Assets<Image>, size: u32) -> Handle<Image> {
-    let fill: [u8; 4] = [255, 255, 255, 255];
-    let b = (TURN_CENTER_BRIGHTNESS * 255.0) as u8;
-    let center_dot: [u8; 4] = [b, b, b, 255];
-    let center = size as f32 / 2.0;
-    let scale = size as f32 / 2.0;
-    let mut data = vec![0u8; (size * size * 4) as usize];
-    for py in 0..size {
-        for px in 0..size {
-            let nx = (px as f32 - center) / scale;
-            let ny = (py as f32 - center) / scale;
-            let color = if in_turn_center(nx, ny) { center_dot }
-                else if in_turn_shape(nx, ny, 0.0) { fill }
-                else if in_turn_shape(nx, ny, STROKE_EXPAND) { SYMBOL_STROKE }
-                else { [0, 0, 0, 0] };
-            let i = ((py * size + px) * 4) as usize;
-            data[i..i + 4].copy_from_slice(&color);
-        }
-    }
-    make_image(images, data, size)
 }
 
 // === Icon texture data ===

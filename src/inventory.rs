@@ -188,7 +188,15 @@ pub fn inventory_interaction(
                 }
                 let dir = inv_state.direction.unwrap_or(Direction::North);
                 inv_state.direction = Some(dir);
-                if inv_state.color_index.is_none() || placed_sources.0.contains(&inv_state.color_index.unwrap_or(0)) {
+                // Prefer last placed color, then current, then first available
+                let preferred = inv_state.last_placed_color.or(inv_state.color_index);
+                if let Some(ci) = preferred {
+                    if !placed_sources.0.contains(&ci) {
+                        inv_state.color_index = Some(ci);
+                    } else {
+                        inv_state.color_index = (0..NUM_COLORS).find(|ci| !placed_sources.0.contains(ci));
+                    }
+                } else {
                     inv_state.color_index = (0..NUM_COLORS).find(|ci| !placed_sources.0.contains(ci));
                 }
                 inv_state.level = 3;
@@ -211,9 +219,9 @@ pub fn inventory_interaction(
                 }
                 let dir = inv_state.direction.unwrap_or(Direction::North);
                 inv_state.direction = Some(dir);
-                if inv_state.color_index.is_none() {
-                    inv_state.color_index = Some(0);
-                }
+                // Prefer last placed color, then current, then default to 0
+                let preferred = inv_state.last_placed_color.or(inv_state.color_index);
+                inv_state.color_index = Some(preferred.unwrap_or(0));
                 inv_state.level = 3;
                 selected_tool.0 = Tool::Turn;
                 let expansion = expansion_q.single();

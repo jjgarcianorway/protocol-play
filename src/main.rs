@@ -3,6 +3,7 @@
 mod constants;
 mod types;
 mod textures;
+mod gen_textures;
 mod board;
 mod inventory;
 mod systems;
@@ -16,6 +17,7 @@ use inventory::*;
 use systems::*;
 
 fn main() {
+    gen_textures::ensure_textures();
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
@@ -29,7 +31,7 @@ fn main() {
         .insert_resource(HoveredCell::default())
         .insert_resource(HiddenTileEntity::default())
         .insert_resource(GhostCell::default())
-        .insert_resource(InventoryState { level: 1, direction: None, color_index: None })
+        .insert_resource(InventoryState { level: 1, direction: None, color_index: None, last_placed_color: None })
         .insert_resource(PlacedSources::default())
         .insert_resource(PlayMode::default())
         .add_systems(Startup, (setup_scene, setup_ui))
@@ -57,6 +59,7 @@ fn setup_scene(
     mut images: ResMut<Assets<Image>>,
     board_size: Res<BoardSize>,
 ) {
+    // Floor texture: procedural (needed immediately at startup)
     let floor_texture = create_tile_texture(&mut images, TILE_TEX_SIZE, TILE_TEX_BORDER);
     let floor_material = materials.add(StandardMaterial {
         base_color_texture: Some(floor_texture.clone()),
@@ -93,42 +96,53 @@ fn setup_scene(
     });
     let highlight_mesh = meshes.add(Cuboid::new(1.05, 0.001, 1.05));
 
-    let source_symbol_texture = create_source_symbol_texture(&mut images, TILE_TEX_SIZE);
+    // Load symbol textures from files (editable PNGs, loaded synchronously)
+    // Base: stroke visible (dark gray), fill/center black, transparent bg (sRGB)
+    // Mask: white = apply color, gray = dark color, black = no color (linear)
+    let source_base_tex = load_png_texture(&mut images, "assets/textures/source_base.png", true);
+    let source_color_mask = load_png_texture(&mut images, "assets/textures/source_mask.png", false);
     let source_symbol_mesh = meshes.add(Cuboid::new(0.99, 0.001, 0.99));
+    // Placed tiles: base for alpha + stroke, emissive for programmatic color
     let source_symbol_materials: Vec<_> = SOURCE_COLORS.iter().map(|&(r, g, b)| {
         materials.add(StandardMaterial {
-            base_color: Color::srgb(r, g, b),
-            base_color_texture: Some(source_symbol_texture.clone()),
+            base_color: Color::WHITE,
+            base_color_texture: Some(source_base_tex.clone()),
             alpha_mode: AlphaMode::Mask(0.5),
-            unlit: true,
+            emissive: LinearRgba::from(Color::srgb(r, g, b)),
+            emissive_texture: Some(source_color_mask.clone()),
+            reflectance: 0.0,
             ..default()
         })
     }).collect();
+    // Ghost overlays: mask-only approach (base_color tinting + alpha blend)
     let ghost_symbol_materials: Vec<_> = SOURCE_COLORS.iter().map(|&(r, g, b)| {
         materials.add(StandardMaterial {
             base_color: Color::srgba(r, g, b, GHOST_ALPHA),
-            base_color_texture: Some(source_symbol_texture.clone()),
+            base_color_texture: Some(source_color_mask.clone()),
             alpha_mode: AlphaMode::Blend,
             unlit: true,
             ..default()
         })
     }).collect();
 
-    let turn_symbol_texture = create_turn_symbol_texture(&mut images, TILE_TEX_SIZE);
+    let turn_base_tex = load_png_texture(&mut images, "assets/textures/turn_base.png", true);
+    let turn_color_mask = load_png_texture(&mut images, "assets/textures/turn_mask.png", false);
     let turn_symbol_mesh = meshes.add(Cuboid::new(0.99, 0.001, 0.99));
     let turn_symbol_materials: Vec<_> = SOURCE_COLORS.iter().map(|&(r, g, b)| {
         materials.add(StandardMaterial {
-            base_color: Color::srgb(r, g, b),
-            base_color_texture: Some(turn_symbol_texture.clone()),
+            base_color: Color::WHITE,
+            base_color_texture: Some(turn_base_tex.clone()),
             alpha_mode: AlphaMode::Mask(0.5),
-            unlit: true,
+            emissive: LinearRgba::from(Color::srgb(r, g, b)),
+            emissive_texture: Some(turn_color_mask.clone()),
+            reflectance: 0.0,
             ..default()
         })
     }).collect();
     let ghost_turn_materials: Vec<_> = SOURCE_COLORS.iter().map(|&(r, g, b)| {
         materials.add(StandardMaterial {
             base_color: Color::srgba(r, g, b, GHOST_ALPHA),
-            base_color_texture: Some(turn_symbol_texture.clone()),
+            base_color_texture: Some(turn_color_mask.clone()),
             alpha_mode: AlphaMode::Blend,
             unlit: true,
             ..default()

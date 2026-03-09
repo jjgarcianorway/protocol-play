@@ -68,6 +68,7 @@ pub struct InventoryState {
     pub level: u8,
     pub direction: Option<Direction>,
     pub color_index: Option<usize>,
+    pub last_placed_color: Option<usize>,
 }
 
 #[derive(Resource, Default)]

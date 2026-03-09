@@ -4,7 +4,7 @@ A game built with [Bevy](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.4.0** - Turn tiles, modular codebase, and constants-driven styling.
+**v0.5.0** - File-based textures with two-texture emission system, color memory.
 
 ### Features
 - Resizable board (3x3 to 12x12) with smooth scale animations
@@ -13,6 +13,9 @@ A game built with [Bevy](https://bevyengine.org/) (Rust).
 - **Source tiles** with circle+arrow symbol, 10 distinct colors, directional rotation, replaceable
 - **Turn tiles** with L-shaped corner piece and dark-colored center circle, 10 colors, unlimited placement per color
 - **Delete tool** with smooth red overlay fade-in/out and fade trails between cells
+- **Two-texture emission system**: base texture for shape/stroke, color mask for programmatic coloring via emissive
+- **Editable file-based textures** (`assets/textures/`): base and mask PNGs auto-generated on first run, editable afterwards
+- **Color memory**: switching tools remembers last placed color instead of auto-cycling
 - **Multi-level accordion inventory** with auto-selection:
   - L1: Floor, Source, Turn, Delete — switching tools collapses/expands as needed
   - L2: 4 directional variants (N/E/S/W) — auto-selected on tool click
