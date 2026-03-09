@@ -220,9 +220,8 @@ fn setup_scene(
         DirectionalLight { illuminance: LIGHT_ILLUMINANCE, shadows_enabled: true, ..default() },
         Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, LIGHT_ELEVATION, LIGHT_AZIMUTH, 0.0)),
     ));
-    let look = Vec3::new(0.0, CAMERA_LOOK_Y, 0.0);
     commands.spawn((Camera3d::default(),
-        Transform::from_translation(look + camera_direction() * 5.0).looking_at(look, Vec3::Y)));
+        Transform::from_translation(camera_direction() * 5.0).looking_at(Vec3::ZERO, Vec3::Y)));
 }
 
 fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
@@ -363,7 +362,8 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
 
     commands.spawn((Node {
         position_type: PositionType::Absolute, bottom: Val::Px(INV_SLIDE_HIDE),
-        width: Val::Percent(100.0), align_items: AlignItems::Center, ..default()
+        width: Val::Percent(100.0), justify_content: JustifyContent::Center,
+        align_items: AlignItems::Center, ..default()
     }, InventoryContainer, UiBottomAnim { target: INV_SLIDE_SHOW, despawn_at_target: false },
     )).with_children(|parent| {
         parent.spawn((

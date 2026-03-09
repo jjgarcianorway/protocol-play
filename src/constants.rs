@@ -4,7 +4,6 @@
 pub const CAMERA_ELEVATION: f32 = 30.0;
 pub const CAMERA_AZIMUTH: f32 = 45.0;
 pub const CAMERA_MARGIN: f32 = 1.05;
-pub const CAMERA_LOOK_Y: f32 = 0.5;
 
 // === Board ===
 pub const MIN_BOARD_SIZE: u32 = 3;
