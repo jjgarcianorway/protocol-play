@@ -144,3 +144,206 @@ pub fn animate_merge_flashes(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    const MIN_SEP: f32 = 0.08; // minimum distance between any two bots on same tile
+
+    fn no_overlap(offsets: &[Vec2]) {
+        for i in 0..offsets.len() {
+            for j in (i + 1)..offsets.len() {
+                let d = offsets[i].distance(offsets[j]);
+                assert!(d >= MIN_SEP, "Overlap: slot {i} and {j} dist={d:.4} < {MIN_SEP}");
+            }
+        }
+    }
+
+    #[test]
+    fn single_bot_centered() {
+        assert_eq!(formation_scale(1), 1.0);
+    }
+
+    #[test]
+    fn scales_decrease_with_count() {
+        let s: Vec<f32> = (1..=4).map(formation_scale).collect();
+        for w in s.windows(2) { assert!(w[0] > w[1], "Scale should decrease: {} > {}", w[0], w[1]); }
+    }
+
+    #[test]
+    fn perp_offsets_no_overlap_north() {
+        for n in 2..=4 {
+            let offs: Vec<Vec2> = (0..n).map(|s| perp_offset(Direction::North, s, n)).collect();
+            no_overlap(&offs);
+        }
+    }
+
+    #[test]
+    fn perp_offsets_no_overlap_east() {
+        for n in 2..=4 {
+            let offs: Vec<Vec2> = (0..n).map(|s| perp_offset(Direction::East, s, n)).collect();
+            no_overlap(&offs);
+        }
+    }
+
+    #[test]
+    fn perp_offsets_symmetric() {
+        for n in [2, 3, 4] {
+            let offs: Vec<f32> = formation_offsets(n).to_vec();
+            let sum: f32 = offs.iter().sum();
+            assert!(sum.abs() < 0.01, "n={n}: offsets should be roughly symmetric, sum={sum}");
+        }
+    }
+
+    #[test]
+    fn grid_offsets_no_overlap() {
+        for n in 2..=4 {
+            let offs: Vec<Vec2> = (0..n).map(|s| grid_offset(s, n)).collect();
+            no_overlap(&offs);
+        }
+    }
+
+    #[test]
+    fn north_south_same_axis() {
+        assert_eq!(direction_axis(Direction::North), direction_axis(Direction::South));
+    }
+
+    #[test]
+    fn east_west_same_axis() {
+        assert_eq!(direction_axis(Direction::East), direction_axis(Direction::West));
+    }
+
+    #[test]
+    fn north_east_different_axis() {
+        assert_ne!(direction_axis(Direction::North), direction_axis(Direction::East));
+    }
+
+    #[test]
+    fn perp_north_spreads_on_x() {
+        let o = perp_offset(Direction::North, 0, 2);
+        assert!(o.x.abs() > 0.0 && o.y == 0.0, "North should spread on X: {o:?}");
+    }
+
+    #[test]
+    fn perp_east_spreads_on_z() {
+        let o = perp_offset(Direction::East, 0, 2);
+        assert!(o.x == 0.0 && o.y.abs() > 0.0, "East should spread on Z: {o:?}");
+    }
+
+    #[test]
+    fn special_phases_excluded() {
+        assert!(is_special(&BotPhase::Stopped));
+        assert!(is_special(&BotPhase::Falling(0.5)));
+        assert!(is_special(&BotPhase::FallingPause(0.1)));
+        assert!(is_special(&BotPhase::FallingDecel));
+        assert!(is_special(&BotPhase::TeleportShrink { target_col: 0, target_row: 0 }));
+        assert!(is_special(&BotPhase::TeleportGrow));
+        assert!(!is_special(&BotPhase::Cruising));
+        assert!(!is_special(&BotPhase::Accelerating));
+    }
+
+    #[test]
+    fn all_offsets_within_half_tile() {
+        for n in 2..=4 {
+            for s in 0..n {
+                for dir in Direction::all() {
+                    let o = perp_offset(dir, s, n);
+                    assert!(o.x.abs() < 0.5 && o.y.abs() < 0.5,
+                        "Offset out of tile: dir={dir:?} n={n} slot={s} off={o:?}");
+                }
+                let g = grid_offset(s, n);
+                assert!(g.x.abs() < 0.5 && g.y.abs() < 0.5,
+                    "Grid offset out of tile: n={n} slot={s} off={g:?}");
+            }
+        }
+    }
+
+    /// Simulate the full formation assignment logic for a group of bots
+    fn simulate_formation(dirs: &[Direction]) -> Vec<(Vec2, f32)> {
+        let n = dirs.len();
+        let scale = formation_scale(n);
+        let same_axis = n > 1 && dirs.windows(2).all(|w| direction_axis(w[0]) == direction_axis(w[1]));
+        (0..n).map(|slot| {
+            let off = if n == 1 { Vec2::ZERO }
+                else if same_axis { perp_offset(dirs[slot], slot, n) }
+                else { grid_offset(slot, n) };
+            (off, scale)
+        }).collect()
+    }
+
+    #[test]
+    fn two_north_bots_parallel_lanes() {
+        let r = simulate_formation(&[Direction::North, Direction::North]);
+        assert_eq!(r.len(), 2);
+        assert_eq!(r[0].1, 0.70);
+        no_overlap(&r.iter().map(|r| r.0).collect::<Vec<_>>());
+        // Both should spread on X only
+        assert_eq!(r[0].0.y, 0.0);
+        assert_eq!(r[1].0.y, 0.0);
+    }
+
+    #[test]
+    fn two_east_bots_parallel_lanes() {
+        let r = simulate_formation(&[Direction::East, Direction::East]);
+        no_overlap(&r.iter().map(|r| r.0).collect::<Vec<_>>());
+        assert_eq!(r[0].0.x, 0.0);
+        assert_eq!(r[1].0.x, 0.0);
+    }
+
+    #[test]
+    fn north_vs_south_same_axis_lanes() {
+        let r = simulate_formation(&[Direction::North, Direction::South]);
+        no_overlap(&r.iter().map(|r| r.0).collect::<Vec<_>>());
+        // N/S share axis → perpendicular lanes on X
+        assert_eq!(r[0].0.y, 0.0);
+    }
+
+    #[test]
+    fn north_vs_east_mixed_grid() {
+        let r = simulate_formation(&[Direction::North, Direction::East]);
+        no_overlap(&r.iter().map(|r| r.0).collect::<Vec<_>>());
+        // Mixed → 2D grid, both components nonzero
+        assert!(r[0].0.x.abs() > 0.0 && r[0].0.y.abs() > 0.0);
+    }
+
+    #[test]
+    fn three_mixed_directions() {
+        let r = simulate_formation(&[Direction::North, Direction::East, Direction::South]);
+        no_overlap(&r.iter().map(|r| r.0).collect::<Vec<_>>());
+        assert_eq!(r[0].1, 0.56);
+    }
+
+    #[test]
+    fn four_mixed_directions() {
+        let r = simulate_formation(&[Direction::North, Direction::East, Direction::South, Direction::West]);
+        no_overlap(&r.iter().map(|r| r.0).collect::<Vec<_>>());
+        assert_eq!(r[0].1, 0.48);
+    }
+
+    #[test]
+    fn four_same_direction() {
+        let r = simulate_formation(&[Direction::South; 4]);
+        no_overlap(&r.iter().map(|r| r.0).collect::<Vec<_>>());
+        assert_eq!(r[0].1, 0.48);
+    }
+
+    #[test]
+    fn bots_fit_within_scaled_tile() {
+        // Verify scaled bots + offsets don't exceed tile boundaries
+        let bot = BOT_SIZE; // 0.35
+        for n in 2..=4 {
+            let s = formation_scale(n);
+            let half_bot = bot * s / 2.0;
+            for slot in 0..n {
+                for dir in Direction::all() {
+                    let o = perp_offset(dir, slot, n);
+                    let max_extent = (o.x.abs() + half_bot).max(o.y.abs() + half_bot);
+                    assert!(max_extent < 0.5, "Bot exceeds tile: n={n} dir={dir:?} slot={slot} ext={max_extent:.3}");
+                }
+                let g = grid_offset(slot, n);
+                let max_extent = (g.x.abs() + half_bot).max(g.y.abs() + half_bot);
+                assert!(max_extent < 0.5, "Grid bot exceeds tile: n={n} slot={slot} ext={max_extent:.3}");
+            }
+        }
+    }
+}
