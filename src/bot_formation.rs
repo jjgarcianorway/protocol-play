@@ -22,6 +22,19 @@ fn perp_offset(dir: Direction, slot: usize, n: usize) -> Vec2 {
     }
 }
 
+/// 2D grid offsets for bots with mixed travel directions on the same tile
+fn grid_offset(slot: usize, n: usize) -> Vec2 {
+    const G2: [Vec2; 2] = [Vec2::new(-0.13, -0.13), Vec2::new(0.13, 0.13)];
+    const G3: [Vec2; 3] = [Vec2::new(-0.15, -0.10), Vec2::new(0.15, -0.10), Vec2::new(0.0, 0.15)];
+    const G4: [Vec2; 4] = [Vec2::new(-0.13, -0.13), Vec2::new(0.13, -0.13),
+                            Vec2::new(-0.13, 0.13), Vec2::new(0.13, 0.13)];
+    match n {
+        2 => G2.get(slot).copied().unwrap_or(Vec2::ZERO),
+        3 => G3.get(slot).copied().unwrap_or(Vec2::ZERO),
+        _ => G4.get(slot).copied().unwrap_or(Vec2::ZERO),
+    }
+}
+
 fn is_special(phase: &BotPhase) -> bool {
     matches!(phase,
         BotPhase::TeleportShrink { .. } | BotPhase::TeleportGrow
@@ -83,7 +96,9 @@ pub fn update_bot_formation(
         let mut sorted = idxs.clone();
         sorted.sort_by_key(|&i| data[i].3); // stable slot by spawn_index
         for (slot, &idx) in sorted.iter().enumerate() {
-            let off = if same_axis { perp_offset(data[idx].4, slot, n) } else { Vec2::ZERO };
+            let off = if n == 1 { Vec2::ZERO }
+                else if same_axis { perp_offset(data[idx].4, slot, n) }
+                else { grid_offset(slot, n) };
             targets.insert(data[idx].0, (off, scale));
         }
     }
