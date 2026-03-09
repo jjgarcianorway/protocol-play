@@ -363,7 +363,7 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
 
     commands.spawn((Node {
         position_type: PositionType::Absolute, bottom: Val::Px(INV_SLIDE_HIDE),
-        width: Val::Percent(100.0), justify_content: JustifyContent::Center, ..default()
+        width: Val::Percent(100.0), align_items: AlignItems::Center, ..default()
     }, InventoryContainer, UiBottomAnim { target: INV_SLIDE_SHOW, despawn_at_target: false },
     )).with_children(|parent| {
         parent.spawn((
@@ -374,7 +374,7 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
             let sf = TextFont { font_size: COUNT_FONT, ..default() };
             let sc = TextColor(Color::srgba(0.0, 0.0, 0.0, 0.0));
             for (slot_type, icon_handle, selected) in &l1_slots {
-                container.spawn((Button, sn.clone(), BackgroundColor(slot_bg()), border_for(*selected), *slot_type, Level1Slot))
+                container.spawn((Button, sn.clone(), BackgroundColor(slot_bg()), border_for(*selected), *slot_type))
                     .with_children(|slot| {
                         slot.spawn((icon_node(), ImageNode::new(icon_handle.clone())));
                         slot.spawn((Text::new(" "), sf.clone(), sc));
@@ -385,13 +385,13 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
                     align_items: AlignItems::Center, ..default() },
                 ExpansionContainer,
             ));
-            container.spawn((Button, sn, BackgroundColor(slot_bg()), border_for(false), InventorySlot::Delete, Level1Slot))
+            container.spawn((Button, sn, BackgroundColor(slot_bg()), border_for(false), InventorySlot::Delete))
                 .with_children(|slot| {
                     slot.spawn((icon_node(), ImageNode::new(delete_icon)));
                     slot.spawn((Text::new(" "), sf, sc));
                 });
-            // Status tooltip overlays the inventory panel
-            container.spawn(Node { position_type: PositionType::Absolute, top: Val::Px(2.0),
+            // Status tooltip overlays the top of the inventory panel
+            container.spawn(Node { position_type: PositionType::Absolute, top: Val::Px(-20.0),
                 width: Val::Percent(100.0), justify_content: JustifyContent::Center, ..default() })
                 .with_child((Text::new(""), TextFont { font_size: STATUS_FONT, ..default() },
                     TextColor(Color::srgba(1.0, 1.0, 1.0, 0.0)), StatusBarText));

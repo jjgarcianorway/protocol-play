@@ -4,7 +4,7 @@
 pub const CAMERA_ELEVATION: f32 = 30.0;
 pub const CAMERA_AZIMUTH: f32 = 45.0;
 pub const CAMERA_MARGIN: f32 = 1.05;
-pub const CAMERA_LOOK_Y: f32 = 0.2;
+pub const CAMERA_LOOK_Y: f32 = 0.5;
 
 // === Board ===
 pub const MIN_BOARD_SIZE: u32 = 3;
@@ -39,15 +39,15 @@ pub const TOP_SLIDE_SHOW: f32 = 10.0;
 pub const BANNER_SLIDE_HIDE: f32 = -40.0;
 
 // === UI sizes ===
-pub const SLOT_VW: f32 = 5.5;
-pub const SLOT_HEIGHT_VW: f32 = 6.8;
-pub const ICON_VW: f32 = 4.2;
-pub const SLOT_BORDER_PX: f32 = 2.0;
+pub const SLOT_VW: f32 = 3.0;
+pub const SLOT_HEIGHT_VW: f32 = 3.8;
+pub const ICON_VW: f32 = 2.4;
+pub const SLOT_BORDER_PX: f32 = 1.5;
 pub const ICON_SIZE: u32 = 128;
 pub const TOP_BTN_SIZE: f32 = 44.0;
 pub const TOP_BTN_FONT: f32 = 26.0;
 pub const LABEL_FONT: f32 = 16.0;
-pub const COUNT_FONT: f32 = 14.0;
+pub const COUNT_FONT: f32 = 10.0;
 pub const DIALOG_TITLE_FONT: f32 = 20.0;
 pub const DIALOG_BODY_FONT: f32 = 16.0;
 pub const TEX_SIZE: u32 = 128;
@@ -57,8 +57,8 @@ pub const TILE_TEX_BORDER: u32 = 12;
 pub const PLAY_BTN_SIZE: f32 = 52.0;
 pub const PLAY_BTN_BORDER: f32 = 3.0;
 pub const BANNER_HEIGHT: f32 = 36.0;
-pub const INVENTORY_PAD_VW: f32 = 0.6;
-pub const INVENTORY_GAP_VW: f32 = 0.5;
+pub const INVENTORY_PAD_VW: f32 = 0.4;
+pub const INVENTORY_GAP_VW: f32 = 0.3;
 pub const BTN_MARGIN: f32 = 2.0;
 pub const TEXT_BTN_PAD: (f32, f32) = (14.0, 8.0);
 pub const TEXT_BTN_LEFT_MARGIN: f32 = 12.0;
