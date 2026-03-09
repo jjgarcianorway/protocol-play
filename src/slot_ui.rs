@@ -110,12 +110,31 @@ pub fn collapse_expansion(
     for (e, _) in l3.iter() { commands.entity(e).insert(NodeWidthAnim { target: 0.0, despawn_at_zero: true }); }
 }
 
+pub fn collapse_l1(
+    commands: &mut Commands, l1: &Query<(Entity, &InventorySlot), With<Level1Slot>>,
+    keep: InventorySlot,
+) {
+    for (e, slot) in l1.iter() {
+        if std::mem::discriminant(slot) != std::mem::discriminant(&keep) {
+            commands.entity(e).insert(NodeWidthAnim { target: 0.0, despawn_at_zero: false });
+        }
+    }
+}
+
+pub fn expand_l1(commands: &mut Commands, l1: &Query<(Entity, &InventorySlot), With<Level1Slot>>) {
+    for (e, _) in l1.iter() {
+        commands.entity(e).insert(NodeWidthAnim { target: SLOT_VW, despawn_at_zero: false });
+    }
+}
+
 pub fn collapse_and_reset(
     commands: &mut Commands, l2: &Query<Entity, With<Level2Slot>>,
     l3: &Query<(Entity, &InventorySlot), With<Level3Slot>>,
+    l1: &Query<(Entity, &InventorySlot), With<Level1Slot>>,
     inv: &mut InventoryState, tool: &mut SelectedTool,
 ) {
     collapse_expansion(commands, l2, l3);
+    expand_l1(commands, l1);
     *inv = InventoryState { level: 1, ..default() };
     tool.0 = Tool::Floor;
 }

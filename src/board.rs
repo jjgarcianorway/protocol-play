@@ -215,5 +215,6 @@ pub fn adapt_camera(
     let dist_h = radius / half_fov_h.sin();
     let distance = dist_v.max(dist_h) * CAMERA_MARGIN;
     let dir = camera_direction();
-    *transform = Transform::from_translation(dir * distance).looking_at(Vec3::ZERO, Vec3::Y);
+    let look_at = Vec3::new(0.0, CAMERA_LOOK_Y, 0.0);
+    *transform = Transform::from_translation(look_at + dir * distance).looking_at(look_at, Vec3::Y);
 }

@@ -4,6 +4,7 @@
 pub const CAMERA_ELEVATION: f32 = 30.0;
 pub const CAMERA_AZIMUTH: f32 = 45.0;
 pub const CAMERA_MARGIN: f32 = 1.05;
+pub const CAMERA_LOOK_Y: f32 = 0.2;
 
 // === Board ===
 pub const MIN_BOARD_SIZE: u32 = 3;
@@ -164,7 +165,7 @@ pub const TILE_DARK: [u8; 4] = [60, 60, 60, 255];
 pub const SYMBOL_STROKE: [u8; 4] = [80, 80, 80, 255];
 pub const STROKE_EXPAND: f32 = 0.025;
 pub const TURN_CENTER_BRIGHTNESS: f32 = 0.35;
-pub const ICON_WHITE: [u8; 4] = [240, 240, 240, 255];
+pub const ICON_WHITE: [u8; 4] = [100, 100, 100, 255];
 pub const ICON_DARK_BG: [u8; 4] = [40, 40, 40, 255];
 pub const ISO_SIDE_COLOR: [u8; 4] = [50, 50, 50, 255];
 pub const ISO_BOTTOM_COLOR: [u8; 4] = [35, 35, 35, 255];

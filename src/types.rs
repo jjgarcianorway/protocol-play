@@ -283,6 +283,7 @@ pub enum InventorySlot {
 #[derive(Component)] pub struct Level2Slot;
 #[derive(Component)] pub struct Level3Slot;
 #[derive(Component)] pub struct ExpansionContainer;
+#[derive(Component)] pub struct Level1Slot;
 #[derive(Component)] pub struct Bot;
 #[derive(Component)] pub struct PlayStopButton;
 #[derive(Component)] pub struct PlayButtonImage;

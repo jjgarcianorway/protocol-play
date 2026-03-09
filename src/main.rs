@@ -49,8 +49,7 @@ fn main() {
         .insert_resource(PlayMode::default())
         .insert_resource(DoorToggleCount::default()).insert_resource(OriginalDoorStates::default())
         .insert_resource(SimulationResult::default()).insert_resource(PrevTileCounts::default())
-        .insert_resource(SavedBoardState::default())
-        .insert_resource(SavedTestState::default())
+        .insert_resource(SavedBoardState::default()).insert_resource(SavedTestState::default())
         .insert_resource(TestInventory::default())
         .insert_resource(LevelValidated::default())
         .add_systems(Startup, (setup_scene, setup_ui))
@@ -221,10 +220,9 @@ fn setup_scene(
         DirectionalLight { illuminance: LIGHT_ILLUMINANCE, shadows_enabled: true, ..default() },
         Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, LIGHT_ELEVATION, LIGHT_AZIMUTH, 0.0)),
     ));
-    commands.spawn((
-        Camera3d::default(),
-        Transform::from_translation(camera_direction() * 5.0).looking_at(Vec3::ZERO, Vec3::Y),
-    ));
+    let look = Vec3::new(0.0, CAMERA_LOOK_Y, 0.0);
+    commands.spawn((Camera3d::default(),
+        Transform::from_translation(look + camera_direction() * 5.0).looking_at(look, Vec3::Y)));
 }
 
 fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
@@ -365,12 +363,9 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
 
     commands.spawn((Node {
         position_type: PositionType::Absolute, bottom: Val::Px(INV_SLIDE_HIDE),
-        width: Val::Percent(100.0), align_items: AlignItems::Center, ..default()
+        width: Val::Percent(100.0), justify_content: JustifyContent::Center, ..default()
     }, InventoryContainer, UiBottomAnim { target: INV_SLIDE_SHOW, despawn_at_target: false },
     )).with_children(|parent| {
-        parent.spawn(Node { margin: UiRect::bottom(Val::Px(6.0)), ..default() })
-            .with_child((Text::new(""), TextFont { font_size: STATUS_FONT, ..default() },
-                TextColor(Color::srgba(1.0, 1.0, 1.0, 0.0)), StatusBarText));
         parent.spawn((
             Node { flex_direction: FlexDirection::Row, padding: UiRect::all(Val::Vw(INVENTORY_PAD_VW)),
                 column_gap: Val::Vw(INVENTORY_GAP_VW), align_items: AlignItems::Center, ..default() },
@@ -379,7 +374,7 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
             let sf = TextFont { font_size: COUNT_FONT, ..default() };
             let sc = TextColor(Color::srgba(0.0, 0.0, 0.0, 0.0));
             for (slot_type, icon_handle, selected) in &l1_slots {
-                container.spawn((Button, sn.clone(), BackgroundColor(slot_bg()), border_for(*selected), *slot_type))
+                container.spawn((Button, sn.clone(), BackgroundColor(slot_bg()), border_for(*selected), *slot_type, Level1Slot))
                     .with_children(|slot| {
                         slot.spawn((icon_node(), ImageNode::new(icon_handle.clone())));
                         slot.spawn((Text::new(" "), sf.clone(), sc));
@@ -390,11 +385,16 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
                     align_items: AlignItems::Center, ..default() },
                 ExpansionContainer,
             ));
-            container.spawn((Button, sn, BackgroundColor(slot_bg()), border_for(false), InventorySlot::Delete))
+            container.spawn((Button, sn, BackgroundColor(slot_bg()), border_for(false), InventorySlot::Delete, Level1Slot))
                 .with_children(|slot| {
                     slot.spawn((icon_node(), ImageNode::new(delete_icon)));
                     slot.spawn((Text::new(" "), sf, sc));
                 });
+            // Status tooltip overlays the inventory panel
+            container.spawn(Node { position_type: PositionType::Absolute, top: Val::Px(2.0),
+                width: Val::Percent(100.0), justify_content: JustifyContent::Center, ..default() })
+                .with_child((Text::new(""), TextFont { font_size: STATUS_FONT, ..default() },
+                    TextColor(Color::srgba(1.0, 1.0, 1.0, 0.0)), StatusBarText));
         });
     });
 }

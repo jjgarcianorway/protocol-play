@@ -12,6 +12,7 @@ pub fn inventory_interaction(
     mut selected_tool: ResMut<SelectedTool>,
     mut inv_state: ResMut<InventoryState>,
     slots: Query<(&Interaction, &InventorySlot), Changed<Interaction>>,
+    l1_slots: Query<(Entity, &InventorySlot), With<Level1Slot>>,
     l2_slots: Query<Entity, With<Level2Slot>>,
     l3_slots: Query<(Entity, &InventorySlot), With<Level3Slot>>,
     expansion_q: Query<Entity, With<ExpansionContainer>>,
@@ -35,19 +36,18 @@ pub fn inventory_interaction(
             };
             if inv_state.level > 1 {
                 collapse_expansion(&mut commands, &l2_slots, &l3_slots);
+                expand_l1(&mut commands, &l1_slots);
                 inv_state.level = 1; inv_state.direction = None; inv_state.color_index = None;
             }
         }
         InventorySlot::Source => {
             if inv_state.level == 1 || selected_tool.0 != Tool::Source {
-                if inv_state.level > 1 {
-                    collapse_expansion(&mut commands, &l2_slots, &l3_slots);
-                }
+                if inv_state.level > 1 { collapse_expansion(&mut commands, &l2_slots, &l3_slots); }
+                collapse_l1(&mut commands, &l1_slots, InventorySlot::Source);
                 let dir = inv_state.direction.unwrap_or(Direction::North);
                 inv_state.direction = Some(dir);
                 inv_state.color_index = Some(inv_state.last_placed_color.or(inv_state.color_index).unwrap_or(0));
-                inv_state.level = 3;
-                selected_tool.0 = Tool::Source;
+                inv_state.level = 3; selected_tool.0 = Tool::Source;
                 let expansion = expansion_q.single();
                 spawn_l2_directions(&mut commands, expansion,
                     Direction::all().map(|d| (InventorySlot::SourceDir(d), icons.source_dir(d))), Some(dir));
@@ -55,16 +55,15 @@ pub fn inventory_interaction(
                     (0..NUM_COLORS).map(|ci| (InventorySlot::SourceColor(ci), icons.source_color_dir(ci, dir), true)).collect(),
                     inv_state.color_index, "\u{221e}");
             } else {
-                collapse_and_reset(&mut commands, &l2_slots, &l3_slots, &mut inv_state, &mut selected_tool);
+                collapse_and_reset(&mut commands, &l2_slots, &l3_slots, &l1_slots, &mut inv_state, &mut selected_tool);
             }
         }
         slot @ (InventorySlot::Goal | InventorySlot::Teleport) => {
             let is_tp = matches!(slot, InventorySlot::Teleport);
             let tool = if is_tp { Tool::Teleport } else { Tool::Goal };
             if inv_state.level == 1 || selected_tool.0 != tool {
-                if inv_state.level > 1 {
-                    collapse_expansion(&mut commands, &l2_slots, &l3_slots);
-                }
+                if inv_state.level > 1 { collapse_expansion(&mut commands, &l2_slots, &l3_slots); }
+                collapse_l1(&mut commands, &l1_slots, slot);
                 inv_state.direction = None;
                 let preferred = inv_state.last_placed_color.or(inv_state.color_index);
                 if is_tp {
@@ -86,7 +85,7 @@ pub fn inventory_interaction(
                         inv_state.color_index, "\u{221e}");
                 }
             } else {
-                collapse_and_reset(&mut commands, &l2_slots, &l3_slots, &mut inv_state, &mut selected_tool);
+                collapse_and_reset(&mut commands, &l2_slots, &l3_slots, &l1_slots, &mut inv_state, &mut selected_tool);
             }
         }
         slot @ (InventorySlot::Turn | InventorySlot::TurnBut | InventorySlot::Bounce | InventorySlot::BounceBut) => {
@@ -98,6 +97,7 @@ pub fn inventory_interaction(
             };
             if inv_state.level == 1 || selected_tool.0 != tool {
                 if inv_state.level > 1 { collapse_expansion(&mut commands, &l2_slots, &l3_slots); }
+                collapse_l1(&mut commands, &l1_slots, slot);
                 if has_dir {
                     inv_state.direction = Some(inv_state.direction.unwrap_or(Direction::North));
                 } else {
@@ -131,12 +131,13 @@ pub fn inventory_interaction(
                         inv_state.color_index, "\u{221e}"),
                 };
             } else {
-                collapse_and_reset(&mut commands, &l2_slots, &l3_slots, &mut inv_state, &mut selected_tool);
+                collapse_and_reset(&mut commands, &l2_slots, &l3_slots, &l1_slots, &mut inv_state, &mut selected_tool);
             }
         }
         InventorySlot::Painter => {
             if inv_state.level == 1 || selected_tool.0 != Tool::Painter {
                 if inv_state.level > 1 { collapse_expansion(&mut commands, &l2_slots, &l3_slots); }
+                collapse_l1(&mut commands, &l1_slots, InventorySlot::Painter);
                 inv_state.direction = None;
                 inv_state.color_index = Some(inv_state.last_placed_color.or(inv_state.color_index).unwrap_or(0));
                 inv_state.level = 3; selected_tool.0 = Tool::Painter;
@@ -144,12 +145,13 @@ pub fn inventory_interaction(
                 rebuild_l3_colors(&mut commands, expansion,
                     (0..NUM_COLORS).map(|ci| (InventorySlot::PainterColor(ci), icons.painter_color(ci), true)).collect(),
                     inv_state.color_index, "\u{221e}");
-            } else { collapse_and_reset(&mut commands, &l2_slots, &l3_slots, &mut inv_state, &mut selected_tool); }
+            } else { collapse_and_reset(&mut commands, &l2_slots, &l3_slots, &l1_slots, &mut inv_state, &mut selected_tool); }
         }
         slot @ (InventorySlot::Arrow | InventorySlot::ArrowBut) => {
             let (tool, is_but) = if matches!(slot, InventorySlot::Arrow) { (Tool::Arrow, false) } else { (Tool::ArrowBut, true) };
             if inv_state.level == 1 || selected_tool.0 != tool {
                 if inv_state.level > 1 { collapse_expansion(&mut commands, &l2_slots, &l3_slots); }
+                collapse_l1(&mut commands, &l1_slots, slot);
                 inv_state.direction = Some(inv_state.direction.unwrap_or(Direction::North));
                 inv_state.color_index = Some(inv_state.last_placed_color.or(inv_state.color_index).unwrap_or(0));
                 inv_state.level = 3; selected_tool.0 = tool;
@@ -168,11 +170,12 @@ pub fn inventory_interaction(
                         (0..NUM_ARROW_COLORS).map(|ci| (InventorySlot::ArrowColor(ci), icons.arrow_color_dir(ci, dir), true)).collect(),
                         inv_state.color_index, "\u{221e}");
                 }
-            } else { collapse_and_reset(&mut commands, &l2_slots, &l3_slots, &mut inv_state, &mut selected_tool); }
+            } else { collapse_and_reset(&mut commands, &l2_slots, &l3_slots, &l1_slots, &mut inv_state, &mut selected_tool); }
         }
         InventorySlot::Door => {
             if inv_state.level == 1 || selected_tool.0 != Tool::Door {
                 if inv_state.level > 1 { collapse_expansion(&mut commands, &l2_slots, &l3_slots); }
+                collapse_l1(&mut commands, &l1_slots, InventorySlot::Door);
                 inv_state.color_index = Some(0); inv_state.level = 2; selected_tool.0 = Tool::Door;
                 inv_state.direction = None;
                 let exp = expansion_q.single();
@@ -180,7 +183,7 @@ pub fn inventory_interaction(
                     let c = spawn_base_slot(&mut commands, exp, InventorySlot::DoorState(open), ico, open, true, true, true, "\u{221e}");
                     commands.entity(c).remove::<Level3Slot>().insert(Level2Slot);
                 }
-            } else { collapse_and_reset(&mut commands, &l2_slots, &l3_slots, &mut inv_state, &mut selected_tool); }
+            } else { collapse_and_reset(&mut commands, &l2_slots, &l3_slots, &l1_slots, &mut inv_state, &mut selected_tool); }
         }
         InventorySlot::DoorState(open) => {
             inv_state.color_index = Some(if open { 0 } else { 1 });
