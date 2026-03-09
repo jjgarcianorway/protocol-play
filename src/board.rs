@@ -23,7 +23,8 @@ pub fn tile_world_pos(col: u32, row: u32, board_size: u32, kind: &TileKind) -> V
         TileKind::Floor | TileKind::Source(_, _) | TileKind::Goal(_)
         | TileKind::Turn(_, _) | TileKind::TurnBut(_, _) | TileKind::Teleport(_)
         | TileKind::Bounce(_) | TileKind::BounceBut(_)
-        | TileKind::Door(_) | TileKind::Switch => 0.0,
+        | TileKind::Door(_) | TileKind::Switch | TileKind::Painter(_)
+        | TileKind::Arrow(_, _) | TileKind::ArrowBut(_, _) => 0.0,
     };
     Vec3::new(col as f32 - offset, y, row as f32 - offset)
 }
@@ -71,11 +72,13 @@ pub fn spawn_tile_at_scale(
                 ));
             }).id()
         }
-        TileKind::Goal(ci) | TileKind::Teleport(ci) | TileKind::Bounce(ci) | TileKind::BounceBut(ci) => {
+        TileKind::Goal(ci) | TileKind::Teleport(ci) | TileKind::Bounce(ci) | TileKind::BounceBut(ci)
+        | TileKind::Painter(ci) => {
             let mat = match kind {
                 TileKind::Goal(_) => assets.goal_symbol_materials[ci].clone(),
                 TileKind::Teleport(_) => assets.teleport_symbol_materials[ci].clone(),
                 TileKind::Bounce(_) => assets.bounce_symbol_materials[ci].clone(),
+                TileKind::Painter(_) => assets.painter_symbol_materials[ci].clone(),
                 _ => assets.bouncebot_symbol_materials[ci].clone(),
             };
             commands.spawn((
@@ -133,6 +136,25 @@ pub fn spawn_tile_at_scale(
                 ));
             }).id()
         }
+        TileKind::Arrow(ci, dir) | TileKind::ArrowBut(ci, dir) => {
+            let (mesh, mat) = if matches!(kind, TileKind::Arrow(_, _)) {
+                (assets.arrow_symbol_mesh.clone(), assets.arrow_symbol_materials[ci].clone())
+            } else {
+                (assets.arrowbut_symbol_mesh.clone(), assets.arrowbut_symbol_materials[ci].clone())
+            };
+            commands.spawn((
+                Mesh3d(assets.floor_mesh.clone()), MeshMaterial3d(assets.floor_material.clone()),
+                Transform::from_translation(pos)
+                    .with_rotation(Quat::from_rotation_y(dir.rotation()))
+                    .with_scale(initial_scale),
+                TargetScale(Vec3::ONE), Tile, TileCoord { col, row }, kind,
+            )).with_children(|parent| {
+                parent.spawn((
+                    Mesh3d(mesh), MeshMaterial3d(mat),
+                    Transform::from_translation(Vec3::new(0.0, FLOOR_TOP_Y + SYMBOL_OVERLAY_OFFSET, 0.0)),
+                ));
+            }).id()
+        }
     }
 }
 
@@ -156,6 +178,7 @@ pub fn button_interaction(
     mut placed_goals: ResMut<PlacedGoals>,
     mut placed_teleports: ResMut<PlacedTeleports>,
     play_mode: Res<PlayMode>,
+    mut validated: ResMut<LevelValidated>,
 ) {
     if *play_mode != PlayMode::Editing { return; }
     for (interaction, button) in &interaction_query {
@@ -165,7 +188,7 @@ pub fn button_interaction(
             BoardButton::Decrease => board_size.0.saturating_sub(1).max(MIN_BOARD_SIZE),
         };
         if new_size == board_size.0 { continue; }
-        board_size.0 = new_size;
+        board_size.0 = new_size; validated.0 = false;
         placed_sources.0.clear();
         placed_goals.0.clear();
         placed_teleports.0 = [0; 10];

@@ -53,6 +53,7 @@ fn main() {
         .insert_resource(SavedBoardState::default())
         .insert_resource(SavedTestState::default())
         .insert_resource(TestInventory::default())
+        .insert_resource(LevelValidated::default())
         .add_systems(Startup, (setup_scene, setup_ui))
         .add_systems(Update, (
             animate_node_width, button_interaction, inventory_interaction,
@@ -68,6 +69,7 @@ fn main() {
             overlay_button_interaction,
             play_stop_interaction.after(overlay_button_interaction),
             move_bots.after(play_stop_interaction),
+            paint_bots.after(move_bots),
             toggle_doors.after(move_bots),
             check_simulation_result.after(move_bots),
             spawn_simulation_overlay.after(check_simulation_result),
@@ -83,6 +85,7 @@ fn main() {
             save_button_interaction, save_dialog_input, save_dialog_buttons,
             load_button_interaction, load_dialog_buttons,
         ))
+        .add_systems(Update, (validation_error_ok, update_status_bar))
         .run();
 }
 
@@ -150,6 +153,11 @@ fn setup_scene(
     let sm = load_png_texture(&mut images, "assets/textures/switch_mask.png", false);
     let (switch_material, ghost_switch_material) = make_grey_mat(&mut materials, sb, sm);
 
+    let (painter_symbol_materials, ghost_painter_materials, _, _) = load_tile_mats(&mut materials, &mut images, "painter");
+    let (mut arrow_symbol_materials, mut ghost_arrow_materials, ab, am) = load_tile_mats(&mut materials, &mut images, "arrow");
+    add_grey_mat(&mut materials, &mut arrow_symbol_materials, &mut ghost_arrow_materials, &ab, &am);
+    let (arrowbut_symbol_materials, ghost_arrowbut_materials, _, _) = load_tile_mats(&mut materials, &mut images, "arrowbut");
+
     let bot_mesh = meshes.add(Cuboid::new(BOT_SIZE, BOT_SIZE, BOT_SIZE));
     let eye_mesh = meshes.add(Cuboid::new(BOT_EYE_W, BOT_EYE_H, BOT_EYE_D));
     let eye_material = materials.add(StandardMaterial { base_color: Color::WHITE, unlit: true, ..default() });
@@ -178,6 +186,9 @@ fn setup_scene(
         door_open_material, door_closed_material,
         ghost_door_open_material, ghost_door_closed_material,
         switch_material, ghost_switch_material,
+        painter_symbol_materials, ghost_painter_materials: ghost_painter_materials.clone(),
+        arrow_symbol_mesh: sym_mesh.clone(), arrow_symbol_materials, ghost_arrow_materials: ghost_arrow_materials.clone(),
+        arrowbut_symbol_mesh: sym_mesh.clone(), arrowbut_symbol_materials, ghost_arrowbut_materials: ghost_arrowbut_materials.clone(),
         marker_mesh, marker_material,
         bot_mesh, eye_mesh, bot_materials, eye_material,
     };
@@ -227,34 +238,27 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
 
     // Direction icons (L2) for source and turn
     let dir_icon = |images: &mut Assets<Image>, tex_fn: fn(u32, u32, f32, [u8; 4]) -> Vec<u8>| {
-        Direction::all().map(|d| {
-            let data = tex_fn(TEX_SIZE, TEX_BORDER, -d.rotation(), white);
-            create_isometric_icon(images, &data, TEX_SIZE, ICON_SIZE)
-        })
+        Direction::all().map(|d| create_isometric_icon(images, &tex_fn(TEX_SIZE, TEX_BORDER, -d.rotation(), white), TEX_SIZE, ICON_SIZE))
     };
-    let [source_north, source_east, source_south, source_west] = dir_icon(&mut images, source_texture_colored_data);
-    let [turn_north, turn_east, turn_south, turn_west] = dir_icon(&mut images, turn_texture_colored_data);
+    let source_dir_icons = dir_icon(&mut images, source_texture_colored_data);
+    let turn_dir_icons = dir_icon(&mut images, turn_texture_colored_data);
     let turnbut_dir_icons = dir_icon(&mut images, turnbut_texture_colored_data);
+    let arrow_dir_icons = dir_icon(&mut images, arrow_texture_colored_data);
+    let arrowbut_dir_icons = dir_icon(&mut images, arrowbut_texture_colored_data);
 
     // Color icons per direction
-    let color_dir_icons = |images: &mut Assets<Image>, tex_fn: fn(u32, u32, f32, [u8; 4]) -> Vec<u8>| {
-        (0..NUM_COLORS).flat_map(|ci| {
-            let fill = color_to_u8(SOURCE_COLORS[ci].0, SOURCE_COLORS[ci].1, SOURCE_COLORS[ci].2);
-            Direction::all().map(move |d| (fill, d))
-        }).map(|(fill, d)| {
-            let data = tex_fn(TEX_SIZE, TEX_BORDER, -d.rotation(), fill);
-            create_isometric_icon(images, &data, TEX_SIZE, ICON_SIZE)
-        }).collect()
+    let color_dir_icons = |images: &mut Assets<Image>, tex_fn: fn(u32, u32, f32, [u8; 4]) -> Vec<u8>| -> Vec<_> {
+        (0..NUM_COLORS).flat_map(|ci| { let f = color_to_u8(SOURCE_COLORS[ci].0, SOURCE_COLORS[ci].1, SOURCE_COLORS[ci].2); Direction::all().map(move |d| (f, d)) })
+            .map(|(f, d)| create_isometric_icon(images, &tex_fn(TEX_SIZE, TEX_BORDER, -d.rotation(), f), TEX_SIZE, ICON_SIZE)).collect()
     };
     let source_color_icons = color_dir_icons(&mut images, source_texture_colored_data);
     let mut turn_color_icons: Vec<_> = color_dir_icons(&mut images, turn_texture_colored_data);
-    // Grey turn icons (appended at index NUM_COLORS * 4)
     let grey_fill = color_to_u8(GREY_COLOR.0, GREY_COLOR.1, GREY_COLOR.2);
-    for d in Direction::all() {
-        let data = turn_texture_colored_data(TEX_SIZE, TEX_BORDER, -d.rotation(), grey_fill);
-        turn_color_icons.push(create_isometric_icon(&mut images, &data, TEX_SIZE, ICON_SIZE));
-    }
+    for d in Direction::all() { turn_color_icons.push(create_isometric_icon(&mut images, &turn_texture_colored_data(TEX_SIZE, TEX_BORDER, -d.rotation(), grey_fill), TEX_SIZE, ICON_SIZE)); }
     let turnbut_color_icons = color_dir_icons(&mut images, turnbut_texture_colored_data);
+    let mut arrow_color_icons: Vec<_> = color_dir_icons(&mut images, arrow_texture_colored_data);
+    for d in Direction::all() { arrow_color_icons.push(create_isometric_icon(&mut images, &arrow_texture_colored_data(TEX_SIZE, TEX_BORDER, -d.rotation(), grey_fill), TEX_SIZE, ICON_SIZE)); }
+    let arrowbut_color_icons = color_dir_icons(&mut images, arrowbut_texture_colored_data);
 
     // Teleport icons
     let teleport_icon = icon(&mut images, &teleport_texture_colored_data(TEX_SIZE, TEX_BORDER, 0, white));
@@ -280,20 +284,25 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     let door_open_icon = icon(&mut images, &door_texture_data(TEX_SIZE, TEX_BORDER, grey_fill, false));
     let door_closed_icon = icon(&mut images, &door_texture_data(TEX_SIZE, TEX_BORDER, grey_fill, true));
     let switch_icon = icon(&mut images, &switch_texture_data(TEX_SIZE, TEX_BORDER, white));
+    let painter_icon = icon(&mut images, &painter_texture_colored_data(TEX_SIZE, TEX_BORDER, white));
+    let painter_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci|
+        icon(&mut images, &painter_texture_colored_data(TEX_SIZE, TEX_BORDER, cfill(ci)))).collect();
+    let arrow_icon = icon(&mut images, &arrow_texture_colored_data(TEX_SIZE, TEX_BORDER, 0.0, white));
+    let arrowbut_icon = icon(&mut images, &arrowbut_texture_colored_data(TEX_SIZE, TEX_BORDER, 0.0, white));
 
     let icons = InventoryIcons {
         floor: floor_icon.clone(), source: source_icon.clone(),
         goal: goal_icon.clone(), turn: turn_icon.clone(), delete: delete_icon.clone(),
-        source_north, source_east, source_south, source_west,
-        source_color_icons, goal_color_icons,
-        turn_north, turn_east, turn_south, turn_west,
-        turn_color_icons,
+        source_dir_icons, source_color_icons, goal_color_icons,
+        turn_dir_icons, turn_color_icons,
         turnbut: turnbut_icon.clone(), turnbut_dir_icons, turnbut_color_icons,
         teleport: teleport_icon.clone(), teleport_num_icons,
         bounce: bounce_icon.clone(), bounce_color_icons,
         bouncebot: bouncebot_icon.clone(), bouncebot_color_icons,
         door: door_icon.clone(), door_open: door_open_icon, door_closed: door_closed_icon,
-        switch: switch_icon.clone(),
+        switch: switch_icon.clone(), painter: painter_icon.clone(), painter_color_icons,
+        arrow: arrow_icon.clone(), arrow_dir_icons, arrow_color_icons,
+        arrowbut: arrowbut_icon.clone(), arrowbut_dir_icons, arrowbut_color_icons,
     };
     commands.insert_resource(icons);
 
@@ -342,23 +351,23 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     let sn = slot_node();
 
     let l1_slots: Vec<(InventorySlot, Handle<Image>, bool)> = vec![
-        (InventorySlot::Floor, floor_icon, true),
-        (InventorySlot::Source, source_icon, false),
-        (InventorySlot::Goal, goal_icon, false),
-        (InventorySlot::Turn, turn_icon, false),
-        (InventorySlot::TurnBut, turnbut_icon, false),
-        (InventorySlot::Teleport, teleport_icon, false),
-        (InventorySlot::Bounce, bounce_icon, false),
-        (InventorySlot::BounceBut, bouncebot_icon, false),
-        (InventorySlot::Door, door_icon, false),
-        (InventorySlot::Switch, switch_icon, false),
+        (InventorySlot::Floor, floor_icon, true), (InventorySlot::Source, source_icon, false),
+        (InventorySlot::Goal, goal_icon, false), (InventorySlot::Turn, turn_icon, false),
+        (InventorySlot::TurnBut, turnbut_icon, false), (InventorySlot::Teleport, teleport_icon, false),
+        (InventorySlot::Bounce, bounce_icon, false), (InventorySlot::BounceBut, bouncebot_icon, false),
+        (InventorySlot::Door, door_icon, false), (InventorySlot::Switch, switch_icon, false),
+        (InventorySlot::Painter, painter_icon, false), (InventorySlot::Arrow, arrow_icon, false),
+        (InventorySlot::ArrowBut, arrowbut_icon, false),
     ];
 
     commands.spawn((Node {
         position_type: PositionType::Absolute, bottom: Val::Px(INV_SLIDE_HIDE),
-        width: Val::Percent(100.0), justify_content: JustifyContent::Center, ..default()
+        width: Val::Percent(100.0), align_items: AlignItems::Center, ..default()
     }, InventoryContainer, UiBottomAnim { target: INV_SLIDE_SHOW, despawn_at_target: false },
     )).with_children(|parent| {
+        parent.spawn(Node { margin: UiRect::bottom(Val::Px(6.0)), ..default() })
+            .with_child((Text::new(""), TextFont { font_size: STATUS_FONT, ..default() },
+                TextColor(Color::srgba(1.0, 1.0, 1.0, 0.0)), StatusBarText));
         parent.spawn((
             Node { flex_direction: FlexDirection::Row, padding: UiRect::all(Val::Vw(INVENTORY_PAD_VW)),
                 column_gap: Val::Vw(INVENTORY_GAP_VW), align_items: AlignItems::Center, ..default() },

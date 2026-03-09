@@ -64,53 +64,27 @@ pub fn create_highlight_texture(i: &mut Assets<Image>) -> Handle<Image> { create
 pub fn create_inv_marker_texture(i: &mut Assets<Image>) -> Handle<Image> { create_border_texture(i, MARKER_TEX_SIZE, INV_MARKER_BORDER, INV_MARKER_COLOR) }
 
 // === Shape tests ===
-fn in_star_shape(x: f32, y: f32, expand: f32) -> bool {
-    let outer_r = 0.45 + expand;
-    let inner_r = 0.20 + expand * 0.5;
-    let dist = (x * x + y * y).sqrt();
-    if dist > outer_r { return false; }
-    let angle = y.atan2(x);
-    let n = 5.0;
-    let sector = (2.0 * std::f32::consts::PI) / n;
-    let half = sector / 2.0;
-    // Offset so one point faces up (rotate by 90 degrees)
-    let a = (angle + std::f32::consts::FRAC_PI_2).rem_euclid(sector);
-    let t = (a - half).abs() / half; // 0 at tip, 1 at valley
-    let edge_r = outer_r + t * (inner_r - outer_r);
-    dist <= edge_r
+fn in_star_shape(x: f32, y: f32, e: f32) -> bool {
+    let (or, ir, d) = (0.45 + e, 0.20 + e * 0.5, (x * x + y * y).sqrt());
+    if d > or { return false; }
+    let sec = 2.0 * std::f32::consts::PI / 5.0;
+    let a = (y.atan2(x) + std::f32::consts::FRAC_PI_2).rem_euclid(sec);
+    d <= or + (a - sec / 2.0).abs() / (sec / 2.0) * (ir - or)
 }
 
-fn in_turn_shape(x: f32, y: f32, expand: f32) -> bool {
-    let half_width = 0.06 + expand;
-    if x > -expand && x < 0.75 + expand && y.abs() < half_width { return true; }
-    if y > -(0.75 + expand) && y < expand && x.abs() < half_width { return true; }
-    let end_r = half_width;
-    let dx = x - 0.75;
-    if (dx * dx + y * y).sqrt() < end_r { return true; }
-    let dy = y + 0.75;
-    if (x * x + dy * dy).sqrt() < end_r { return true; }
-    false
+fn in_turn_shape(x: f32, y: f32, e: f32) -> bool {
+    let hw = 0.06 + e;
+    (x > -e && x < 0.75 + e && y.abs() < hw) || (y > -(0.75 + e) && y < e && x.abs() < hw)
+    || ((x - 0.75).powi(2) + y * y).sqrt() < hw || (x * x + (y + 0.75).powi(2)).sqrt() < hw
 }
 
-fn in_turn_center(x: f32, y: f32) -> bool {
-    (x * x + y * y).sqrt() < 0.14
-}
+fn in_turn_center(x: f32, y: f32) -> bool { (x * x + y * y).sqrt() < 0.14 }
+fn in_forbidden_line(x: f32, y: f32) -> bool { in_turn_center(x, y) && (x + y).abs() / std::f32::consts::SQRT_2 < 0.035 }
 
-fn in_forbidden_line(x: f32, y: f32) -> bool {
-    in_turn_center(x, y) && (x + y).abs() / std::f32::consts::SQRT_2 < 0.035
-}
-
-fn in_source_shape(x: f32, y: f32, expand: f32) -> bool {
-    let dist = (x * x + y * y).sqrt();
-    if dist < 0.35 + expand { return true; }
-    if x.abs() < 0.05 + expand && y < -(0.35 - expand) && y > -(0.62 + expand) { return true; }
-    let tip_y = -0.82;
-    let base_y = -0.58;
-    if y > tip_y - expand && y < base_y + expand {
-        let t = ((y - tip_y) / (base_y - tip_y)).clamp(0.0, 1.0);
-        if x.abs() < 0.14 * t + expand { return true; }
-    }
-    false
+fn in_source_shape(x: f32, y: f32, e: f32) -> bool {
+    (x * x + y * y).sqrt() < 0.35 + e
+    || (x.abs() < 0.05 + e && y < -(0.35 - e) && y > -(0.62 + e))
+    || (y > -0.82 - e && y < -0.58 + e && x.abs() < 0.14 * ((y + 0.82) / 0.24).clamp(0.0, 1.0) + e)
 }
 
 fn in_ring(x: f32, y: f32, e: f32) -> bool {
@@ -192,13 +166,8 @@ pub fn goal_texture_colored_data(size: u32, border: u32, fill: [u8; 4]) -> Vec<u
 }
 
 fn turn_center_fill(fill: [u8; 4]) -> [u8; 4] {
-    let b = TURN_CENTER_BRIGHTNESS;
-    [
-        (fill[0] as f32 / 255.0 * b * 255.0) as u8,
-        (fill[1] as f32 / 255.0 * b * 255.0) as u8,
-        (fill[2] as f32 / 255.0 * b * 255.0) as u8,
-        255,
-    ]
+    let b = TURN_CENTER_BRIGHTNESS / 255.0;
+    [(fill[0] as f32 * b) as u8, (fill[1] as f32 * b) as u8, (fill[2] as f32 * b) as u8, 255]
 }
 
 pub fn turn_texture_colored_data(size: u32, border: u32, rotation: f32, fill: [u8; 4]) -> Vec<u8> {
@@ -392,9 +361,34 @@ pub fn create_stop_icon(images: &mut Assets<Image>) -> Handle<Image> {
         STOP_ICON_COLOR)
 }
 
+fn in_brush_shape(x: f32, y: f32, e: f32) -> bool {
+    (x.abs() < 0.07 + e && y > -0.05 && y < 0.55 + e)
+    || (x.abs() < 0.12 + e && y > -0.15 - e && y < 0.0 + e)
+    || (x.abs() < 0.22 + e && y > -0.50 - e && y < -0.10 + e)
+}
+
+pub fn painter_texture_colored_data(size: u32, border: u32, fill: [u8; 4]) -> Vec<u8> {
+    rotated_shape_data(size, border, 0.0, fill, in_brush_shape, None, [0; 4], None)
+}
+
 pub fn door_texture_data(s: u32, b: u32, fill: [u8; 4], closed: bool) -> Vec<u8> {
     rotated_shape_data(s, b, 0.0, fill, if closed { in_door_closed_s } else { in_door_sq }, None, [0;4], None)
 }
 pub fn switch_texture_data(s: u32, b: u32, fill: [u8; 4]) -> Vec<u8> {
     rotated_shape_data(s, b, 0.0, fill, in_switch_s, None, [0; 4], None)
+}
+
+fn in_arrow_shape(x: f32, y: f32, e: f32) -> bool {
+    // Shaft pointing down (North in world)
+    (x.abs() < 0.07 + e && y > -0.15 - e && y < 0.50 + e)
+    // Arrowhead triangle
+    || (y >= -0.60 - e && y < -0.10 + e && x.abs() < 0.30 * (1.0 - ((y + 0.10) / -0.50).clamp(0.0, 1.0)) + e)
+}
+
+pub fn arrow_texture_colored_data(size: u32, border: u32, rotation: f32, fill: [u8; 4]) -> Vec<u8> {
+    rotated_shape_data(size, border, rotation, fill, in_arrow_shape, None, [0; 4], None)
+}
+
+pub fn arrowbut_texture_colored_data(size: u32, border: u32, rotation: f32, fill: [u8; 4]) -> Vec<u8> {
+    rotated_shape_data(size, border, rotation, fill, in_arrow_shape, Some(in_turn_center), turn_center_fill(fill), Some(in_forbidden_line))
 }

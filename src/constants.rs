@@ -87,6 +87,12 @@ pub const GREY_COLOR: (f32, f32, f32) = (0.7, 0.7, 0.7);
 pub const NUM_TURN_COLORS: usize = NUM_COLORS + 1;
 pub const NUM_TELEPORTS: usize = 10;
 pub const NUM_BOUNCE_COLORS: usize = NUM_COLORS + 1;
+pub const NUM_ARROW_COLORS: usize = NUM_COLORS + 1;
+
+pub const COLOR_NAMES: [&str; NUM_COLORS] = [
+    "Red", "Orange", "Yellow", "Light Green", "Dark Green",
+    "Light Blue", "Dark Blue", "Pink", "Purple", "Brown",
+];
 
 pub const SOURCE_COLORS: [(f32, f32, f32); NUM_COLORS] = [
     (0.95, 0.1, 0.1),   // Red
@@ -188,3 +194,10 @@ pub const FALL_DISTANCE: f32 = 5.0;      // units bot falls downward
 // Teleport animation
 pub const TELEPORT_SHRINK_DONE: f32 = 0.03;
 pub const TELEPORT_GROW_DONE: f32 = 0.97;
+
+// Painter
+pub const PAINT_TRANSITION_SPEED: f32 = 2.0; // color transitions per second
+
+// Status bar
+pub const STATUS_FONT: f32 = 15.0;
+pub const STATUS_FADE_SPEED: f32 = 6.0;

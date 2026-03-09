@@ -54,6 +54,17 @@ fn in_door_closed_s(x: f32, y: f32, e: f32) -> bool {
 }
 fn in_switch_s(x: f32, y: f32, e: f32) -> bool { (x*x + y*y).sqrt() < 0.25 + e }
 
+fn in_brush_shape(x: f32, y: f32, e: f32) -> bool {
+    (x.abs() < 0.07 + e && y > -0.05 && y < 0.55 + e)
+    || (x.abs() < 0.12 + e && y > -0.15 - e && y < 0.0 + e)
+    || (x.abs() < 0.22 + e && y > -0.50 - e && y < -0.10 + e)
+}
+
+fn in_arrow_shape(x: f32, y: f32, e: f32) -> bool {
+    (x.abs() < 0.07 + e && y > -0.15 - e && y < 0.50 + e)
+    || (y >= -0.60 - e && y < -0.10 + e && x.abs() < 0.30 * (1.0 - ((y + 0.10) / -0.50).clamp(0.0, 1.0)) + e)
+}
+
 fn in_source_shape(x: f32, y: f32, expand: f32) -> bool {
     let dist = (x * x + y * y).sqrt();
     if dist < 0.35 + expand { return true; }
@@ -143,6 +154,12 @@ pub fn ensure_textures() {
         && dir.join("door_closed_mask.png").exists()
         && dir.join("switch_base.png").exists()
         && dir.join("switch_mask.png").exists()
+        && dir.join("painter_base.png").exists()
+        && dir.join("painter_mask.png").exists()
+        && dir.join("arrow_base.png").exists()
+        && dir.join("arrow_mask.png").exists()
+        && dir.join("arrowbut_base.png").exists()
+        && dir.join("arrowbut_mask.png").exists()
         && dir.join("floor.png").exists()
     {
         return;
@@ -157,5 +174,8 @@ pub fn ensure_textures() {
     generate_symbol_textures(TILE_TEX_SIZE, dir, "door_open", in_door_sq, None, 0.0, None);
     generate_symbol_textures(TILE_TEX_SIZE, dir, "door_closed", in_door_closed_s, None, 0.0, None);
     generate_symbol_textures(TILE_TEX_SIZE, dir, "switch", in_switch_s, None, 0.0, None);
+    generate_symbol_textures(TILE_TEX_SIZE, dir, "painter", in_brush_shape, None, 0.0, None);
+    generate_symbol_textures(TILE_TEX_SIZE, dir, "arrow", in_arrow_shape, None, 0.0, None);
+    generate_symbol_textures(TILE_TEX_SIZE, dir, "arrowbut", in_arrow_shape, Some(in_turn_center), TURN_CENTER_BRIGHTNESS, Some(in_forbidden_line));
     generate_floor_texture(TILE_TEX_SIZE, TILE_TEX_BORDER, dir);
 }

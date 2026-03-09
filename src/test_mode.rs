@@ -69,6 +69,9 @@ fn tilekind_to_icon(kind: &TileKind, i: &InventoryIcons) -> Option<Handle<Image>
         TileKind::BounceBut(ci) => Some(i.bouncebot_color(*ci)),
         TileKind::Door(o) => Some(if *o { i.door_open.clone() } else { i.door_closed.clone() }),
         TileKind::Switch => Some(i.switch.clone()),
+        TileKind::Painter(ci) => Some(i.painter_color(*ci)),
+        TileKind::Arrow(ci, d) => Some(i.arrow_color_dir(*ci, *d)),
+        TileKind::ArrowBut(ci, d) => Some(i.arrowbut_color_dir(*ci, *d)),
         _ => None,
     }
 }
@@ -80,7 +83,9 @@ fn tile_sort_key(k: &TileKind) -> (u8, usize, u8) {
         TileKind::TurnBut(c, d) => (4, *c, d.index() as u8), TileKind::Teleport(n) => (5, *n, 0),
         TileKind::Bounce(c) => (6, *c, 0), TileKind::BounceBut(c) => (7, *c, 0),
         TileKind::Door(o) => (8, if *o { 0 } else { 1 }, 0),
-        TileKind::Switch => (9, 0, 0), TileKind::Empty => (10, 0, 0),
+        TileKind::Switch => (9, 0, 0), TileKind::Painter(c) => (10, *c, 0),
+        TileKind::Arrow(c, d) => (11, *c, d.index() as u8), TileKind::ArrowBut(c, d) => (12, *c, d.index() as u8),
+        TileKind::Empty => (13, 0, 0),
     }
 }
 
@@ -104,7 +109,11 @@ fn set_tool_from_kind(k: TileKind, tool: &mut ResMut<SelectedTool>, inv: &mut Re
         TileKind::Bounce(c) => (Tool::Bounce, None, Some(c)),
         TileKind::BounceBut(c) => (Tool::BounceBut, None, Some(c)),
         TileKind::Door(o) => (Tool::Door, None, Some(if o { 0 } else { 1 })),
-        TileKind::Switch => (Tool::Switch, None, None), _ => return,
+        TileKind::Switch => (Tool::Switch, None, None),
+        TileKind::Painter(c) => (Tool::Painter, None, Some(c)),
+        TileKind::Arrow(c, d) => (Tool::Arrow, Some(d), Some(c)),
+        TileKind::ArrowBut(c, d) => (Tool::ArrowBut, Some(d), Some(c)),
+        _ => return,
     };
     tool.0 = t; inv.direction = dir; inv.color_index = ci;
 }

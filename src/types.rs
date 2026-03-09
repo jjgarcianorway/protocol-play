@@ -9,18 +9,8 @@ use std::f32::consts::{FRAC_PI_2, PI};
 // === Enums ===
 #[derive(Default, PartialEq, Clone, Copy)]
 pub enum Tool {
-    #[default]
-    Floor,
-    Source,
-    Goal,
-    Turn,
-    TurnBut,
-    Teleport,
-    Bounce,
-    BounceBut,
-    Door,
-    Switch,
-    Delete,
+    #[default] Floor, Source, Goal, Turn, TurnBut, Teleport, Bounce, BounceBut,
+    Door, Switch, Painter, Arrow, ArrowBut, Delete,
 }
 
 #[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
@@ -145,16 +135,10 @@ pub struct InventoryIcons {
     pub goal: Handle<Image>,
     pub turn: Handle<Image>,
     pub delete: Handle<Image>,
-    pub source_north: Handle<Image>,
-    pub source_east: Handle<Image>,
-    pub source_south: Handle<Image>,
-    pub source_west: Handle<Image>,
+    pub source_dir_icons: [Handle<Image>; 4],
     pub source_color_icons: Vec<Handle<Image>>,
     pub goal_color_icons: Vec<Handle<Image>>,
-    pub turn_north: Handle<Image>,
-    pub turn_east: Handle<Image>,
-    pub turn_south: Handle<Image>,
-    pub turn_west: Handle<Image>,
+    pub turn_dir_icons: [Handle<Image>; 4],
     pub turn_color_icons: Vec<Handle<Image>>,
     pub turnbut: Handle<Image>,
     pub turnbut_dir_icons: [Handle<Image>; 4],
@@ -165,62 +149,31 @@ pub struct InventoryIcons {
     pub bounce_color_icons: Vec<Handle<Image>>,
     pub bouncebot: Handle<Image>,
     pub bouncebot_color_icons: Vec<Handle<Image>>,
-    pub door: Handle<Image>,
-    pub door_open: Handle<Image>,
-    pub door_closed: Handle<Image>,
+    pub door: Handle<Image>, pub door_open: Handle<Image>, pub door_closed: Handle<Image>,
     pub switch: Handle<Image>,
+    pub painter: Handle<Image>, pub painter_color_icons: Vec<Handle<Image>>,
+    pub arrow: Handle<Image>, pub arrow_dir_icons: [Handle<Image>; 4],
+    pub arrow_color_icons: Vec<Handle<Image>>,
+    pub arrowbut: Handle<Image>, pub arrowbut_dir_icons: [Handle<Image>; 4],
+    pub arrowbut_color_icons: Vec<Handle<Image>>,
 }
 
 impl InventoryIcons {
-    pub fn source_dir(&self, dir: Direction) -> Handle<Image> {
-        match dir {
-            Direction::North => self.source_north.clone(),
-            Direction::East => self.source_east.clone(),
-            Direction::South => self.source_south.clone(),
-            Direction::West => self.source_west.clone(),
-        }
-    }
-
-    pub fn source_color_dir(&self, ci: usize, dir: Direction) -> Handle<Image> {
-        self.source_color_icons[ci * 4 + dir.index()].clone()
-    }
-
-    pub fn goal_color(&self, ci: usize) -> Handle<Image> {
-        self.goal_color_icons[ci].clone()
-    }
-
-    pub fn turn_dir(&self, dir: Direction) -> Handle<Image> {
-        match dir {
-            Direction::North => self.turn_north.clone(),
-            Direction::East => self.turn_east.clone(),
-            Direction::South => self.turn_south.clone(),
-            Direction::West => self.turn_west.clone(),
-        }
-    }
-
-    pub fn turn_color_dir(&self, ci: usize, dir: Direction) -> Handle<Image> {
-        self.turn_color_icons[ci * 4 + dir.index()].clone()
-    }
-
-    pub fn turnbut_dir(&self, dir: Direction) -> Handle<Image> {
-        self.turnbut_dir_icons[dir.index()].clone()
-    }
-
-    pub fn turnbut_color_dir(&self, ci: usize, dir: Direction) -> Handle<Image> {
-        self.turnbut_color_icons[ci * 4 + dir.index()].clone()
-    }
-
-    pub fn teleport_num(&self, num: usize) -> Handle<Image> {
-        self.teleport_num_icons[num].clone()
-    }
-
-    pub fn bounce_color(&self, ci: usize) -> Handle<Image> {
-        self.bounce_color_icons[ci].clone()
-    }
-
-    pub fn bouncebot_color(&self, ci: usize) -> Handle<Image> {
-        self.bouncebot_color_icons[ci].clone()
-    }
+    pub fn source_dir(&self, dir: Direction) -> Handle<Image> { self.source_dir_icons[dir.index()].clone() }
+    pub fn source_color_dir(&self, ci: usize, dir: Direction) -> Handle<Image> { self.source_color_icons[ci * 4 + dir.index()].clone() }
+    pub fn goal_color(&self, ci: usize) -> Handle<Image> { self.goal_color_icons[ci].clone() }
+    pub fn turn_dir(&self, dir: Direction) -> Handle<Image> { self.turn_dir_icons[dir.index()].clone() }
+    pub fn turn_color_dir(&self, ci: usize, dir: Direction) -> Handle<Image> { self.turn_color_icons[ci * 4 + dir.index()].clone() }
+    pub fn turnbut_dir(&self, dir: Direction) -> Handle<Image> { self.turnbut_dir_icons[dir.index()].clone() }
+    pub fn turnbut_color_dir(&self, ci: usize, dir: Direction) -> Handle<Image> { self.turnbut_color_icons[ci * 4 + dir.index()].clone() }
+    pub fn teleport_num(&self, num: usize) -> Handle<Image> { self.teleport_num_icons[num].clone() }
+    pub fn bounce_color(&self, ci: usize) -> Handle<Image> { self.bounce_color_icons[ci].clone() }
+    pub fn bouncebot_color(&self, ci: usize) -> Handle<Image> { self.bouncebot_color_icons[ci].clone() }
+    pub fn painter_color(&self, ci: usize) -> Handle<Image> { self.painter_color_icons[ci].clone() }
+    pub fn arrow_dir(&self, dir: Direction) -> Handle<Image> { self.arrow_dir_icons[dir.index()].clone() }
+    pub fn arrow_color_dir(&self, ci: usize, dir: Direction) -> Handle<Image> { self.arrow_color_icons[ci * 4 + dir.index()].clone() }
+    pub fn arrowbut_dir(&self, dir: Direction) -> Handle<Image> { self.arrowbut_dir_icons[dir.index()].clone() }
+    pub fn arrowbut_color_dir(&self, ci: usize, dir: Direction) -> Handle<Image> { self.arrowbut_color_icons[ci * 4 + dir.index()].clone() }
 }
 
 #[derive(Resource, Clone)]
@@ -259,6 +212,14 @@ pub struct GameAssets {
     pub ghost_door_closed_material: Handle<StandardMaterial>,
     pub switch_material: Handle<StandardMaterial>,
     pub ghost_switch_material: Handle<StandardMaterial>,
+    pub painter_symbol_materials: Vec<Handle<StandardMaterial>>,
+    pub ghost_painter_materials: Vec<Handle<StandardMaterial>>,
+    pub arrow_symbol_mesh: Handle<Mesh>,
+    pub arrow_symbol_materials: Vec<Handle<StandardMaterial>>,
+    pub ghost_arrow_materials: Vec<Handle<StandardMaterial>>,
+    pub arrowbut_symbol_mesh: Handle<Mesh>,
+    pub arrowbut_symbol_materials: Vec<Handle<StandardMaterial>>,
+    pub ghost_arrowbut_materials: Vec<Handle<StandardMaterial>>,
     pub marker_mesh: Handle<Mesh>,
     pub marker_material: Handle<StandardMaterial>,
     pub bot_mesh: Handle<Mesh>,
@@ -290,6 +251,9 @@ pub enum TileKind {
     BounceBut(usize),
     Door(bool),  // true = open, false = closed
     Switch,
+    Painter(usize),
+    Arrow(usize, Direction),
+    ArrowBut(usize, Direction),
 }
 
 #[derive(Component)] pub struct TargetScale(pub Vec3);
@@ -306,38 +270,21 @@ pub enum BoardButton {
 
 #[derive(Component, Clone, Copy, PartialEq)]
 pub enum InventorySlot {
-    Floor,
-    Source,
-    Goal,
-    Turn,
-    TurnBut,
-    Delete,
-    SourceDir(Direction),
-    SourceColor(usize),
+    Floor, Source, Goal, Turn, TurnBut, Delete,
+    SourceDir(Direction), SourceColor(usize),
     GoalColor(usize),
-    TurnDir(Direction),
-    TurnColor(usize),
-    TurnButDir(Direction),
-    TurnButColor(usize),
-    Teleport,
-    TeleportNum(usize),
-    Bounce,
-    BounceBut,
-    BounceColor(usize),
-    BounceButColor(usize),
-    Door,
-    Switch,
-    DoorState(bool),  // true = open, false = closed
+    TurnDir(Direction), TurnColor(usize),
+    TurnButDir(Direction), TurnButColor(usize),
+    Teleport, TeleportNum(usize),
+    Bounce, BounceBut, BounceColor(usize), BounceButColor(usize),
+    Door, Switch, Painter, PainterColor(usize),
+    DoorState(bool),
+    Arrow, ArrowBut, ArrowDir(Direction), ArrowButDir(Direction),
+    ArrowColor(usize), ArrowButColor(usize),
 }
 
-#[derive(Component)]
-pub struct InventoryContainer;
-
-#[derive(Component)]
-pub struct NodeWidthAnim {
-    pub target: f32,
-    pub despawn_at_zero: bool,
-}
+#[derive(Component)] pub struct InventoryContainer;
+#[derive(Component)] pub struct NodeWidthAnim { pub target: f32, pub despawn_at_zero: bool }
 
 #[derive(Component)] pub struct Level2Slot;
 #[derive(Component)] pub struct Level3Slot;
@@ -346,6 +293,7 @@ pub struct NodeWidthAnim {
 #[derive(Component)] pub struct PlayStopButton;
 #[derive(Component)] pub struct PlayButtonImage;
 #[derive(Component)] pub struct GhostSymbolOverlay;
+#[derive(Component)] pub struct StatusBarText;
 
 // === Test mode types ===
 #[derive(Component)] pub struct InventoryMarker;
@@ -396,3 +344,10 @@ pub struct LevelData { pub name: String, pub board_size: u32, pub tiles: Vec<(u3
 #[derive(Component)] pub struct LoadDialog;
 #[derive(Component)] pub struct LoadDialogCancel;
 #[derive(Component)] pub struct LoadDialogEntry(pub String);
+#[derive(Component)] pub struct ValidationErrorDialog;
+#[derive(Component)] pub struct ValidationErrorOk;
+#[derive(Resource, Default)] pub struct LevelValidated(pub bool);
+#[derive(Component)] pub struct BotColorTransition {
+    pub from_color: usize, pub to_color: usize, pub progress: f32,
+    pub material: Handle<StandardMaterial>,
+}

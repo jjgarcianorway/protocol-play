@@ -52,7 +52,8 @@ pub fn spawn_l2_directions(
 ) {
     for (slot, icon) in slots_and_icons {
         let dir = match slot {
-            InventorySlot::SourceDir(d) | InventorySlot::TurnDir(d) | InventorySlot::TurnButDir(d) => d,
+            InventorySlot::SourceDir(d) | InventorySlot::TurnDir(d) | InventorySlot::TurnButDir(d)
+            | InventorySlot::ArrowDir(d) | InventorySlot::ArrowButDir(d) => d,
             _ => continue,
         };
         let child = spawn_slot(commands, container, slot, icon, selected_dir == Some(dir), true);
@@ -69,10 +70,42 @@ pub fn rebuild_l3_colors(
         let ci = match slot {
             InventorySlot::SourceColor(c) | InventorySlot::GoalColor(c)
             | InventorySlot::TurnColor(c) | InventorySlot::TurnButColor(c)
-            | InventorySlot::TeleportNum(c) => c,
+            | InventorySlot::TeleportNum(c) | InventorySlot::PainterColor(c)
+            | InventorySlot::BounceColor(c) | InventorySlot::BounceButColor(c)
+            | InventorySlot::ArrowColor(c) | InventorySlot::ArrowButColor(c) => c,
             _ => continue,
         };
         spawn_color_slot(commands, container, slot, icon, selected_color == Some(ci), true, available, count_text);
+    }
+}
+
+pub fn update_l3_availability(
+    mut commands: Commands,
+    placed_sources: Res<PlacedSources>,
+    placed_goals: Res<PlacedGoals>,
+    placed_teleports: Res<PlacedTeleports>,
+    inv_state: Res<InventoryState>,
+    l3_slots: Query<(Entity, &InventorySlot, &Node), With<Level3Slot>>,
+) {
+    if inv_state.level != 3 { return; }
+    let sources_changed = placed_sources.is_changed();
+    let goals_changed = placed_goals.is_changed();
+    let teleports_changed = placed_teleports.is_changed();
+    if !sources_changed && !goals_changed && !teleports_changed { return; }
+    for (entity, slot, node) in &l3_slots {
+        let should_show = match slot {
+            InventorySlot::SourceColor(ci) if sources_changed => Some(!placed_sources.0.contains(ci)),
+            InventorySlot::GoalColor(ci) if goals_changed => Some(!placed_goals.0.contains(ci)),
+            InventorySlot::TeleportNum(num) if teleports_changed => Some(placed_teleports.0[*num] < 2),
+            _ => None,
+        };
+        if let Some(show) = should_show {
+            let target = if show { SLOT_VW } else { 0.0 };
+            let current = match node.width { Val::Vw(w) => w, _ => target };
+            if (current - target).abs() > 0.1 {
+                commands.entity(entity).insert(NodeWidthAnim { target, despawn_at_zero: false });
+            }
+        }
     }
 }
 

@@ -61,6 +61,7 @@ pub fn play_stop_interaction(
     mut mat_q: Query<&mut MeshMaterial3d<StandardMaterial>>,
     mut sim_result: ResMut<SimulationResult>,
     overlay: Query<Entity, With<SimulationOverlay>>,
+    mut validated: ResMut<LevelValidated>,
 ) {
     let button_pressed = interaction_query.iter().any(|i| *i == Interaction::Pressed);
     if !button_pressed && !sim_result.stop_requested { return; }
@@ -70,9 +71,7 @@ pub fn play_stop_interaction(
     if button_pressed && can_start {
         let next = if *play_mode == PlayMode::Editing { PlayMode::Playing } else { PlayMode::TestPlaying };
         *play_mode = next;
-        sim_result.result = None;
-        sim_result.overlay_spawned = false;
-        sim_result.stop_requested = false;
+        sim_result.result = None; sim_result.overlay_spawned = false; sim_result.stop_requested = false;
         commands.insert_resource(PlayTimer(Timer::from_seconds(BOT_START_DELAY, TimerMode::Once)));
         let mut img = button_image.single_mut();
         img.image = play_icons.stop.clone();
@@ -102,16 +101,15 @@ pub fn play_stop_interaction(
             }
         }
     } else if can_stop {
-        *play_mode = if *play_mode == PlayMode::Playing { PlayMode::Editing } else { PlayMode::TestEditing };
-        sim_result.stop_requested = false;
-        sim_result.result = None;
-        sim_result.overlay_spawned = false;
-        door_toggle.0 = 0;
-        let mut img = button_image.single_mut();
-        img.image = play_icons.play.clone();
-        for entity in &bots {
-            commands.entity(entity).insert((TargetScale(Vec3::ZERO), DespawnAtZeroScale));
+        let success = matches!(sim_result.result, Some(SimResult::Success));
+        if success || (*play_mode == PlayMode::TestPlaying && sim_result.test_success_exit) {
+            validated.0 = true;
         }
+        *play_mode = if *play_mode == PlayMode::Playing { PlayMode::Editing } else { PlayMode::TestEditing };
+        sim_result.stop_requested = false; sim_result.result = None; sim_result.overlay_spawned = false;
+        door_toggle.0 = 0;
+        button_image.single_mut().image = play_icons.play.clone();
+        for entity in &bots { commands.entity(entity).insert((TargetScale(Vec3::ZERO), DespawnAtZeroScale)); }
         for e in &overlay { commands.entity(e).despawn_recursive(); }
         for (col, row, was_open) in door_states.0.drain(..) {
             for (coord, mut kind, children) in &mut tiles {
@@ -196,46 +194,23 @@ pub fn move_bots(
                 }
             }
             BotPhase::FallingDecel => {
-                mov.speed = (mov.speed - BOT_ACCEL * dt).max(0.0);
-                mov.progress += mov.speed * dt;
-                if mov.progress >= 0.5 {
-                    mov.progress = 0.5; mov.speed = 0.0;
-                    mov.phase = BotPhase::FallingPause(FALL_PAUSE);
-                }
+                mov.speed = (mov.speed - BOT_ACCEL * dt).max(0.0); mov.progress += mov.speed * dt;
+                if mov.progress >= 0.5 { mov.progress = 0.5; mov.speed = 0.0; mov.phase = BotPhase::FallingPause(FALL_PAUSE); }
             }
-            BotPhase::FallingPause(ref mut t) => {
-                *t -= dt;
-                if *t <= 0.0 { mov.phase = BotPhase::Falling(0.0); }
-                transform.translation = Vec3::new(mov.col as f32 - half, bot_y, mov.row as f32 - half);
-                continue;
-            }
-            BotPhase::Falling(ref mut p) => {
-                *p = (*p + dt / FALL_DURATION).min(1.0);
-                let s = (1.0 - *p).max(0.0);
+            BotPhase::FallingPause(ref mut t) => { *t -= dt; if *t <= 0.0 { mov.phase = BotPhase::Falling(0.0); }
+                transform.translation = Vec3::new(mov.col as f32 - half, bot_y, mov.row as f32 - half); continue; }
+            BotPhase::Falling(ref mut p) => { *p = (*p + dt / FALL_DURATION).min(1.0); let s = (1.0 - *p).max(0.0);
                 transform.translation.y = bot_y - *p * *p * FALL_DISTANCE;
-                transform.scale = Vec3::splat(s);
-                target_scale.0 = Vec3::splat(s);
-                continue;
-            }
-            BotPhase::Spinning => {
-                transform.translation = Vec3::new(mov.col as f32 - half, bot_y, mov.row as f32 - half);
-                transform.rotation = Quat::from_rotation_y(time.elapsed_secs() * BOT_SPIN_SPEED);
-                continue;
-            }
+                transform.scale = Vec3::splat(s); target_scale.0 = Vec3::splat(s); continue; }
+            BotPhase::Spinning => { transform.translation = Vec3::new(mov.col as f32 - half, bot_y, mov.row as f32 - half);
+                transform.rotation = Quat::from_rotation_y(time.elapsed_secs() * BOT_SPIN_SPEED); continue; }
             BotPhase::TeleportShrink { target_col, target_row } => {
                 if transform.scale.x < TELEPORT_SHRINK_DONE {
-                    mov.col = target_col; mov.row = target_row;
-                    mov.progress = 0.5; mov.speed = 0.0;
+                    mov.col = target_col; mov.row = target_row; mov.progress = 0.5; mov.speed = 0.0;
                     transform.translation = Vec3::new(target_col as f32 - half, bot_y, target_row as f32 - half);
-                    transform.scale = Vec3::ZERO; target_scale.0 = Vec3::ONE;
-                    mov.phase = BotPhase::TeleportGrow;
-                }
-                continue;
-            }
-            BotPhase::TeleportGrow => {
-                if transform.scale.x > TELEPORT_GROW_DONE { transform.scale = Vec3::ONE; mov.phase = BotPhase::Accelerating; }
-                continue;
-            }
+                    transform.scale = Vec3::ZERO; target_scale.0 = Vec3::ONE; mov.phase = BotPhase::TeleportGrow;
+                } continue; }
+            BotPhase::TeleportGrow => { if transform.scale.x > TELEPORT_GROW_DONE { transform.scale = Vec3::ONE; mov.phase = BotPhase::Accelerating; } continue; }
             BotPhase::Rotating { entry_dir, exit_dir, ref mut progress } => {
                 *progress = (*progress + dt / BOT_TURN_DURATION).min(1.0);
                 transform.rotation = Quat::from_rotation_y(entry_dir.rotation())
@@ -249,44 +224,27 @@ pub fn move_bots(
         // Tile transition: check when exiting current tile
         if mov.progress >= 1.0 {
             let (dc, dr) = mov.direction.grid_delta();
-            let next_col = mov.col + dc;
-            let next_row = mov.row + dr;
-            match tile_at(next_col, next_row) {
-                Some(TileKind::Floor) | Some(TileKind::Source(_, _)) | Some(TileKind::Door(true)) => {
-                    mov.col = next_col; mov.row = next_row; mov.progress -= 1.0;
-                }
-                Some(TileKind::Switch) => {
-                    mov.col = next_col; mov.row = next_row; mov.progress -= 1.0;
-                    door_toggle.0 += 1;
-                }
-                Some(TileKind::Door(false)) => {
-                    mov.col = next_col; mov.row = next_row; mov.progress -= 1.0;
-                    mov.phase = BotPhase::Decelerating(Some(mov.direction.opposite()));
-                }
-                Some(TileKind::TurnBut(tci, _)) if tci == mov.color_index => {
-                    mov.col = next_col; mov.row = next_row; mov.progress -= 1.0;
-                }
-                Some(TileKind::BounceBut(bci)) if bci == mov.color_index => {
-                    mov.col = next_col; mov.row = next_row; mov.progress -= 1.0;
-                }
-                Some(TileKind::Bounce(_)) | Some(TileKind::BounceBut(_)) => {
-                    mov.col = next_col; mov.row = next_row; mov.progress -= 1.0;
-                    mov.phase = BotPhase::Decelerating(Some(mov.direction.opposite()));
-                }
+            let (nc, nr) = (mov.col + dc, mov.row + dr);
+            macro_rules! advance { () => { mov.col = nc; mov.row = nr; mov.progress -= 1.0; } }
+            match tile_at(nc, nr) {
+                Some(TileKind::Floor) | Some(TileKind::Source(_, _)) | Some(TileKind::Door(true))
+                | Some(TileKind::Painter(_)) => { advance!(); }
+                Some(TileKind::Switch) => { advance!(); door_toggle.0 += 1; }
+                Some(TileKind::Door(false)) => { advance!(); mov.phase = BotPhase::Decelerating(Some(mov.direction.opposite())); }
+                Some(TileKind::TurnBut(tci, _)) if tci == mov.color_index => { advance!(); }
+                Some(TileKind::BounceBut(bci)) if bci == mov.color_index => { advance!(); }
+                Some(TileKind::Bounce(_)) | Some(TileKind::BounceBut(_)) => { advance!(); mov.phase = BotPhase::Decelerating(Some(mov.direction.opposite())); }
                 Some(TileKind::Turn(_, tdir)) | Some(TileKind::TurnBut(_, tdir)) => {
                     if let Some(exit_dir) = mov.direction.turn_exit(tdir) {
-                        mov.col = next_col; mov.row = next_row; mov.progress -= 1.0;
-                        mov.phase = BotPhase::Decelerating(Some(exit_dir));
+                        advance!(); mov.phase = BotPhase::Decelerating(Some(exit_dir));
                     } else { mov.progress = 1.0; mov.speed = 0.0; mov.phase = BotPhase::Stopped; }
                 }
-                Some(TileKind::Goal(_)) | Some(TileKind::Teleport(_)) => {
-                    mov.col = next_col; mov.row = next_row; mov.progress -= 1.0;
-                    mov.phase = BotPhase::Decelerating(None);
+                Some(TileKind::Goal(_)) | Some(TileKind::Teleport(_)) => { advance!(); mov.phase = BotPhase::Decelerating(None); }
+                Some(TileKind::ArrowBut(aci, _)) if aci == mov.color_index => { advance!(); mov.phase = BotPhase::Decelerating(Some(mov.direction.opposite())); }
+                Some(TileKind::Arrow(_, adir)) | Some(TileKind::ArrowBut(_, adir)) => {
+                    advance!(); if adir != mov.direction { mov.phase = BotPhase::Decelerating(Some(adir)); }
                 }
-                _ => { // Empty tile or out of bounds — fall
-                    mov.col = next_col; mov.row = next_row; mov.progress -= 1.0;
-                    mov.phase = BotPhase::FallingDecel;
-                }
+                _ => { advance!(); mov.phase = BotPhase::FallingDecel; }
             }
         }
 
@@ -395,5 +353,46 @@ pub fn overlay_button_interaction(
     sim_result.stop_requested = true;
     if *play_mode == PlayMode::TestPlaying && matches!(sim_result.result, Some(SimResult::Success)) {
         sim_result.test_success_exit = true;
+    }
+}
+
+// === Painter color transition ===
+pub fn paint_bots(
+    mut commands: Commands, time: Res<Time>, play_mode: Res<PlayMode>,
+    tiles: Query<(&TileCoord, &TileKind), With<Tile>>,
+    mut bots: Query<(Entity, &mut BotMovement, &mut MeshMaterial3d<StandardMaterial>,
+        Option<&mut BotColorTransition>), With<Bot>>,
+    mut materials: ResMut<Assets<StandardMaterial>>, assets: Res<GameAssets>,
+) {
+    if *play_mode != PlayMode::Playing && *play_mode != PlayMode::TestPlaying { return; }
+    let dt = time.delta_secs();
+    for (entity, mut mov, mut mat, transition) in &mut bots {
+        if let Some(mut tr) = transition {
+            tr.progress = (tr.progress + PAINT_TRANSITION_SPEED * dt).min(1.0);
+            if let Some(m) = materials.get_mut(&tr.material) {
+                let (fr, fg, fb) = SOURCE_COLORS[tr.from_color];
+                let (tor, tog, tob) = SOURCE_COLORS[tr.to_color];
+                let t = tr.progress;
+                m.base_color = Color::srgb(fr + (tor - fr) * t, fg + (tog - fg) * t, fb + (tob - fb) * t);
+            }
+            if tr.progress >= 1.0 {
+                mov.color_index = tr.to_color;
+                *mat = MeshMaterial3d(assets.bot_materials[tr.to_color].clone());
+                commands.entity(entity).remove::<BotColorTransition>();
+            }
+        } else if matches!(mov.phase, BotPhase::Cruising | BotPhase::Accelerating) {
+            if let Some(TileKind::Painter(ci)) = tiles.iter()
+                .find(|(c, _)| c.col as i32 == mov.col && c.row as i32 == mov.row).map(|(_, k)| *k)
+            {
+                if ci != mov.color_index {
+                    let (r, g, b) = SOURCE_COLORS[mov.color_index];
+                    let unique = materials.add(StandardMaterial { base_color: Color::srgb(r, g, b), ..default() });
+                    *mat = MeshMaterial3d(unique.clone());
+                    commands.entity(entity).insert(BotColorTransition {
+                        from_color: mov.color_index, to_color: ci, progress: 0.0, material: unique,
+                    });
+                }
+            }
+        }
     }
 }
