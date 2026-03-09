@@ -116,6 +116,8 @@ pub fn update_ghost_and_highlight(
         (With<Tile>, Without<GhostPreview>, Without<TileHighlight>, Without<DespawnAtZeroScale>),
     >,
     placed_sources: Res<PlacedSources>,
+    placed_goals: Res<PlacedGoals>,
+    placed_teleports: Res<PlacedTeleports>,
 ) {
     // Restore previous suppressed tile
     if let Some(old_entity) = hidden_tile.0.take() {
@@ -173,73 +175,75 @@ pub fn update_ghost_and_highlight(
         ghost_cell.0 = Some((col, row));
     }
 
-    let hl_y = FLOOR_TOP_Y + 0.01;
-    hl_tf.translation = Vec3::new(world_x, hl_y, world_z);
+    hl_tf.translation = Vec3::new(world_x, FLOOR_TOP_Y + 0.01, world_z);
     hl_target.0 = Vec3::ONE;
 
-    let can_place_floor = matches!(kind, TileKind::Empty | TileKind::Source(_, _) | TileKind::Turn(_, _));
-    let can_place_source = matches!(kind, TileKind::Empty | TileKind::Floor | TileKind::Turn(_, _));
-    let can_place_turn = matches!(kind, TileKind::Empty | TileKind::Floor | TileKind::Source(_, _));
-    let can_delete = matches!(kind, TileKind::Floor | TileKind::Source(_, _) | TileKind::Turn(_, _));
+    // Compute ghost mode: Some((rotation, optional overlay material)) for tile-placing tools
+    let ghost_mode = match selected_tool.0 {
+        Tool::Floor if !matches!(kind, TileKind::Floor) => Some((Quat::IDENTITY, None)),
+        Tool::Source if !matches!(kind, TileKind::Source(_, _)) => {
+            if let (Some(dir), Some(ci)) = (inv_state.direction, inv_state.color_index) {
+                if !placed_sources.0.contains(&ci) { Some((Quat::from_rotation_y(dir.rotation()), Some(assets.ghost_symbol_materials[ci].clone()))) }
+                else { None }
+            } else { None }
+        }
+        Tool::Goal if !matches!(kind, TileKind::Goal(_)) => {
+            if let Some(ci) = inv_state.color_index {
+                if !placed_goals.0.contains(&ci) { Some((Quat::IDENTITY, Some(assets.ghost_goal_materials[ci].clone()))) }
+                else { None }
+            } else { None }
+        }
+        Tool::Turn if !matches!(kind, TileKind::Turn(_, _)) => {
+            if let (Some(dir), Some(ci)) = (inv_state.direction, inv_state.color_index) {
+                Some((Quat::from_rotation_y(dir.rotation()), Some(assets.ghost_turn_materials[ci].clone())))
+            } else { None }
+        }
+        Tool::TurnBut if !matches!(kind, TileKind::TurnBut(_, _)) => {
+            if let (Some(dir), Some(ci)) = (inv_state.direction, inv_state.color_index) {
+                Some((Quat::from_rotation_y(dir.rotation()), Some(assets.ghost_turnbut_materials[ci].clone())))
+            } else { None }
+        }
+        Tool::Teleport if !matches!(kind, TileKind::Teleport(_)) => {
+            if let Some(ci) = inv_state.color_index {
+                if placed_teleports.0[ci] < 2 { Some((Quat::IDENTITY, Some(assets.ghost_teleport_materials[ci].clone()))) }
+                else { None }
+            } else { None }
+        }
+        Tool::Bounce if !matches!(kind, TileKind::Bounce(_)) => {
+            if let Some(ci) = inv_state.color_index {
+                Some((Quat::IDENTITY, Some(assets.ghost_bounce_materials[ci].clone())))
+            } else { None }
+        }
+        Tool::BounceBut if !matches!(kind, TileKind::BounceBut(_)) => {
+            if let Some(ci) = inv_state.color_index {
+                Some((Quat::IDENTITY, Some(assets.ghost_bouncebot_materials[ci].clone())))
+            } else { None }
+        }
+        _ => None,
+    };
 
-    match selected_tool.0 {
-        Tool::Floor if can_place_floor => {
-            ghost_tf.translation = Vec3::new(world_x, 0.0, world_z);
-            ghost_tf.rotation = Quat::IDENTITY;
-            *ghost_mesh = Mesh3d(assets.floor_mesh.clone());
-            *ghost_mat = MeshMaterial3d(assets.ghost_floor_material.clone());
-            ghost_target.0 = Vec3::ONE;
-            if let Ok(mut target) = tile_scale_q.get_mut(entity) {
-                target.0 = Vec3::ZERO;
-                hidden_tile.0 = Some(entity);
-            }
+    if let Some((rotation, overlay_mat_opt)) = ghost_mode {
+        ghost_tf.translation = Vec3::new(world_x, 0.0, world_z);
+        ghost_tf.rotation = rotation;
+        *ghost_mesh = Mesh3d(assets.floor_mesh.clone());
+        *ghost_mat = MeshMaterial3d(assets.ghost_floor_material.clone());
+        if let Some(mat) = overlay_mat_opt {
+            *overlay_mat = MeshMaterial3d(mat);
+            show_overlay = true;
         }
-        Tool::Source if can_place_source => {
-            if let (Some(dir), Some(ci)) = (inv_state.direction, inv_state.color_index) {
-                if !placed_sources.0.contains(&ci) {
-                    ghost_tf.translation = Vec3::new(world_x, 0.0, world_z);
-                    ghost_tf.rotation = Quat::from_rotation_y(dir.rotation());
-                    *ghost_mesh = Mesh3d(assets.floor_mesh.clone());
-                    *ghost_mat = MeshMaterial3d(assets.ghost_floor_material.clone());
-                    *overlay_mat = MeshMaterial3d(assets.ghost_symbol_materials[ci].clone());
-                    show_overlay = true;
-                    ghost_target.0 = Vec3::ONE;
-                    if let Ok(mut target) = tile_scale_q.get_mut(entity) {
-                        target.0 = Vec3::ZERO;
-                        hidden_tile.0 = Some(entity);
-                    }
-                } else {
-                    ghost_target.0 = Vec3::ZERO;
-                }
-            } else {
-                ghost_target.0 = Vec3::ZERO;
-            }
+        ghost_target.0 = Vec3::ONE;
+        if let Ok(mut target) = tile_scale_q.get_mut(entity) {
+            target.0 = Vec3::ZERO;
+            hidden_tile.0 = Some(entity);
         }
-        Tool::Turn if can_place_turn => {
-            if let (Some(dir), Some(ci)) = (inv_state.direction, inv_state.color_index) {
-                ghost_tf.translation = Vec3::new(world_x, 0.0, world_z);
-                ghost_tf.rotation = Quat::from_rotation_y(dir.rotation());
-                *ghost_mesh = Mesh3d(assets.floor_mesh.clone());
-                *ghost_mat = MeshMaterial3d(assets.ghost_floor_material.clone());
-                *overlay_mat = MeshMaterial3d(assets.ghost_turn_materials[ci].clone());
-                show_overlay = true;
-                ghost_target.0 = Vec3::ONE;
-                if let Ok(mut target) = tile_scale_q.get_mut(entity) {
-                    target.0 = Vec3::ZERO;
-                    hidden_tile.0 = Some(entity);
-                }
-            } else {
-                ghost_target.0 = Vec3::ZERO;
-            }
-        }
-        Tool::Delete if can_delete => {
-            ghost_tf.translation = Vec3::new(world_x, FLOOR_TOP_Y + DELETE_OVERLAY_OFFSET, world_z);
-            ghost_tf.rotation = Quat::IDENTITY;
-            *ghost_mesh = Mesh3d(assets.ghost_delete_mesh.clone());
-            *ghost_mat = MeshMaterial3d(assets.ghost_delete_material.clone());
-            ghost_target.0 = Vec3::ONE;
-        }
-        _ => { ghost_target.0 = Vec3::ZERO; }
+    } else if selected_tool.0 == Tool::Delete && !matches!(kind, TileKind::Empty) {
+        ghost_tf.translation = Vec3::new(world_x, FLOOR_TOP_Y + DELETE_OVERLAY_OFFSET, world_z);
+        ghost_tf.rotation = Quat::IDENTITY;
+        *ghost_mesh = Mesh3d(assets.ghost_delete_mesh.clone());
+        *ghost_mat = MeshMaterial3d(assets.ghost_delete_material.clone());
+        ghost_target.0 = Vec3::ONE;
+    } else {
+        ghost_target.0 = Vec3::ZERO;
     }
 
     overlay_tf.scale = if show_overlay { Vec3::ONE } else { Vec3::ZERO };
@@ -257,6 +261,8 @@ pub fn handle_tile_click(
     assets: Res<GameAssets>,
     ui_interactions: Query<&Interaction, With<Button>>,
     mut placed_sources: ResMut<PlacedSources>,
+    mut placed_goals: ResMut<PlacedGoals>,
+    mut placed_teleports: ResMut<PlacedTeleports>,
     play_mode: Res<PlayMode>,
     ghost_q: Query<&Transform, With<GhostPreview>>,
 ) {
@@ -269,51 +275,114 @@ pub fn handle_tile_click(
     let tile = tiles.iter().find(|(_, c, _)| c.col == col && c.row == row);
     let Some((entity, _, kind)) = tile else { return; };
     let ghost_scale = ghost_q.single().scale;
-    // Free the color if overwriting a source tile
+    // Free tracked resources when overwriting tiles
     if let TileKind::Source(ci, _) = kind {
         if selected_tool.0 != Tool::Source || inv_state.color_index != Some(*ci) {
             placed_sources.0.remove(ci);
         }
     }
+    if let TileKind::Goal(ci) = kind {
+        if selected_tool.0 != Tool::Goal || inv_state.color_index != Some(*ci) {
+            placed_goals.0.remove(ci);
+        }
+    }
+    if let TileKind::Teleport(num) = kind {
+        if selected_tool.0 != Tool::Teleport || inv_state.color_index != Some(*num) {
+            placed_teleports.0[*num] = placed_teleports.0[*num].saturating_sub(1);
+        }
+    }
 
-    match (selected_tool.0, *kind) {
-        (Tool::Floor, TileKind::Empty | TileKind::Source(_, _) | TileKind::Turn(_, _)) => {
-            commands.entity(entity).insert((TargetScale(Vec3::ZERO), DespawnAtZeroScale));
+    // Determine if placement target is valid (not same tile type)
+    let not_self = |tool: Tool, kind: &TileKind| match tool {
+        Tool::Floor => !matches!(kind, TileKind::Floor),
+        Tool::Source => !matches!(kind, TileKind::Source(_, _)),
+        Tool::Goal => !matches!(kind, TileKind::Goal(_)),
+        Tool::Turn => !matches!(kind, TileKind::Turn(_, _)),
+        Tool::TurnBut => !matches!(kind, TileKind::TurnBut(_, _)),
+        Tool::Teleport => !matches!(kind, TileKind::Teleport(_)),
+        Tool::Bounce => !matches!(kind, TileKind::Bounce(_)),
+        Tool::BounceBut => !matches!(kind, TileKind::BounceBut(_)),
+        Tool::Delete => !matches!(kind, TileKind::Empty),
+    };
+    if !not_self(selected_tool.0, kind) { return; }
+
+    let despawn = |commands: &mut Commands, entity: Entity| {
+        commands.entity(entity).insert((TargetScale(Vec3::ZERO), DespawnAtZeroScale));
+    };
+
+    match selected_tool.0 {
+        Tool::Floor => {
+            despawn(&mut commands, entity);
             spawn_tile_at_scale(&mut commands, col, row, board_size.0, TileKind::Floor, &assets, ghost_scale);
         }
-        (Tool::Source, TileKind::Empty | TileKind::Floor | TileKind::Source(_, _) | TileKind::Turn(_, _)) => {
+        Tool::Source => {
             if let (Some(dir), Some(ci)) = (inv_state.direction, inv_state.color_index) {
                 if !placed_sources.0.contains(&ci) {
                     placed_sources.0.insert(ci);
                     inv_state.last_placed_color = Some(ci);
-                    commands.entity(entity).insert((TargetScale(Vec3::ZERO), DespawnAtZeroScale));
+                    despawn(&mut commands, entity);
                     spawn_tile_at_scale(&mut commands, col, row, board_size.0, TileKind::Source(ci, dir), &assets, ghost_scale);
-                    let next = (1..NUM_COLORS)
-                        .map(|offset| (ci + offset) % NUM_COLORS)
-                        .find(|c| !placed_sources.0.contains(c));
+                    let next = (1..NUM_COLORS).map(|o| (ci + o) % NUM_COLORS).find(|c| !placed_sources.0.contains(c));
                     inv_state.color_index = next;
-                    if next.is_none() {
-                        selected_tool.0 = Tool::Floor;
-                    }
+                    if next.is_none() { selected_tool.0 = Tool::Floor; }
                 }
             }
         }
-        (Tool::Turn, TileKind::Empty | TileKind::Floor | TileKind::Source(_, _) | TileKind::Turn(_, _)) => {
+        Tool::Goal => {
+            if let Some(ci) = inv_state.color_index {
+                if !placed_goals.0.contains(&ci) {
+                    placed_goals.0.insert(ci);
+                    inv_state.last_placed_color = Some(ci);
+                    despawn(&mut commands, entity);
+                    spawn_tile_at_scale(&mut commands, col, row, board_size.0, TileKind::Goal(ci), &assets, ghost_scale);
+                    let next = (1..NUM_COLORS).map(|o| (ci + o) % NUM_COLORS).find(|c| !placed_goals.0.contains(c));
+                    inv_state.color_index = next;
+                    if next.is_none() { selected_tool.0 = Tool::Floor; }
+                }
+            }
+        }
+        Tool::Turn | Tool::TurnBut => {
             if let (Some(dir), Some(ci)) = (inv_state.direction, inv_state.color_index) {
                 inv_state.last_placed_color = Some(ci);
-                commands.entity(entity).insert((TargetScale(Vec3::ZERO), DespawnAtZeroScale));
-                spawn_tile_at_scale(&mut commands, col, row, board_size.0, TileKind::Turn(ci, dir), &assets, ghost_scale);
+                let tile = if selected_tool.0 == Tool::Turn { TileKind::Turn(ci, dir) } else { TileKind::TurnBut(ci, dir) };
+                despawn(&mut commands, entity);
+                spawn_tile_at_scale(&mut commands, col, row, board_size.0, tile, &assets, ghost_scale);
             }
         }
-        (Tool::Delete, TileKind::Floor | TileKind::Source(_, _) | TileKind::Turn(_, _)) => {
-            if let TileKind::Source(ci, _) = kind {
-                if inv_state.level >= 2 {
-                    inv_state.color_index = Some(*ci);
+        Tool::Teleport => {
+            if let Some(num) = inv_state.color_index {
+                if placed_teleports.0[num] < 2 {
+                    placed_teleports.0[num] += 1;
+                    despawn(&mut commands, entity);
+                    spawn_tile_at_scale(&mut commands, col, row, board_size.0, TileKind::Teleport(num), &assets, ghost_scale);
+                    let next = (1..NUM_TELEPORTS).map(|o| (num + o) % NUM_TELEPORTS).find(|n| placed_teleports.0[*n] < 2);
+                    inv_state.color_index = next;
+                    if next.is_none() { selected_tool.0 = Tool::Floor; }
                 }
             }
-            commands.entity(entity).insert((TargetScale(Vec3::ZERO), DespawnAtZeroScale));
+        }
+        Tool::Bounce | Tool::BounceBut => {
+            if let Some(ci) = inv_state.color_index {
+                inv_state.last_placed_color = Some(ci);
+                let tile = if selected_tool.0 == Tool::Bounce { TileKind::Bounce(ci) } else { TileKind::BounceBut(ci) };
+                despawn(&mut commands, entity);
+                spawn_tile_at_scale(&mut commands, col, row, board_size.0, tile, &assets, ghost_scale);
+            }
+        }
+        Tool::Delete => {
+            if let TileKind::Source(ci, _) = kind {
+                if inv_state.level >= 2 { inv_state.color_index = Some(*ci); }
+            }
+            if let TileKind::Goal(ci) = kind {
+                placed_goals.0.remove(ci);
+                if inv_state.level >= 2 { inv_state.color_index = Some(*ci); }
+            }
+            if let TileKind::Teleport(num) = kind {
+                placed_teleports.0[*num] = placed_teleports.0[*num].saturating_sub(1);
+                if inv_state.level >= 2 { inv_state.color_index = Some(*num); }
+            }
+            despawn(&mut commands, entity);
             spawn_tile(&mut commands, col, row, board_size.0, TileKind::Empty, &assets);
         }
-        _ => {}
     }
 }

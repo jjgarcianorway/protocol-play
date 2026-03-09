@@ -33,6 +33,10 @@ pub const TILE_TEX_BORDER: u32 = 12;
 
 // === Colors ===
 pub const NUM_COLORS: usize = 10;
+pub const GREY_COLOR: (f32, f32, f32) = (0.7, 0.7, 0.7);
+pub const NUM_TURN_COLORS: usize = NUM_COLORS + 1; // includes grey
+pub const NUM_TELEPORTS: usize = 10;
+pub const NUM_BOUNCE_COLORS: usize = NUM_COLORS + 1; // includes grey
 
 pub const SOURCE_COLORS: [(f32, f32, f32); NUM_COLORS] = [
     (0.95, 0.1, 0.1),   // Red
@@ -68,3 +72,10 @@ pub const BOT_SIZE: f32 = 0.35;
 pub const BOT_EYE_W: f32 = 0.06;
 pub const BOT_EYE_H: f32 = 0.065;
 pub const BOT_EYE_D: f32 = 0.015;
+
+// Bot movement
+pub const BOT_START_DELAY: f32 = 0.5;
+pub const BOT_CRUISE_SPEED: f32 = 1.0;   // tiles per second
+pub const BOT_ACCEL: f32 = 1.0;           // tiles/s² (covers 0.5 tiles to reach cruise speed)
+pub const BOT_TURN_DURATION: f32 = 0.3;  // seconds for 90° rotation at center
+pub const BOT_SPIN_SPEED: f32 = 4.0;     // radians per second at goal

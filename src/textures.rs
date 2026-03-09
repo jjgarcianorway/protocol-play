@@ -34,23 +34,24 @@ pub fn color_to_u8(r: f32, g: f32, b: f32) -> [u8; 4] {
      (b * 255.0).clamp(0.0, 255.0) as u8, 255]
 }
 
-pub fn create_delete_icon(images: &mut Assets<Image>) -> Handle<Image> {
+fn ui_icon(images: &mut Assets<Image>, test: impl Fn(f32, f32) -> bool, color: [u8; 4]) -> Handle<Image> {
     let mut data = vec![0u8; (ICON_SIZE * ICON_SIZE * 4) as usize];
     for y in 0..ICON_SIZE {
         for x in 0..ICON_SIZE {
-            let fx = x as f32 / ICON_SIZE as f32;
-            let fy = y as f32 / ICON_SIZE as f32;
-            let on_diag1 = (fx - fy).abs() < 0.09;
-            let on_diag2 = (fx - (1.0 - fy)).abs() < 0.09;
-            let in_margin = fx > 0.15 && fx < 0.85 && fy > 0.15 && fy < 0.85;
-            let color: [u8; 4] = if (on_diag1 || on_diag2) && in_margin {
-                [220, 60, 60, 255]
-            } else { [40, 40, 40, 255] };
+            let (fx, fy) = (x as f32 / ICON_SIZE as f32, y as f32 / ICON_SIZE as f32);
+            let c = if test(fx, fy) { color } else { [40, 40, 40, 255] };
             let i = ((y * ICON_SIZE + x) * 4) as usize;
-            data[i..i + 4].copy_from_slice(&color);
+            data[i..i + 4].copy_from_slice(&c);
         }
     }
     make_image(images, data, ICON_SIZE)
+}
+
+pub fn create_delete_icon(images: &mut Assets<Image>) -> Handle<Image> {
+    ui_icon(images, |fx, fy| {
+        ((fx - fy).abs() < 0.09 || (fx - (1.0 - fy)).abs() < 0.09)
+        && fx > 0.15 && fx < 0.85 && fy > 0.15 && fy < 0.85
+    }, [220, 60, 60, 255])
 }
 
 fn create_border_texture(images: &mut Assets<Image>, size: u32, border: u32, edge: [u8; 4]) -> Handle<Image> {
@@ -67,15 +68,26 @@ fn create_border_texture(images: &mut Assets<Image>, size: u32, border: u32, edg
     make_image(images, data, size)
 }
 
-pub fn create_empty_marker_texture(images: &mut Assets<Image>) -> Handle<Image> {
-    create_border_texture(images, 64, 3, [100, 100, 100, 120])
-}
-
-pub fn create_highlight_texture(images: &mut Assets<Image>) -> Handle<Image> {
-    create_border_texture(images, 64, 4, [255, 255, 255, 200])
-}
+pub fn create_empty_marker_texture(i: &mut Assets<Image>) -> Handle<Image> { create_border_texture(i, 64, 3, [100, 100, 100, 120]) }
+pub fn create_highlight_texture(i: &mut Assets<Image>) -> Handle<Image> { create_border_texture(i, 64, 4, [255, 255, 255, 200]) }
 
 // === Shape tests ===
+fn in_star_shape(x: f32, y: f32, expand: f32) -> bool {
+    let outer_r = 0.45 + expand;
+    let inner_r = 0.20 + expand * 0.5;
+    let dist = (x * x + y * y).sqrt();
+    if dist > outer_r { return false; }
+    let angle = y.atan2(x);
+    let n = 5.0;
+    let sector = (2.0 * std::f32::consts::PI) / n;
+    let half = sector / 2.0;
+    // Offset so one point faces up (rotate by 90 degrees)
+    let a = (angle + std::f32::consts::FRAC_PI_2).rem_euclid(sector);
+    let t = (a - half).abs() / half; // 0 at tip, 1 at valley
+    let edge_r = outer_r + t * (inner_r - outer_r);
+    dist <= edge_r
+}
+
 fn in_turn_shape(x: f32, y: f32, expand: f32) -> bool {
     let half_width = 0.06 + expand;
     if x > -expand && x < 0.75 + expand && y.abs() < half_width { return true; }
@@ -92,6 +104,10 @@ fn in_turn_center(x: f32, y: f32) -> bool {
     (x * x + y * y).sqrt() < 0.14
 }
 
+fn in_forbidden_line(x: f32, y: f32) -> bool {
+    in_turn_center(x, y) && (x + y).abs() / std::f32::consts::SQRT_2 < 0.035
+}
+
 fn in_source_shape(x: f32, y: f32, expand: f32) -> bool {
     let dist = (x * x + y * y).sqrt();
     if dist < 0.35 + expand { return true; }
@@ -103,6 +119,31 @@ fn in_source_shape(x: f32, y: f32, expand: f32) -> bool {
         if x.abs() < 0.14 * t + expand { return true; }
     }
     false
+}
+
+fn in_ring(x: f32, y: f32, e: f32) -> bool {
+    let d = (x * x + y * y).sqrt();
+    d >= 0.22 - e && d <= 0.44 + e
+}
+
+const SEG: [u8; 10] = [0x7E, 0x30, 0x6D, 0x79, 0x33, 0x5B, 0x5F, 0x70, 0x7F, 0x7B];
+
+fn in_7seg(x: f32, y: f32, d: u8, cx: f32) -> bool {
+    let (rx, hw, hh, t) = (x - cx, 0.08, 0.14, 0.035);
+    let s = SEG[d as usize];
+    (s & 0x40 != 0 && rx.abs() < hw && (y - hh).abs() < t)
+    || (s & 0x20 != 0 && (rx - hw).abs() < t && y > t / 2.0 && y < hh)
+    || (s & 0x10 != 0 && (rx - hw).abs() < t && y > -hh && y < -t / 2.0)
+    || (s & 0x08 != 0 && rx.abs() < hw && (y + hh).abs() < t)
+    || (s & 0x04 != 0 && (rx + hw).abs() < t && y > -hh && y < -t / 2.0)
+    || (s & 0x02 != 0 && (rx + hw).abs() < t && y > t / 2.0 && y < hh)
+    || (s & 0x01 != 0 && rx.abs() < hw && y.abs() < t)
+}
+
+fn in_tp_num(x: f32, y: f32, num: usize) -> bool {
+    let n = num + 1;
+    if n < 10 { in_7seg(x, y, n as u8, 0.0) }
+    else { in_7seg(x, y, 1, -0.10) || in_7seg(x, y, 0, 0.10) }
 }
 
 // === Icon texture data ===
@@ -123,6 +164,7 @@ fn rotated_shape_data(
     size: u32, border: u32, rotation: f32, fill: [u8; 4],
     shape_fn: fn(f32, f32, f32) -> bool,
     center_fn: Option<fn(f32, f32) -> bool>, center_fill: [u8; 4],
+    forbidden_fn: Option<fn(f32, f32) -> bool>,
 ) -> Vec<u8> {
     let center = size as f32 / 2.0;
     let scale = size as f32 / 2.0;
@@ -138,7 +180,8 @@ fn rotated_shape_data(
             let rnx = nx * cos_r + ny * sin_r;
             let rny = -nx * sin_r + ny * cos_r;
             if let Some(cf) = center_fn {
-                if cf(rnx, rny) { color = center_fill; }
+                if forbidden_fn.is_some_and(|ff| ff(rnx, rny)) { color = SYMBOL_STROKE; }
+                else if cf(rnx, rny) { color = center_fill; }
                 else if shape_fn(rnx, rny, 0.0) { color = fill; }
                 else if shape_fn(rnx, rny, STROKE_EXPAND) { color = SYMBOL_STROKE; }
             } else {
@@ -153,18 +196,82 @@ fn rotated_shape_data(
 }
 
 pub fn source_texture_colored_data(size: u32, border: u32, rotation: f32, fill: [u8; 4]) -> Vec<u8> {
-    rotated_shape_data(size, border, rotation, fill, in_source_shape, None, [0; 4])
+    rotated_shape_data(size, border, rotation, fill, in_source_shape, None, [0; 4], None)
+}
+
+pub fn goal_texture_colored_data(size: u32, border: u32, fill: [u8; 4]) -> Vec<u8> {
+    rotated_shape_data(size, border, 0.0, fill, in_star_shape, None, [0; 4], None)
+}
+
+fn turn_center_fill(fill: [u8; 4]) -> [u8; 4] {
+    let b = TURN_CENTER_BRIGHTNESS;
+    [
+        (fill[0] as f32 / 255.0 * b * 255.0) as u8,
+        (fill[1] as f32 / 255.0 * b * 255.0) as u8,
+        (fill[2] as f32 / 255.0 * b * 255.0) as u8,
+        255,
+    ]
 }
 
 pub fn turn_texture_colored_data(size: u32, border: u32, rotation: f32, fill: [u8; 4]) -> Vec<u8> {
-    let b = (TURN_CENTER_BRIGHTNESS * 255.0) as u8;
-    let center_fill = [
-        ((fill[0] as f32 / 255.0 * b as f32 / 255.0) * 255.0) as u8,
-        ((fill[1] as f32 / 255.0 * b as f32 / 255.0) * 255.0) as u8,
-        ((fill[2] as f32 / 255.0 * b as f32 / 255.0) * 255.0) as u8,
-        255,
-    ];
-    rotated_shape_data(size, border, rotation, fill, in_turn_shape, Some(in_turn_center), center_fill)
+    rotated_shape_data(size, border, rotation, fill, in_turn_shape, Some(in_turn_center), turn_center_fill(fill), None)
+}
+
+pub fn turnbut_texture_colored_data(size: u32, border: u32, rotation: f32, fill: [u8; 4]) -> Vec<u8> {
+    rotated_shape_data(size, border, rotation, fill, in_turn_shape, Some(in_turn_center), turn_center_fill(fill), Some(in_forbidden_line))
+}
+
+fn in_bounce_shape(x: f32, y: f32, e: f32) -> bool { x.abs() + y.abs() < 0.42 + e }
+
+pub fn bounce_texture_colored_data(size: u32, border: u32, fill: [u8; 4], forbid: bool) -> Vec<u8> {
+    let ff = if forbid { Some(in_forbidden_line as fn(f32, f32) -> bool) } else { None };
+    rotated_shape_data(size, border, 0.0, fill, in_bounce_shape, Some(in_turn_center), turn_center_fill(fill), ff)
+}
+
+pub fn teleport_texture_colored_data(size: u32, border: u32, num: usize, fill: [u8; 4]) -> Vec<u8> {
+    let c = size as f32 / 2.0;
+    let mut data = vec![0u8; (size * size * 4) as usize];
+    for py in 0..size {
+        for px in 0..size {
+            let on_edge = px < border || px >= size - border || py < border || py >= size - border;
+            let mut color = if on_edge { TILE_DARK } else { TILE_GRAY };
+            let (nx, ny) = ((px as f32 - c) / c, (py as f32 - c) / c);
+            if in_ring(nx, ny, 0.0) || in_tp_num(nx, ny, num) { color = fill; }
+            else if in_ring(nx, ny, STROKE_EXPAND) { color = SYMBOL_STROKE; }
+            let i = ((py * size + px) * 4) as usize;
+            data[i..i + 4].copy_from_slice(&color);
+        }
+    }
+    data
+}
+
+pub fn create_teleport_tile_textures(
+    images: &mut Assets<Image>, size: u32, num: usize,
+) -> (Handle<Image>, Handle<Image>) {
+    let c = size as f32 / 2.0;
+    let mut base = vec![0u8; (size * size * 4) as usize];
+    let mut mask = vec![0u8; (size * size * 4) as usize];
+    for py in 0..size {
+        for px in 0..size {
+            let (nx, ny) = ((px as f32 - c) / c, (py as f32 - c) / c);
+            let i = ((py * size + px) * 4) as usize;
+            if in_ring(nx, ny, 0.0) || in_tp_num(nx, ny, num) {
+                base[i..i + 4].copy_from_slice(&[0, 0, 0, 255]);
+                mask[i..i + 4].copy_from_slice(&[255, 255, 255, 255]);
+            } else if in_ring(nx, ny, STROKE_EXPAND) {
+                base[i..i + 4].copy_from_slice(&SYMBOL_STROKE);
+                mask[i..i + 4].copy_from_slice(&[0, 0, 0, 255]);
+            }
+        }
+    }
+    let mut mk = |data: Vec<u8>, srgb: bool| {
+        let fmt = if srgb { TextureFormat::Rgba8UnormSrgb } else { TextureFormat::Rgba8Unorm };
+        images.add(Image::new(
+            Extent3d { width: size, height: size, depth_or_array_layers: 1 },
+            TextureDimension::D2, data, fmt, default(),
+        ))
+    };
+    (mk(base, true), mk(mask, false))
 }
 
 // === Isometric icon rendering ===
@@ -281,34 +388,11 @@ pub fn create_isometric_icon(
 }
 
 pub fn create_play_icon(images: &mut Assets<Image>) -> Handle<Image> {
-    let mut data = vec![0u8; (ICON_SIZE * ICON_SIZE * 4) as usize];
-    for y in 0..ICON_SIZE {
-        for x in 0..ICON_SIZE {
-            let fx = x as f32 / ICON_SIZE as f32;
-            let fy = y as f32 / ICON_SIZE as f32;
-            let in_triangle = fx >= 0.3 && fx <= 0.8 && {
-                let t = (fx - 0.3) / 0.5;
-                (fy - 0.5).abs() <= 0.3 * (1.0 - t)
-            };
-            let color: [u8; 4] = if in_triangle { [80, 200, 80, 255] } else { [40, 40, 40, 255] };
-            let i = ((y * ICON_SIZE + x) * 4) as usize;
-            data[i..i + 4].copy_from_slice(&color);
-        }
-    }
-    make_image(images, data, ICON_SIZE)
+    ui_icon(images, |fx, fy| fx >= 0.3 && fx <= 0.8 && (fy - 0.5).abs() <= 0.3 * (1.0 - (fx - 0.3) / 0.5),
+        [80, 200, 80, 255])
 }
 
 pub fn create_stop_icon(images: &mut Assets<Image>) -> Handle<Image> {
-    let mut data = vec![0u8; (ICON_SIZE * ICON_SIZE * 4) as usize];
-    for y in 0..ICON_SIZE {
-        for x in 0..ICON_SIZE {
-            let fx = x as f32 / ICON_SIZE as f32;
-            let fy = y as f32 / ICON_SIZE as f32;
-            let in_square = fx >= 0.28 && fx <= 0.72 && fy >= 0.28 && fy <= 0.72;
-            let color: [u8; 4] = if in_square { [220, 60, 60, 255] } else { [40, 40, 40, 255] };
-            let i = ((y * ICON_SIZE + x) * 4) as usize;
-            data[i..i + 4].copy_from_slice(&color);
-        }
-    }
-    make_image(images, data, ICON_SIZE)
+    ui_icon(images, |fx, fy| fx >= 0.28 && fx <= 0.72 && fy >= 0.28 && fy <= 0.72,
+        [220, 60, 60, 255])
 }

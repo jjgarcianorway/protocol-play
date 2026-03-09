@@ -11,7 +11,12 @@ pub enum Tool {
     #[default]
     Floor,
     Source,
+    Goal,
     Turn,
+    TurnBut,
+    Teleport,
+    Bounce,
+    BounceBut,
     Delete,
 }
 
@@ -35,6 +40,39 @@ impl Direction {
 
     pub fn all() -> [Direction; 4] {
         [Direction::North, Direction::East, Direction::South, Direction::West]
+    }
+
+    pub fn grid_delta(self) -> (i32, i32) {
+        match self {
+            Direction::North => (0, -1),
+            Direction::East => (1, 0),
+            Direction::South => (0, 1),
+            Direction::West => (-1, 0),
+        }
+    }
+
+    pub fn opposite(self) -> Direction {
+        match self {
+            Direction::North => Direction::South,
+            Direction::East => Direction::West,
+            Direction::South => Direction::North,
+            Direction::West => Direction::East,
+        }
+    }
+
+    /// Returns exit direction for a bot with travel direction `self` entering a Turn with `turn_dir`.
+    pub fn turn_exit(self, turn_dir: Direction) -> Option<Direction> {
+        // The L-shape arms at each turn orientation
+        let (arm1, arm2) = match turn_dir {
+            Direction::North => (Direction::East, Direction::North),
+            Direction::East => (Direction::South, Direction::East),
+            Direction::South => (Direction::West, Direction::South),
+            Direction::West => (Direction::North, Direction::West),
+        };
+        let entry_side = self.opposite();
+        if entry_side == arm1 { Some(arm2) }
+        else if entry_side == arm2 { Some(arm1) }
+        else { None }
     }
 
     pub fn index(self) -> usize {
@@ -74,6 +112,12 @@ pub struct InventoryState {
 #[derive(Resource, Default)]
 pub struct PlacedSources(pub HashSet<usize>);
 
+#[derive(Resource, Default)]
+pub struct PlacedGoals(pub HashSet<usize>);
+
+#[derive(Resource, Default)]
+pub struct PlacedTeleports(pub [u8; 10]);
+
 #[derive(Resource, Default, PartialEq, Clone, Copy)]
 pub enum PlayMode {
     #[default]
@@ -92,6 +136,7 @@ pub struct PlayIcons {
 pub struct InventoryIcons {
     pub floor: Handle<Image>,
     pub source: Handle<Image>,
+    pub goal: Handle<Image>,
     pub turn: Handle<Image>,
     pub delete: Handle<Image>,
     pub source_north: Handle<Image>,
@@ -99,11 +144,21 @@ pub struct InventoryIcons {
     pub source_south: Handle<Image>,
     pub source_west: Handle<Image>,
     pub source_color_icons: Vec<Handle<Image>>,
+    pub goal_color_icons: Vec<Handle<Image>>,
     pub turn_north: Handle<Image>,
     pub turn_east: Handle<Image>,
     pub turn_south: Handle<Image>,
     pub turn_west: Handle<Image>,
     pub turn_color_icons: Vec<Handle<Image>>,
+    pub turnbut: Handle<Image>,
+    pub turnbut_dir_icons: [Handle<Image>; 4],
+    pub turnbut_color_icons: Vec<Handle<Image>>,
+    pub teleport: Handle<Image>,
+    pub teleport_num_icons: Vec<Handle<Image>>,
+    pub bounce: Handle<Image>,
+    pub bounce_color_icons: Vec<Handle<Image>>,
+    pub bouncebot: Handle<Image>,
+    pub bouncebot_color_icons: Vec<Handle<Image>>,
 }
 
 impl InventoryIcons {
@@ -120,6 +175,10 @@ impl InventoryIcons {
         self.source_color_icons[ci * 4 + dir.index()].clone()
     }
 
+    pub fn goal_color(&self, ci: usize) -> Handle<Image> {
+        self.goal_color_icons[ci].clone()
+    }
+
     pub fn turn_dir(&self, dir: Direction) -> Handle<Image> {
         match dir {
             Direction::North => self.turn_north.clone(),
@@ -131,6 +190,26 @@ impl InventoryIcons {
 
     pub fn turn_color_dir(&self, ci: usize, dir: Direction) -> Handle<Image> {
         self.turn_color_icons[ci * 4 + dir.index()].clone()
+    }
+
+    pub fn turnbut_dir(&self, dir: Direction) -> Handle<Image> {
+        self.turnbut_dir_icons[dir.index()].clone()
+    }
+
+    pub fn turnbut_color_dir(&self, ci: usize, dir: Direction) -> Handle<Image> {
+        self.turnbut_color_icons[ci * 4 + dir.index()].clone()
+    }
+
+    pub fn teleport_num(&self, num: usize) -> Handle<Image> {
+        self.teleport_num_icons[num].clone()
+    }
+
+    pub fn bounce_color(&self, ci: usize) -> Handle<Image> {
+        self.bounce_color_icons[ci].clone()
+    }
+
+    pub fn bouncebot_color(&self, ci: usize) -> Handle<Image> {
+        self.bouncebot_color_icons[ci].clone()
     }
 }
 
@@ -149,9 +228,21 @@ pub struct GameAssets {
     pub source_symbol_mesh: Handle<Mesh>,
     pub source_symbol_materials: Vec<Handle<StandardMaterial>>,
     pub ghost_symbol_materials: Vec<Handle<StandardMaterial>>,
+    pub goal_symbol_mesh: Handle<Mesh>,
+    pub goal_symbol_materials: Vec<Handle<StandardMaterial>>,
+    pub ghost_goal_materials: Vec<Handle<StandardMaterial>>,
     pub turn_symbol_mesh: Handle<Mesh>,
     pub turn_symbol_materials: Vec<Handle<StandardMaterial>>,
     pub ghost_turn_materials: Vec<Handle<StandardMaterial>>,
+    pub turnbut_symbol_mesh: Handle<Mesh>,
+    pub turnbut_symbol_materials: Vec<Handle<StandardMaterial>>,
+    pub ghost_turnbut_materials: Vec<Handle<StandardMaterial>>,
+    pub teleport_symbol_materials: Vec<Handle<StandardMaterial>>,
+    pub ghost_teleport_materials: Vec<Handle<StandardMaterial>>,
+    pub bounce_symbol_materials: Vec<Handle<StandardMaterial>>,
+    pub ghost_bounce_materials: Vec<Handle<StandardMaterial>>,
+    pub bouncebot_symbol_materials: Vec<Handle<StandardMaterial>>,
+    pub ghost_bouncebot_materials: Vec<Handle<StandardMaterial>>,
     pub bot_mesh: Handle<Mesh>,
     pub eye_mesh: Handle<Mesh>,
     pub bot_materials: Vec<Handle<StandardMaterial>>,
@@ -173,7 +264,12 @@ pub enum TileKind {
     Empty,
     Floor,
     Source(usize, Direction),
+    Goal(usize),
     Turn(usize, Direction),
+    TurnBut(usize, Direction),
+    Teleport(usize),
+    Bounce(usize),
+    BounceBut(usize),
 }
 
 #[derive(Component)]
@@ -201,12 +297,23 @@ pub enum BoardButton {
 pub enum InventorySlot {
     Floor,
     Source,
+    Goal,
     Turn,
+    TurnBut,
     Delete,
     SourceDir(Direction),
     SourceColor(usize),
+    GoalColor(usize),
     TurnDir(Direction),
     TurnColor(usize),
+    TurnButDir(Direction),
+    TurnButColor(usize),
+    Teleport,
+    TeleportNum(usize),
+    Bounce,
+    BounceBut,
+    BounceColor(usize),
+    BounceButColor(usize),
 }
 
 #[derive(Component)]
@@ -238,3 +345,29 @@ pub struct PlayButtonImage;
 
 #[derive(Component)]
 pub struct GhostSymbolOverlay;
+
+#[derive(Clone, Copy, PartialEq)]
+pub enum BotPhase {
+    Accelerating,
+    Cruising,
+    Decelerating(Option<Direction>), // Some(exit_dir) = turn, None = goal
+    Rotating { entry_dir: Direction, exit_dir: Direction, progress: f32 },
+    Spinning, // at goal center, spinning forever
+    TeleportShrink { target_col: i32, target_row: i32 },
+    TeleportGrow,
+    Stopped,
+}
+
+#[derive(Component)]
+pub struct BotMovement {
+    pub direction: Direction,
+    pub color_index: usize,
+    pub col: i32,
+    pub row: i32,
+    pub progress: f32,  // 0.0 = entry edge, 0.5 = center, 1.0 = exit edge
+    pub speed: f32,
+    pub phase: BotPhase,
+}
+
+#[derive(Resource)]
+pub struct PlayTimer(pub Timer);

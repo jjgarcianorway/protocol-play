@@ -23,6 +23,27 @@ fn in_turn_center(x: f32, y: f32) -> bool {
     (x * x + y * y).sqrt() < 0.14
 }
 
+fn in_star_shape(x: f32, y: f32, expand: f32) -> bool {
+    let outer_r = 0.45 + expand;
+    let inner_r = 0.20 + expand * 0.5;
+    let dist = (x * x + y * y).sqrt();
+    if dist > outer_r { return false; }
+    let angle = y.atan2(x);
+    let n = 5.0;
+    let sector = (2.0 * std::f32::consts::PI) / n;
+    let half = sector / 2.0;
+    let a = (angle + std::f32::consts::FRAC_PI_2).rem_euclid(sector);
+    let t = (a - half).abs() / half;
+    let edge_r = outer_r + t * (inner_r - outer_r);
+    dist <= edge_r
+}
+
+fn in_forbidden_line(x: f32, y: f32) -> bool {
+    in_turn_center(x, y) && (x + y).abs() / std::f32::consts::SQRT_2 < 0.035
+}
+
+fn in_bounce_shape(x: f32, y: f32, e: f32) -> bool { x.abs() + y.abs() < 0.42 + e }
+
 fn in_source_shape(x: f32, y: f32, expand: f32) -> bool {
     let dist = (x * x + y * y).sqrt();
     if dist < 0.35 + expand { return true; }
@@ -42,6 +63,7 @@ fn generate_symbol_textures(
     shape_fn: fn(f32, f32, f32) -> bool,
     center_fn: Option<fn(f32, f32) -> bool>,
     center_brightness: f32,
+    forbidden_fn: Option<fn(f32, f32) -> bool>,
 ) {
     let c = size as f32 / 2.0;
     let mut base = RgbaImage::new(size, size);
@@ -50,7 +72,11 @@ fn generate_symbol_textures(
     for py in 0..size {
         for px in 0..size {
             let (nx, ny) = ((px as f32 - c) / c, (py as f32 - c) / c);
-            if center_fn.is_some_and(|cf| cf(nx, ny)) {
+            if forbidden_fn.is_some_and(|ff| ff(nx, ny)) {
+                // Forbidden line: stroke color in base, black in mask (no color)
+                base.put_pixel(px, py, Rgba(SYMBOL_STROKE));
+                mask.put_pixel(px, py, Rgba([0, 0, 0, 255]));
+            } else if center_fn.is_some_and(|cf| cf(nx, ny)) {
                 // Center: black in base (opaque), dark gray in mask
                 base.put_pixel(px, py, Rgba([0, 0, 0, 255]));
                 let b = (center_brightness * 255.0) as u8;
@@ -93,12 +119,24 @@ pub fn ensure_textures() {
         && dir.join("source_mask.png").exists()
         && dir.join("turn_base.png").exists()
         && dir.join("turn_mask.png").exists()
+        && dir.join("goal_base.png").exists()
+        && dir.join("goal_mask.png").exists()
+        && dir.join("turnbut_base.png").exists()
+        && dir.join("turnbut_mask.png").exists()
+        && dir.join("bounce_base.png").exists()
+        && dir.join("bounce_mask.png").exists()
+        && dir.join("bouncebut_base.png").exists()
+        && dir.join("bouncebut_mask.png").exists()
         && dir.join("floor.png").exists()
     {
         return;
     }
     std::fs::create_dir_all(dir).expect("Failed to create textures directory");
-    generate_symbol_textures(TILE_TEX_SIZE, dir, "source", in_source_shape, None, 0.0);
-    generate_symbol_textures(TILE_TEX_SIZE, dir, "turn", in_turn_shape, Some(in_turn_center), TURN_CENTER_BRIGHTNESS);
+    generate_symbol_textures(TILE_TEX_SIZE, dir, "source", in_source_shape, None, 0.0, None);
+    generate_symbol_textures(TILE_TEX_SIZE, dir, "turn", in_turn_shape, Some(in_turn_center), TURN_CENTER_BRIGHTNESS, None);
+    generate_symbol_textures(TILE_TEX_SIZE, dir, "goal", in_star_shape, None, 0.0, None);
+    generate_symbol_textures(TILE_TEX_SIZE, dir, "turnbut", in_turn_shape, Some(in_turn_center), TURN_CENTER_BRIGHTNESS, Some(in_forbidden_line));
+    generate_symbol_textures(TILE_TEX_SIZE, dir, "bounce", in_bounce_shape, Some(in_turn_center), TURN_CENTER_BRIGHTNESS, None);
+    generate_symbol_textures(TILE_TEX_SIZE, dir, "bouncebut", in_bounce_shape, Some(in_turn_center), TURN_CENTER_BRIGHTNESS, Some(in_forbidden_line));
     generate_floor_texture(TILE_TEX_SIZE, TILE_TEX_BORDER, dir);
 }
