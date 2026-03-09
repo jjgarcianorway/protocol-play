@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use bevy::prelude::*;
+use serde::{Serialize, Deserialize};
 use std::collections::HashSet;
 use std::f32::consts::{FRAC_PI_2, PI};
 
@@ -17,10 +18,12 @@ pub enum Tool {
     Teleport,
     Bounce,
     BounceBut,
+    Door,
+    Switch,
     Delete,
 }
 
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
 pub enum Direction {
     North,
     East,
@@ -101,7 +104,7 @@ pub struct HiddenTileEntity(pub Option<Entity>);
 #[derive(Resource, Default)]
 pub struct GhostCell(pub Option<(u32, u32)>);
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Clone)]
 pub struct InventoryState {
     pub level: u8,
     pub direction: Option<Direction>,
@@ -122,7 +125,10 @@ pub struct PlacedTeleports(pub [u8; 10]);
 pub enum PlayMode {
     #[default]
     Editing,
+    Marking,
     Playing,
+    TestEditing,
+    TestPlaying,
 }
 
 #[derive(Resource)]
@@ -159,6 +165,10 @@ pub struct InventoryIcons {
     pub bounce_color_icons: Vec<Handle<Image>>,
     pub bouncebot: Handle<Image>,
     pub bouncebot_color_icons: Vec<Handle<Image>>,
+    pub door: Handle<Image>,
+    pub door_open: Handle<Image>,
+    pub door_closed: Handle<Image>,
+    pub switch: Handle<Image>,
 }
 
 impl InventoryIcons {
@@ -243,6 +253,14 @@ pub struct GameAssets {
     pub ghost_bounce_materials: Vec<Handle<StandardMaterial>>,
     pub bouncebot_symbol_materials: Vec<Handle<StandardMaterial>>,
     pub ghost_bouncebot_materials: Vec<Handle<StandardMaterial>>,
+    pub door_open_material: Handle<StandardMaterial>,
+    pub door_closed_material: Handle<StandardMaterial>,
+    pub ghost_door_open_material: Handle<StandardMaterial>,
+    pub ghost_door_closed_material: Handle<StandardMaterial>,
+    pub switch_material: Handle<StandardMaterial>,
+    pub ghost_switch_material: Handle<StandardMaterial>,
+    pub marker_mesh: Handle<Mesh>,
+    pub marker_material: Handle<StandardMaterial>,
     pub bot_mesh: Handle<Mesh>,
     pub eye_mesh: Handle<Mesh>,
     pub bot_materials: Vec<Handle<StandardMaterial>>,
@@ -259,7 +277,7 @@ pub struct TileCoord {
     pub row: u32,
 }
 
-#[derive(Component, PartialEq, Clone, Copy)]
+#[derive(Component, PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub enum TileKind {
     Empty,
     Floor,
@@ -270,22 +288,15 @@ pub enum TileKind {
     Teleport(usize),
     Bounce(usize),
     BounceBut(usize),
+    Door(bool),  // true = open, false = closed
+    Switch,
 }
 
-#[derive(Component)]
-pub struct TargetScale(pub Vec3);
-
-#[derive(Component)]
-pub struct DespawnAtZeroScale;
-
-#[derive(Component)]
-pub struct GhostPreview;
-
-#[derive(Component)]
-pub struct TileHighlight;
-
-#[derive(Component)]
-pub struct BoardSizeText;
+#[derive(Component)] pub struct TargetScale(pub Vec3);
+#[derive(Component)] pub struct DespawnAtZeroScale;
+#[derive(Component)] pub struct GhostPreview;
+#[derive(Component)] pub struct TileHighlight;
+#[derive(Component)] pub struct BoardSizeText;
 
 #[derive(Component)]
 pub enum BoardButton {
@@ -314,6 +325,9 @@ pub enum InventorySlot {
     BounceBut,
     BounceColor(usize),
     BounceButColor(usize),
+    Door,
+    Switch,
+    DoorState(bool),  // true = open, false = closed
 }
 
 #[derive(Component)]
@@ -325,49 +339,60 @@ pub struct NodeWidthAnim {
     pub despawn_at_zero: bool,
 }
 
-#[derive(Component)]
-pub struct Level2Slot;
+#[derive(Component)] pub struct Level2Slot;
+#[derive(Component)] pub struct Level3Slot;
+#[derive(Component)] pub struct ExpansionContainer;
+#[derive(Component)] pub struct Bot;
+#[derive(Component)] pub struct PlayStopButton;
+#[derive(Component)] pub struct PlayButtonImage;
+#[derive(Component)] pub struct GhostSymbolOverlay;
 
-#[derive(Component)]
-pub struct Level3Slot;
+// === Test mode types ===
+#[derive(Component)] pub struct InventoryMarker;
+#[derive(Component)] pub struct InventoryMarkerVisual;
+#[derive(Component)] pub struct MarkButton;
+#[derive(Component)] pub struct MarkButtonImage;
+#[derive(Component)] pub struct TestButton;
+#[derive(Component)] pub struct StopTestButton;
+#[derive(Component)] pub struct ResetTestButton;
+#[derive(Component)] pub struct TestInventorySlot(pub usize);
+#[derive(Component)] pub struct TestInventoryContainer;
 
-#[derive(Component)]
-pub struct ExpansionContainer;
-
-#[derive(Component)]
-pub struct Bot;
-
-#[derive(Component)]
-pub struct PlayStopButton;
-
-#[derive(Component)]
-pub struct PlayButtonImage;
-
-#[derive(Component)]
-pub struct GhostSymbolOverlay;
-
-#[derive(Clone, Copy, PartialEq)]
-pub enum BotPhase {
-    Accelerating,
-    Cruising,
-    Decelerating(Option<Direction>), // Some(exit_dir) = turn, None = goal
-    Rotating { entry_dir: Direction, exit_dir: Direction, progress: f32 },
-    Spinning, // at goal center, spinning forever
-    TeleportShrink { target_col: i32, target_row: i32 },
-    TeleportGrow,
-    Stopped,
+#[derive(Resource, Default)]
+pub struct SavedBoardState {
+    pub tiles: Vec<(u32, u32, TileKind, bool)>,
+    pub placed_sources: HashSet<usize>,
+    pub placed_goals: HashSet<usize>,
+    pub placed_teleports: [u8; 10],
+    pub inv_state: InventoryState,
+    pub selected_tool: Tool,
 }
 
-#[derive(Component)]
-pub struct BotMovement {
-    pub direction: Direction,
-    pub color_index: usize,
-    pub col: i32,
-    pub row: i32,
-    pub progress: f32,  // 0.0 = entry edge, 0.5 = center, 1.0 = exit edge
-    pub speed: f32,
-    pub phase: BotPhase,
+#[derive(Resource, Default)]
+pub struct SavedTestState {
+    pub tiles: Vec<(u32, u32, TileKind)>,
+    pub inventory: Vec<(TileKind, u8)>,
 }
 
-#[derive(Resource)]
-pub struct PlayTimer(pub Timer);
+#[derive(Resource, Default)]
+pub struct TestInventory {
+    pub items: Vec<(TileKind, u8)>,
+    pub selected: Option<usize>,
+    pub remove_mode: bool,
+}
+
+#[derive(Component)] pub struct TestModeBanner;
+#[derive(Component)] pub struct UiBottomAnim { pub target: f32, pub despawn_at_target: bool }
+#[derive(Component)] pub struct UiTopAnim { pub target: f32, pub despawn_at_target: bool }
+#[derive(Component)] pub struct UiBgFade { pub target: f32, pub despawn_at_zero: bool }
+#[derive(Serialize, Deserialize)]
+pub struct LevelData { pub name: String, pub board_size: u32, pub tiles: Vec<(u32, u32, TileKind, bool)> }
+#[derive(Component)] pub struct SaveButton;
+#[derive(Component)] pub struct LoadButton;
+#[derive(Component)] pub struct SaveDialog;
+#[derive(Component)] pub struct SaveDialogInput;
+#[derive(Component)] pub struct SaveDialogConfirm;
+#[derive(Component)] pub struct SaveDialogCancel;
+#[derive(Component)] pub struct LoadDialog;
+#[derive(Component)] pub struct LoadDialogCancel;
+#[derive(Component)] pub struct LoadDialogEntry(pub String);

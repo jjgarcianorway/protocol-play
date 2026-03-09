@@ -44,6 +44,16 @@ fn in_forbidden_line(x: f32, y: f32) -> bool {
 
 fn in_bounce_shape(x: f32, y: f32, e: f32) -> bool { x.abs() + y.abs() < 0.42 + e }
 
+fn in_door_sq(x: f32, y: f32, e: f32) -> bool {
+    let (s, o) = (0.12 + e, 0.30);
+    ((x-o).abs() < s && (y-o).abs() < s) || ((x+o).abs() < s && (y-o).abs() < s)
+    || ((x-o).abs() < s && (y+o).abs() < s) || ((x+o).abs() < s && (y+o).abs() < s)
+}
+fn in_door_closed_s(x: f32, y: f32, e: f32) -> bool {
+    in_door_sq(x, y, e) || (((x-y).abs() < 0.06+e || (x+y).abs() < 0.06+e) && x.abs() < 0.38+e && y.abs() < 0.38+e)
+}
+fn in_switch_s(x: f32, y: f32, e: f32) -> bool { (x*x + y*y).sqrt() < 0.25 + e }
+
 fn in_source_shape(x: f32, y: f32, expand: f32) -> bool {
     let dist = (x * x + y * y).sqrt();
     if dist < 0.35 + expand { return true; }
@@ -127,6 +137,12 @@ pub fn ensure_textures() {
         && dir.join("bounce_mask.png").exists()
         && dir.join("bouncebut_base.png").exists()
         && dir.join("bouncebut_mask.png").exists()
+        && dir.join("door_open_base.png").exists()
+        && dir.join("door_open_mask.png").exists()
+        && dir.join("door_closed_base.png").exists()
+        && dir.join("door_closed_mask.png").exists()
+        && dir.join("switch_base.png").exists()
+        && dir.join("switch_mask.png").exists()
         && dir.join("floor.png").exists()
     {
         return;
@@ -138,5 +154,8 @@ pub fn ensure_textures() {
     generate_symbol_textures(TILE_TEX_SIZE, dir, "turnbut", in_turn_shape, Some(in_turn_center), TURN_CENTER_BRIGHTNESS, Some(in_forbidden_line));
     generate_symbol_textures(TILE_TEX_SIZE, dir, "bounce", in_bounce_shape, Some(in_turn_center), TURN_CENTER_BRIGHTNESS, None);
     generate_symbol_textures(TILE_TEX_SIZE, dir, "bouncebut", in_bounce_shape, Some(in_turn_center), TURN_CENTER_BRIGHTNESS, Some(in_forbidden_line));
+    generate_symbol_textures(TILE_TEX_SIZE, dir, "door_open", in_door_sq, None, 0.0, None);
+    generate_symbol_textures(TILE_TEX_SIZE, dir, "door_closed", in_door_closed_s, None, 0.0, None);
+    generate_symbol_textures(TILE_TEX_SIZE, dir, "switch", in_switch_s, None, 0.0, None);
     generate_floor_texture(TILE_TEX_SIZE, TILE_TEX_BORDER, dir);
 }

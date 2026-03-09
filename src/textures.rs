@@ -4,7 +4,6 @@ use bevy::prelude::*;
 use bevy::image::Image;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use crate::constants::*;
-
 fn make_image(images: &mut Assets<Image>, data: Vec<u8>, size: u32) -> Handle<Image> {
     images.add(Image::new(
         Extent3d { width: size, height: size, depth_or_array_layers: 1 },
@@ -36,14 +35,11 @@ pub fn color_to_u8(r: f32, g: f32, b: f32) -> [u8; 4] {
 
 fn ui_icon(images: &mut Assets<Image>, test: impl Fn(f32, f32) -> bool, color: [u8; 4]) -> Handle<Image> {
     let mut data = vec![0u8; (ICON_SIZE * ICON_SIZE * 4) as usize];
-    for y in 0..ICON_SIZE {
-        for x in 0..ICON_SIZE {
-            let (fx, fy) = (x as f32 / ICON_SIZE as f32, y as f32 / ICON_SIZE as f32);
-            let c = if test(fx, fy) { color } else { [40, 40, 40, 255] };
-            let i = ((y * ICON_SIZE + x) * 4) as usize;
-            data[i..i + 4].copy_from_slice(&c);
-        }
-    }
+    for y in 0..ICON_SIZE { for x in 0..ICON_SIZE {
+        let (fx, fy) = (x as f32 / ICON_SIZE as f32, y as f32 / ICON_SIZE as f32);
+        let c = if test(fx, fy) { color } else { ICON_DARK_BG };
+        let i = ((y * ICON_SIZE + x) * 4) as usize; data[i..i + 4].copy_from_slice(&c);
+    }}
     make_image(images, data, ICON_SIZE)
 }
 
@@ -51,25 +47,21 @@ pub fn create_delete_icon(images: &mut Assets<Image>) -> Handle<Image> {
     ui_icon(images, |fx, fy| {
         ((fx - fy).abs() < 0.09 || (fx - (1.0 - fy)).abs() < 0.09)
         && fx > 0.15 && fx < 0.85 && fy > 0.15 && fy < 0.85
-    }, [220, 60, 60, 255])
+    }, DELETE_ICON_COLOR)
 }
 
 fn create_border_texture(images: &mut Assets<Image>, size: u32, border: u32, edge: [u8; 4]) -> Handle<Image> {
     let mut data = vec![0u8; (size * size * 4) as usize];
-    for y in 0..size {
-        for x in 0..size {
-            let on_edge = x < border || x >= size - border || y < border || y >= size - border;
-            if on_edge {
-                let i = ((y * size + x) * 4) as usize;
-                data[i..i + 4].copy_from_slice(&edge);
-            }
-        }
-    }
+    for y in 0..size { for x in 0..size {
+        let on_edge = x < border || x >= size - border || y < border || y >= size - border;
+        if on_edge { let i = ((y * size + x) * 4) as usize; data[i..i + 4].copy_from_slice(&edge); }
+    }}
     make_image(images, data, size)
 }
 
-pub fn create_empty_marker_texture(i: &mut Assets<Image>) -> Handle<Image> { create_border_texture(i, 64, 3, [100, 100, 100, 120]) }
-pub fn create_highlight_texture(i: &mut Assets<Image>) -> Handle<Image> { create_border_texture(i, 64, 4, [255, 255, 255, 200]) }
+pub fn create_empty_marker_texture(i: &mut Assets<Image>) -> Handle<Image> { create_border_texture(i, MARKER_TEX_SIZE, EMPTY_MARKER_BORDER, EMPTY_MARKER_COLOR) }
+pub fn create_highlight_texture(i: &mut Assets<Image>) -> Handle<Image> { create_border_texture(i, MARKER_TEX_SIZE, HIGHLIGHT_TEX_BORDER, HIGHLIGHT_TEX_COLOR) }
+pub fn create_inv_marker_texture(i: &mut Assets<Image>) -> Handle<Image> { create_border_texture(i, MARKER_TEX_SIZE, INV_MARKER_BORDER, INV_MARKER_COLOR) }
 
 // === Shape tests ===
 fn in_star_shape(x: f32, y: f32, expand: f32) -> bool {
@@ -149,14 +141,10 @@ fn in_tp_num(x: f32, y: f32, num: usize) -> bool {
 // === Icon texture data ===
 pub fn tile_texture_data(size: u32, border: u32) -> Vec<u8> {
     let mut data = vec![0u8; (size * size * 4) as usize];
-    for y in 0..size {
-        for x in 0..size {
-            let on_edge = x < border || x >= size - border || y < border || y >= size - border;
-            let color = if on_edge { TILE_DARK } else { TILE_GRAY };
-            let i = ((y * size + x) * 4) as usize;
-            data[i..i + 4].copy_from_slice(&color);
-        }
-    }
+    for y in 0..size { for x in 0..size {
+        let color = if x < border || x >= size - border || y < border || y >= size - border { TILE_DARK } else { TILE_GRAY };
+        let i = ((y * size + x) * 4) as usize; data[i..i + 4].copy_from_slice(&color);
+    }}
     data
 }
 
@@ -223,6 +211,16 @@ pub fn turnbut_texture_colored_data(size: u32, border: u32, rotation: f32, fill:
 
 fn in_bounce_shape(x: f32, y: f32, e: f32) -> bool { x.abs() + y.abs() < 0.42 + e }
 
+fn in_door_sq(x: f32, y: f32, e: f32) -> bool {
+    let (s, o) = (0.12 + e, 0.30);
+    ((x-o).abs() < s && (y-o).abs() < s) || ((x+o).abs() < s && (y-o).abs() < s)
+    || ((x-o).abs() < s && (y+o).abs() < s) || ((x+o).abs() < s && (y+o).abs() < s)
+}
+fn in_door_closed_s(x: f32, y: f32, e: f32) -> bool {
+    in_door_sq(x, y, e) || (((x-y).abs() < 0.06+e || (x+y).abs() < 0.06+e) && x.abs() < 0.38+e && y.abs() < 0.38+e)
+}
+fn in_switch_s(x: f32, y: f32, e: f32) -> bool { (x*x + y*y).sqrt() < 0.25 + e }
+
 pub fn bounce_texture_colored_data(size: u32, border: u32, fill: [u8; 4], forbid: bool) -> Vec<u8> {
     let ff = if forbid { Some(in_forbidden_line as fn(f32, f32) -> bool) } else { None };
     rotated_shape_data(size, border, 0.0, fill, in_bounce_shape, Some(in_turn_center), turn_center_fill(fill), ff)
@@ -231,17 +229,14 @@ pub fn bounce_texture_colored_data(size: u32, border: u32, fill: [u8; 4], forbid
 pub fn teleport_texture_colored_data(size: u32, border: u32, num: usize, fill: [u8; 4]) -> Vec<u8> {
     let c = size as f32 / 2.0;
     let mut data = vec![0u8; (size * size * 4) as usize];
-    for py in 0..size {
-        for px in 0..size {
-            let on_edge = px < border || px >= size - border || py < border || py >= size - border;
-            let mut color = if on_edge { TILE_DARK } else { TILE_GRAY };
-            let (nx, ny) = ((px as f32 - c) / c, (py as f32 - c) / c);
-            if in_ring(nx, ny, 0.0) || in_tp_num(nx, ny, num) { color = fill; }
-            else if in_ring(nx, ny, STROKE_EXPAND) { color = SYMBOL_STROKE; }
-            let i = ((py * size + px) * 4) as usize;
-            data[i..i + 4].copy_from_slice(&color);
-        }
-    }
+    for py in 0..size { for px in 0..size {
+        let on_edge = px < border || px >= size - border || py < border || py >= size - border;
+        let mut color = if on_edge { TILE_DARK } else { TILE_GRAY };
+        let (nx, ny) = ((px as f32 - c) / c, (py as f32 - c) / c);
+        if in_ring(nx, ny, 0.0) || in_tp_num(nx, ny, num) { color = fill; }
+        else if in_ring(nx, ny, STROKE_EXPAND) { color = SYMBOL_STROKE; }
+        let i = ((py * size + px) * 4) as usize; data[i..i + 4].copy_from_slice(&color);
+    }}
     data
 }
 
@@ -350,7 +345,7 @@ pub fn create_isometric_icon(
     let max_sy = all_pts.iter().map(|p| p.1).fold(f32::NEG_INFINITY, f32::max);
 
     let range = (max_sx - min_sx).max(max_sy - min_sy);
-    let margin = 0.08;
+    let margin = ISO_MARGIN;
     let scale = (icon_size as f32) * (1.0 - 2.0 * margin) / range;
     let cx = icon_size as f32 / 2.0;
     let cy = icon_size as f32 / 2.0;
@@ -378,9 +373,9 @@ pub fn create_isometric_icon(
                 data[i..i + 3].copy_from_slice(&top_data[ti..ti + 3]);
                 data[i + 3] = 255;
             } else if point_in_quad_uv(x, y, top_tr_px, bot_tr_px, bot_br_px, top_br_px).is_some() {
-                data[i..i + 4].copy_from_slice(&[50, 50, 50, 255]);
+                data[i..i + 4].copy_from_slice(&ISO_SIDE_COLOR);
             } else if point_in_quad_uv(x, y, top_bl_px, top_br_px, bot_br_px, bot_bl_px).is_some() {
-                data[i..i + 4].copy_from_slice(&[35, 35, 35, 255]);
+                data[i..i + 4].copy_from_slice(&ISO_BOTTOM_COLOR);
             }
         }
     }
@@ -389,10 +384,17 @@ pub fn create_isometric_icon(
 
 pub fn create_play_icon(images: &mut Assets<Image>) -> Handle<Image> {
     ui_icon(images, |fx, fy| fx >= 0.3 && fx <= 0.8 && (fy - 0.5).abs() <= 0.3 * (1.0 - (fx - 0.3) / 0.5),
-        [80, 200, 80, 255])
+        PLAY_ICON_COLOR)
 }
 
 pub fn create_stop_icon(images: &mut Assets<Image>) -> Handle<Image> {
     ui_icon(images, |fx, fy| fx >= 0.28 && fx <= 0.72 && fy >= 0.28 && fy <= 0.72,
-        [220, 60, 60, 255])
+        STOP_ICON_COLOR)
+}
+
+pub fn door_texture_data(s: u32, b: u32, fill: [u8; 4], closed: bool) -> Vec<u8> {
+    rotated_shape_data(s, b, 0.0, fill, if closed { in_door_closed_s } else { in_door_sq }, None, [0;4], None)
+}
+pub fn switch_texture_data(s: u32, b: u32, fill: [u8; 4]) -> Vec<u8> {
+    rotated_shape_data(s, b, 0.0, fill, in_switch_s, None, [0; 4], None)
 }

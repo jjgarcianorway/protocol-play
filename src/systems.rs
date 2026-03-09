@@ -17,7 +17,7 @@ pub fn animate_scale(
             ANIM_SPEED
         };
         transform.scale = transform.scale.lerp(target.0, speed * time.delta_secs());
-        if transform.scale.distance(target.0) < 0.01 {
+        if transform.scale.distance(target.0) < SCALE_SNAP {
             transform.scale = target.0;
         }
     }
@@ -34,7 +34,7 @@ pub fn animate_node_width(
             _ => anim.target,
         };
         let new_w = current + (anim.target - current) * UI_ANIM_SPEED * time.delta_secs();
-        if (new_w - anim.target).abs() < 0.1 {
+        if (new_w - anim.target).abs() < WIDTH_SNAP {
             if anim.despawn_at_zero && anim.target < 0.1 {
                 commands.entity(entity).despawn_recursive();
             } else {
@@ -47,9 +47,37 @@ pub fn animate_node_width(
     }
 }
 
+pub fn animate_ui_slides(
+    time: Res<Time>, mut commands: Commands,
+    mut bq: Query<(Entity, &mut Node, &UiBottomAnim)>,
+    mut tq: Query<(Entity, &mut Node, &UiTopAnim), Without<UiBottomAnim>>,
+    mut fq: Query<(Entity, &mut BackgroundColor, &UiBgFade)>,
+) {
+    let s = time.delta_secs() * UI_ANIM_SPEED;
+    macro_rules! slide { ($q:expr, $field:ident, $comp:ty) => {
+        for (e, mut n, a) in &mut $q {
+            let c = match n.$field { Val::Px(v) => v, _ => continue };
+            let d = a.target - c;
+            if d.abs() < SLIDE_SNAP {
+                n.$field = Val::Px(a.target); commands.entity(e).remove::<$comp>();
+                if a.despawn_at_target { commands.entity(e).despawn_recursive(); }
+            } else { n.$field = Val::Px(c + d * s); }
+        }
+    }}
+    slide!(bq, bottom, UiBottomAnim);
+    slide!(tq, top, UiTopAnim);
+    for (e, mut bg, a) in &mut fq {
+        let c = bg.0.alpha(); let d = a.target - c;
+        if d.abs() < FADE_SNAP {
+            bg.0.set_alpha(a.target); commands.entity(e).remove::<UiBgFade>();
+            if a.despawn_at_zero && a.target < FADE_SNAP { commands.entity(e).despawn_recursive(); }
+        } else { bg.0.set_alpha(c + d * s); }
+    }
+}
+
 pub fn cleanup_despawned(mut commands: Commands, query: Query<(Entity, &Transform), With<DespawnAtZeroScale>>) {
     for (entity, transform) in &query {
-        if transform.scale.length() < 0.02 {
+        if transform.scale.length() < DESPAWN_SCALE {
             commands.entity(entity).despawn_recursive();
         }
     }
@@ -62,7 +90,10 @@ pub fn update_hovered_cell(
     board_size: Res<BoardSize>,
     mut hovered: ResMut<HoveredCell>,
     ui_interactions: Query<&Interaction, With<Button>>,
+    play_mode: Res<PlayMode>,
 ) {
+    let can_hover = matches!(*play_mode, PlayMode::Editing | PlayMode::Marking | PlayMode::TestEditing);
+    if !can_hover { hovered.0 = None; return; }
     for interaction in &ui_interactions {
         if *interaction != Interaction::None {
             hovered.0 = None;
@@ -90,7 +121,6 @@ pub fn update_hovered_cell(
 
 // === Ghost & Highlight ===
 pub fn update_ghost_and_highlight(
-    mut commands: Commands,
     hovered: Res<HoveredCell>,
     selected_tool: Res<SelectedTool>,
     inv_state: Res<InventoryState>,
@@ -118,6 +148,7 @@ pub fn update_ghost_and_highlight(
     placed_sources: Res<PlacedSources>,
     placed_goals: Res<PlacedGoals>,
     placed_teleports: Res<PlacedTeleports>,
+    play_mode: Res<PlayMode>,
 ) {
     // Restore previous suppressed tile
     if let Some(old_entity) = hidden_tile.0.take() {
@@ -131,52 +162,29 @@ pub fn update_ghost_and_highlight(
     let (mut hl_tf, mut hl_target) = highlight_q.single_mut();
     let mut show_overlay = false;
 
+    macro_rules! hide_ghost { () => {
+        ghost_target.0 = Vec3::ZERO; overlay_tf.scale = Vec3::ZERO;
+        hl_target.0 = Vec3::ZERO; ghost_cell.0 = None;
+    }}
+    // No ghost/highlight in marking mode or during play
+    if matches!(*play_mode, PlayMode::Marking | PlayMode::Playing | PlayMode::TestPlaying) {
+        hide_ghost!(); return;
+    }
     let Some((col, row)) = hovered.0 else {
-        if ghost_target.0.length() > 0.5 && selected_tool.0 == Tool::Delete {
-            commands.spawn((
-                Mesh3d(assets.ghost_delete_mesh.clone()),
-                MeshMaterial3d(assets.ghost_delete_material.clone()),
-                Transform::from_translation(ghost_tf.translation).with_scale(ghost_tf.scale),
-                TargetScale(Vec3::ZERO), DespawnAtZeroScale,
-            ));
-        }
-        ghost_target.0 = Vec3::ZERO;
-        overlay_tf.scale = Vec3::ZERO;
-        hl_target.0 = Vec3::ZERO;
-        ghost_cell.0 = None;
-        return;
+        hide_ghost!(); return;
     };
-
     let tile_info = tiles.iter().find(|(_, c, _)| c.col == col && c.row == row);
-    let Some((entity, _, kind)) = tile_info else {
-        ghost_target.0 = Vec3::ZERO;
-        overlay_tf.scale = Vec3::ZERO;
-        hl_target.0 = Vec3::ZERO;
-        ghost_cell.0 = None;
-        return;
-    };
+    let Some((entity, _, kind)) = tile_info else { hide_ghost!(); return; };
 
     let offset = (board_size.0 as f32 - 1.0) / 2.0;
     let world_x = col as f32 - offset;
     let world_z = row as f32 - offset;
 
-    let cell_changed = ghost_cell.0 != Some((col, row));
-    if cell_changed {
-        if selected_tool.0 == Tool::Delete && ghost_target.0.length() > 0.5 {
-            commands.spawn((
-                Mesh3d(assets.ghost_delete_mesh.clone()),
-                MeshMaterial3d(assets.ghost_delete_material.clone()),
-                Transform::from_translation(ghost_tf.translation).with_scale(ghost_tf.scale),
-                TargetScale(Vec3::ZERO), DespawnAtZeroScale,
-            ));
-        }
-        ghost_tf.scale = Vec3::ZERO;
-        hl_tf.scale = Vec3::ZERO;
+    if ghost_cell.0 != Some((col, row)) {
+        ghost_tf.scale = Vec3::ZERO; hl_tf.scale = Vec3::ZERO;
         ghost_cell.0 = Some((col, row));
     }
-
-    hl_tf.translation = Vec3::new(world_x, FLOOR_TOP_Y + 0.01, world_z);
-    hl_target.0 = Vec3::ONE;
+    hl_tf.translation = Vec3::new(world_x, FLOOR_TOP_Y + HIGHLIGHT_Y_OFFSET, world_z); hl_target.0 = Vec3::ONE;
 
     // Compute ghost mode: Some((rotation, optional overlay material)) for tile-placing tools
     let ghost_mode = match selected_tool.0 {
@@ -193,31 +201,28 @@ pub fn update_ghost_and_highlight(
                 else { None }
             } else { None }
         }
-        Tool::Turn if !matches!(kind, TileKind::Turn(_, _)) => {
-            if let (Some(dir), Some(ci)) = (inv_state.direction, inv_state.color_index) {
-                Some((Quat::from_rotation_y(dir.rotation()), Some(assets.ghost_turn_materials[ci].clone())))
-            } else { None }
-        }
-        Tool::TurnBut if !matches!(kind, TileKind::TurnBut(_, _)) => {
-            if let (Some(dir), Some(ci)) = (inv_state.direction, inv_state.color_index) {
-                Some((Quat::from_rotation_y(dir.rotation()), Some(assets.ghost_turnbut_materials[ci].clone())))
-            } else { None }
-        }
+        Tool::Turn if !matches!(kind, TileKind::Turn(_, _)) => match (inv_state.direction, inv_state.color_index) {
+            (Some(dir), Some(ci)) => Some((Quat::from_rotation_y(dir.rotation()), Some(assets.ghost_turn_materials[ci].clone()))),
+            _ => None,
+        },
+        Tool::TurnBut if !matches!(kind, TileKind::TurnBut(_, _)) => match (inv_state.direction, inv_state.color_index) {
+            (Some(dir), Some(ci)) => Some((Quat::from_rotation_y(dir.rotation()), Some(assets.ghost_turnbut_materials[ci].clone()))),
+            _ => None,
+        },
         Tool::Teleport if !matches!(kind, TileKind::Teleport(_)) => {
             if let Some(ci) = inv_state.color_index {
                 if placed_teleports.0[ci] < 2 { Some((Quat::IDENTITY, Some(assets.ghost_teleport_materials[ci].clone()))) }
                 else { None }
             } else { None }
         }
-        Tool::Bounce if !matches!(kind, TileKind::Bounce(_)) => {
-            if let Some(ci) = inv_state.color_index {
-                Some((Quat::IDENTITY, Some(assets.ghost_bounce_materials[ci].clone())))
-            } else { None }
-        }
-        Tool::BounceBut if !matches!(kind, TileKind::BounceBut(_)) => {
-            if let Some(ci) = inv_state.color_index {
-                Some((Quat::IDENTITY, Some(assets.ghost_bouncebot_materials[ci].clone())))
-            } else { None }
+        Tool::Bounce if !matches!(kind, TileKind::Bounce(_)) => inv_state.color_index
+            .map(|ci| (Quat::IDENTITY, Some(assets.ghost_bounce_materials[ci].clone()))),
+        Tool::BounceBut if !matches!(kind, TileKind::BounceBut(_)) => inv_state.color_index
+            .map(|ci| (Quat::IDENTITY, Some(assets.ghost_bouncebot_materials[ci].clone()))),
+        Tool::Door if !matches!(kind, TileKind::Door(_)) => inv_state.color_index
+            .map(|s| (Quat::IDENTITY, Some(if s == 0 { assets.ghost_door_open_material.clone() } else { assets.ghost_door_closed_material.clone() }))),
+        Tool::Switch if !matches!(kind, TileKind::Switch) => {
+            Some((Quat::IDENTITY, Some(assets.ghost_switch_material.clone())))
         }
         _ => None,
     };
@@ -227,25 +232,16 @@ pub fn update_ghost_and_highlight(
         ghost_tf.rotation = rotation;
         *ghost_mesh = Mesh3d(assets.floor_mesh.clone());
         *ghost_mat = MeshMaterial3d(assets.ghost_floor_material.clone());
-        if let Some(mat) = overlay_mat_opt {
-            *overlay_mat = MeshMaterial3d(mat);
-            show_overlay = true;
-        }
+        if let Some(mat) = overlay_mat_opt { *overlay_mat = MeshMaterial3d(mat); show_overlay = true; }
         ghost_target.0 = Vec3::ONE;
-        if let Ok(mut target) = tile_scale_q.get_mut(entity) {
-            target.0 = Vec3::ZERO;
-            hidden_tile.0 = Some(entity);
-        }
+        if let Ok(mut target) = tile_scale_q.get_mut(entity) { target.0 = Vec3::ZERO; hidden_tile.0 = Some(entity); }
     } else if selected_tool.0 == Tool::Delete && !matches!(kind, TileKind::Empty) {
         ghost_tf.translation = Vec3::new(world_x, FLOOR_TOP_Y + DELETE_OVERLAY_OFFSET, world_z);
         ghost_tf.rotation = Quat::IDENTITY;
         *ghost_mesh = Mesh3d(assets.ghost_delete_mesh.clone());
         *ghost_mat = MeshMaterial3d(assets.ghost_delete_material.clone());
         ghost_target.0 = Vec3::ONE;
-    } else {
-        ghost_target.0 = Vec3::ZERO;
-    }
-
+    } else { ghost_target.0 = Vec3::ZERO; }
     overlay_tf.scale = if show_overlay { Vec3::ONE } else { Vec3::ZERO };
 }
 
@@ -266,7 +262,7 @@ pub fn handle_tile_click(
     play_mode: Res<PlayMode>,
     ghost_q: Query<&Transform, With<GhostPreview>>,
 ) {
-    if *play_mode == PlayMode::Playing { return; }
+    if *play_mode != PlayMode::Editing { return; }
     if !mouse.just_pressed(MouseButton::Left) { return; }
     for interaction in &ui_interactions {
         if *interaction != Interaction::None { return; }
@@ -302,6 +298,8 @@ pub fn handle_tile_click(
         Tool::Teleport => !matches!(kind, TileKind::Teleport(_)),
         Tool::Bounce => !matches!(kind, TileKind::Bounce(_)),
         Tool::BounceBut => !matches!(kind, TileKind::BounceBut(_)),
+        Tool::Door => !matches!(kind, TileKind::Door(_)),
+        Tool::Switch => !matches!(kind, TileKind::Switch),
         Tool::Delete => !matches!(kind, TileKind::Empty),
     };
     if !not_self(selected_tool.0, kind) { return; }
@@ -369,6 +367,17 @@ pub fn handle_tile_click(
                 spawn_tile_at_scale(&mut commands, col, row, board_size.0, tile, &assets, ghost_scale);
             }
         }
+        Tool::Door => {
+            if let Some(state) = inv_state.color_index {
+                let open = state == 0;
+                despawn(&mut commands, entity);
+                spawn_tile_at_scale(&mut commands, col, row, board_size.0, TileKind::Door(open), &assets, ghost_scale);
+            }
+        }
+        Tool::Switch => {
+            despawn(&mut commands, entity);
+            spawn_tile_at_scale(&mut commands, col, row, board_size.0, TileKind::Switch, &assets, ghost_scale);
+        }
         Tool::Delete => {
             if let TileKind::Source(ci, _) = kind {
                 if inv_state.level >= 2 { inv_state.color_index = Some(*ci); }
@@ -386,3 +395,4 @@ pub fn handle_tile_click(
         }
     }
 }
+

@@ -1,0 +1,399 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+use bevy::prelude::*;
+use crate::constants::*;
+use crate::types::*;
+use crate::ui_helpers::*;
+use crate::board::tile_world_pos;
+
+// === Simulation types (moved from types.rs for line budget) ===
+#[derive(Clone, Copy, PartialEq)]
+pub enum BotPhase {
+    Accelerating, Cruising,
+    Decelerating(Option<Direction>),
+    Rotating { entry_dir: Direction, exit_dir: Direction, progress: f32 },
+    Spinning, TeleportShrink { target_col: i32, target_row: i32 }, TeleportGrow,
+    FallingDecel, FallingPause(f32), Falling(f32), Stopped,
+}
+
+#[derive(Component)]
+pub struct BotMovement {
+    pub direction: Direction, pub color_index: usize,
+    pub col: i32, pub row: i32,
+    pub progress: f32, pub speed: f32, pub phase: BotPhase,
+}
+
+#[derive(Resource)]
+pub struct PlayTimer(pub Timer);
+
+#[derive(Resource, Default)]
+pub struct DoorToggleCount(pub u32);
+
+#[derive(Resource, Default)]
+pub struct OriginalDoorStates(pub Vec<(u32, u32, bool)>);
+
+pub enum SimResult { Error(&'static str), Success }
+
+#[derive(Resource, Default)]
+pub struct SimulationResult {
+    pub result: Option<SimResult>,
+    pub overlay_spawned: bool,
+    pub stop_requested: bool,
+    pub test_success_exit: bool,
+}
+
+#[derive(Component)] pub struct SimulationOverlay;
+#[derive(Component)] pub struct SimOverlayButton;
+
+// === Play/Stop ===
+pub fn play_stop_interaction(
+    mut commands: Commands,
+    mut play_mode: ResMut<PlayMode>,
+    interaction_query: Query<&Interaction, (With<PlayStopButton>, Changed<Interaction>)>,
+    mut tiles: Query<(&TileCoord, &mut TileKind, Option<&Children>), (With<Tile>, Without<DespawnAtZeroScale>)>,
+    bots: Query<Entity, With<Bot>>,
+    assets: Res<GameAssets>,
+    board_size: Res<BoardSize>,
+    mut button_image: Query<&mut ImageNode, With<PlayButtonImage>>,
+    play_icons: Res<PlayIcons>,
+    mut door_states: ResMut<OriginalDoorStates>,
+    mut door_toggle: ResMut<DoorToggleCount>,
+    mut mat_q: Query<&mut MeshMaterial3d<StandardMaterial>>,
+    mut sim_result: ResMut<SimulationResult>,
+    overlay: Query<Entity, With<SimulationOverlay>>,
+) {
+    let button_pressed = interaction_query.iter().any(|i| *i == Interaction::Pressed);
+    if !button_pressed && !sim_result.stop_requested { return; }
+
+    let can_start = *play_mode == PlayMode::Editing || *play_mode == PlayMode::TestEditing;
+    let can_stop = *play_mode == PlayMode::Playing || *play_mode == PlayMode::TestPlaying;
+    if button_pressed && can_start {
+        let next = if *play_mode == PlayMode::Editing { PlayMode::Playing } else { PlayMode::TestPlaying };
+        *play_mode = next;
+        sim_result.result = None;
+        sim_result.overlay_spawned = false;
+        sim_result.stop_requested = false;
+        commands.insert_resource(PlayTimer(Timer::from_seconds(BOT_START_DELAY, TimerMode::Once)));
+        let mut img = button_image.single_mut();
+        img.image = play_icons.stop.clone();
+        door_states.0.clear();
+        for (coord, kind, _) in &tiles {
+            if let TileKind::Door(open) = *kind { door_states.0.push((coord.col, coord.row, open)); }
+        }
+        for (coord, kind, _) in &tiles {
+            if let TileKind::Source(ci, dir) = *kind {
+                let pos = tile_world_pos(coord.col, coord.row, board_size.0, &kind);
+                let by = FLOOR_TOP_Y + BOT_SIZE / 2.0;
+                commands.spawn((
+                    Mesh3d(assets.bot_mesh.clone()), MeshMaterial3d(assets.bot_materials[ci].clone()),
+                    Transform::from_translation(Vec3::new(pos.x, by, pos.z))
+                        .with_rotation(Quat::from_rotation_y(dir.rotation())).with_scale(Vec3::ZERO),
+                    TargetScale(Vec3::ONE), Bot,
+                    BotMovement { direction: dir, color_index: ci, col: coord.col as i32,
+                        row: coord.row as i32, progress: 0.5, speed: 0.0, phase: BotPhase::Accelerating },
+                )).with_children(|parent| {
+                    let ez = -(BOT_SIZE / 2.0 + BOT_EYE_D / 2.0 + OVERLAY_MESH_THICKNESS);
+                    for ex in [-BOT_EYE_SPACING, BOT_EYE_SPACING] {
+                        parent.spawn((Mesh3d(assets.eye_mesh.clone()),
+                            MeshMaterial3d(assets.eye_material.clone()),
+                            Transform::from_translation(Vec3::new(ex, BOT_EYE_Y_OFFSET, ez))));
+                    }
+                });
+            }
+        }
+    } else if can_stop {
+        *play_mode = if *play_mode == PlayMode::Playing { PlayMode::Editing } else { PlayMode::TestEditing };
+        sim_result.stop_requested = false;
+        sim_result.result = None;
+        sim_result.overlay_spawned = false;
+        door_toggle.0 = 0;
+        let mut img = button_image.single_mut();
+        img.image = play_icons.play.clone();
+        for entity in &bots {
+            commands.entity(entity).insert((TargetScale(Vec3::ZERO), DespawnAtZeroScale));
+        }
+        for e in &overlay { commands.entity(e).despawn_recursive(); }
+        for (col, row, was_open) in door_states.0.drain(..) {
+            for (coord, mut kind, children) in &mut tiles {
+                if coord.col == col && coord.row == row {
+                    if let TileKind::Door(ref mut open) = *kind {
+                        if *open != was_open {
+                            *open = was_open;
+                            let mat = if was_open { assets.door_open_material.clone() }
+                                else { assets.door_closed_material.clone() };
+                            if let Some(children) = children {
+                                for &child in children.iter() {
+                                    if let Ok(mut m) = mat_q.get_mut(child) { m.0 = mat.clone(); }
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    }
+}
+
+// === Bot Movement ===
+pub fn move_bots(
+    time: Res<Time>,
+    play_mode: Res<PlayMode>,
+    mut play_timer: Option<ResMut<PlayTimer>>,
+    board_size: Res<BoardSize>,
+    tiles: Query<(&TileCoord, &TileKind), With<Tile>>,
+    mut bots: Query<(&mut Transform, &mut BotMovement, &mut TargetScale), With<Bot>>,
+    mut door_toggle: ResMut<DoorToggleCount>,
+) {
+    if *play_mode != PlayMode::Playing && *play_mode != PlayMode::TestPlaying { return; }
+    if let Some(ref mut timer) = play_timer {
+        timer.0.tick(time.delta());
+        if !timer.0.finished() { return; }
+    }
+
+    let dt = time.delta_secs();
+    let half = (board_size.0 as f32 - 1.0) / 2.0;
+    let bot_y = FLOOR_TOP_Y + BOT_SIZE / 2.0;
+
+    let tile_at = |col: i32, row: i32| -> Option<TileKind> {
+        if col < 0 || row < 0 || col >= board_size.0 as i32 || row >= board_size.0 as i32 {
+            return None;
+        }
+        tiles.iter().find(|(c, _)| c.col == col as u32 && c.row == row as u32).map(|(_, k)| *k)
+    };
+
+    for (mut transform, mut mov, mut target_scale) in &mut bots {
+        match mov.phase {
+            BotPhase::Stopped => continue,
+            BotPhase::Accelerating => {
+                mov.speed = (mov.speed + BOT_ACCEL * dt).min(BOT_CRUISE_SPEED);
+                mov.progress += mov.speed * dt;
+                if mov.speed >= BOT_CRUISE_SPEED { mov.phase = BotPhase::Cruising; }
+            }
+            BotPhase::Cruising => { mov.progress += BOT_CRUISE_SPEED * dt; }
+            BotPhase::Decelerating(_) => {
+                mov.speed = (mov.speed - BOT_ACCEL * dt).max(0.0);
+                mov.progress += mov.speed * dt;
+                if mov.progress >= 0.5 {
+                    mov.progress = 0.5; mov.speed = 0.0;
+                    match mov.phase {
+                        BotPhase::Decelerating(Some(exit_dir)) => {
+                            mov.phase = BotPhase::Rotating { entry_dir: mov.direction, exit_dir, progress: 0.0 };
+                        }
+                        BotPhase::Decelerating(None) => {
+                            let tp = if let Some(TileKind::Teleport(num)) = tile_at(mov.col, mov.row) {
+                                tiles.iter().find(|(c, k)| matches!(k, TileKind::Teleport(n) if *n == num)
+                                    && (c.col as i32 != mov.col || c.row as i32 != mov.row))
+                                    .map(|(c, _)| (c.col as i32, c.row as i32))
+                            } else { None };
+                            if let Some((tc, tr)) = tp {
+                                target_scale.0 = Vec3::ZERO;
+                                mov.phase = BotPhase::TeleportShrink { target_col: tc, target_row: tr };
+                            } else { mov.phase = BotPhase::Spinning; }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            BotPhase::FallingDecel => {
+                mov.speed = (mov.speed - BOT_ACCEL * dt).max(0.0);
+                mov.progress += mov.speed * dt;
+                if mov.progress >= 0.5 {
+                    mov.progress = 0.5; mov.speed = 0.0;
+                    mov.phase = BotPhase::FallingPause(FALL_PAUSE);
+                }
+            }
+            BotPhase::FallingPause(ref mut t) => {
+                *t -= dt;
+                if *t <= 0.0 { mov.phase = BotPhase::Falling(0.0); }
+                transform.translation = Vec3::new(mov.col as f32 - half, bot_y, mov.row as f32 - half);
+                continue;
+            }
+            BotPhase::Falling(ref mut p) => {
+                *p = (*p + dt / FALL_DURATION).min(1.0);
+                let s = (1.0 - *p).max(0.0);
+                transform.translation.y = bot_y - *p * *p * FALL_DISTANCE;
+                transform.scale = Vec3::splat(s);
+                target_scale.0 = Vec3::splat(s);
+                continue;
+            }
+            BotPhase::Spinning => {
+                transform.translation = Vec3::new(mov.col as f32 - half, bot_y, mov.row as f32 - half);
+                transform.rotation = Quat::from_rotation_y(time.elapsed_secs() * BOT_SPIN_SPEED);
+                continue;
+            }
+            BotPhase::TeleportShrink { target_col, target_row } => {
+                if transform.scale.x < TELEPORT_SHRINK_DONE {
+                    mov.col = target_col; mov.row = target_row;
+                    mov.progress = 0.5; mov.speed = 0.0;
+                    transform.translation = Vec3::new(target_col as f32 - half, bot_y, target_row as f32 - half);
+                    transform.scale = Vec3::ZERO; target_scale.0 = Vec3::ONE;
+                    mov.phase = BotPhase::TeleportGrow;
+                }
+                continue;
+            }
+            BotPhase::TeleportGrow => {
+                if transform.scale.x > TELEPORT_GROW_DONE { transform.scale = Vec3::ONE; mov.phase = BotPhase::Accelerating; }
+                continue;
+            }
+            BotPhase::Rotating { entry_dir, exit_dir, ref mut progress } => {
+                *progress = (*progress + dt / BOT_TURN_DURATION).min(1.0);
+                transform.rotation = Quat::from_rotation_y(entry_dir.rotation())
+                    .slerp(Quat::from_rotation_y(exit_dir.rotation()), *progress);
+                if *progress >= 1.0 { mov.direction = exit_dir; mov.phase = BotPhase::Accelerating; }
+                transform.translation = Vec3::new(mov.col as f32 - half, bot_y, mov.row as f32 - half);
+                continue;
+            }
+        }
+
+        // Tile transition: check when exiting current tile
+        if mov.progress >= 1.0 {
+            let (dc, dr) = mov.direction.grid_delta();
+            let next_col = mov.col + dc;
+            let next_row = mov.row + dr;
+            match tile_at(next_col, next_row) {
+                Some(TileKind::Floor) | Some(TileKind::Source(_, _)) | Some(TileKind::Door(true)) => {
+                    mov.col = next_col; mov.row = next_row; mov.progress -= 1.0;
+                }
+                Some(TileKind::Switch) => {
+                    mov.col = next_col; mov.row = next_row; mov.progress -= 1.0;
+                    door_toggle.0 += 1;
+                }
+                Some(TileKind::Door(false)) => {
+                    mov.col = next_col; mov.row = next_row; mov.progress -= 1.0;
+                    mov.phase = BotPhase::Decelerating(Some(mov.direction.opposite()));
+                }
+                Some(TileKind::TurnBut(tci, _)) if tci == mov.color_index => {
+                    mov.col = next_col; mov.row = next_row; mov.progress -= 1.0;
+                }
+                Some(TileKind::BounceBut(bci)) if bci == mov.color_index => {
+                    mov.col = next_col; mov.row = next_row; mov.progress -= 1.0;
+                }
+                Some(TileKind::Bounce(_)) | Some(TileKind::BounceBut(_)) => {
+                    mov.col = next_col; mov.row = next_row; mov.progress -= 1.0;
+                    mov.phase = BotPhase::Decelerating(Some(mov.direction.opposite()));
+                }
+                Some(TileKind::Turn(_, tdir)) | Some(TileKind::TurnBut(_, tdir)) => {
+                    if let Some(exit_dir) = mov.direction.turn_exit(tdir) {
+                        mov.col = next_col; mov.row = next_row; mov.progress -= 1.0;
+                        mov.phase = BotPhase::Decelerating(Some(exit_dir));
+                    } else { mov.progress = 1.0; mov.speed = 0.0; mov.phase = BotPhase::Stopped; }
+                }
+                Some(TileKind::Goal(_)) | Some(TileKind::Teleport(_)) => {
+                    mov.col = next_col; mov.row = next_row; mov.progress -= 1.0;
+                    mov.phase = BotPhase::Decelerating(None);
+                }
+                _ => { // Empty tile or out of bounds — fall
+                    mov.col = next_col; mov.row = next_row; mov.progress -= 1.0;
+                    mov.phase = BotPhase::FallingDecel;
+                }
+            }
+        }
+
+        // Update world position
+        let (dc, dr) = mov.direction.grid_delta();
+        let cx = mov.col as f32 - half;
+        let cz = mov.row as f32 - half;
+        transform.translation = Vec3::new(
+            cx + (mov.progress - 0.5) * dc as f32,
+            bot_y,
+            cz + (mov.progress - 0.5) * dr as f32,
+        );
+    }
+}
+
+pub fn toggle_doors(
+    mut toggle: ResMut<DoorToggleCount>,
+    mut tiles: Query<(&mut TileKind, &Children), (With<Tile>, Without<DespawnAtZeroScale>)>,
+    mut mat_q: Query<&mut MeshMaterial3d<StandardMaterial>>,
+    assets: Res<GameAssets>,
+) {
+    if toggle.0 == 0 { return; }
+    let do_toggle = toggle.0 % 2 == 1;
+    toggle.0 = 0;
+    if !do_toggle { return; }
+    for (mut kind, children) in &mut tiles {
+        if let TileKind::Door(ref mut open) = *kind {
+            *open = !*open;
+            let mat = if *open { assets.door_open_material.clone() } else { assets.door_closed_material.clone() };
+            for &child in children.iter() {
+                if let Ok(mut m) = mat_q.get_mut(child) { m.0 = mat.clone(); }
+            }
+        }
+    }
+}
+
+// === Simulation result detection ===
+pub fn check_simulation_result(
+    play_mode: Res<PlayMode>,
+    bots: Query<&BotMovement, With<Bot>>,
+    tiles: Query<(&TileCoord, &TileKind), With<Tile>>,
+    mut sim_result: ResMut<SimulationResult>,
+) {
+    let playing = *play_mode == PlayMode::Playing || *play_mode == PlayMode::TestPlaying;
+    if !playing || sim_result.result.is_some() { return; }
+    let mut count = 0;
+    let mut all_at_goal = true;
+    for mov in &bots {
+        count += 1;
+        match mov.phase {
+            BotPhase::Falling(_) => {
+                sim_result.result = Some(SimResult::Error("Bot fell off the board!"));
+                return;
+            }
+            BotPhase::Spinning => {
+                let ok = tiles.iter().any(|(c, k)| c.col as i32 == mov.col && c.row as i32 == mov.row
+                    && matches!(k, TileKind::Goal(ci) if *ci == mov.color_index));
+                if !ok { all_at_goal = false; }
+            }
+            _ => { all_at_goal = false; }
+        }
+    }
+    if count > 0 && all_at_goal {
+        sim_result.result = Some(SimResult::Success);
+    }
+}
+
+// === Overlay UI ===
+pub fn spawn_simulation_overlay(
+    mut commands: Commands,
+    mut sim_result: ResMut<SimulationResult>,
+    existing: Query<Entity, With<SimulationOverlay>>,
+) {
+    if sim_result.result.is_none() || sim_result.overlay_spawned || !existing.is_empty() { return; }
+    sim_result.overlay_spawned = true;
+    let (msg, color, btn_text) = match &sim_result.result {
+        Some(SimResult::Error(s)) => (*s, rgb(SIM_ERROR_COLOR), "Stop"),
+        Some(SimResult::Success) => ("All bots reached their goals!", rgb(SIM_SUCCESS_COLOR), "Continue"),
+        None => return,
+    };
+    commands.spawn((
+        Node { position_type: PositionType::Absolute, width: Val::Percent(100.0), height: Val::Percent(100.0),
+            justify_content: JustifyContent::Center, align_items: AlignItems::Center, ..default() },
+        BackgroundColor(rgba(SIM_OVERLAY_BG)), GlobalZIndex(100), SimulationOverlay,
+    )).with_children(|parent| {
+        parent.spawn((
+            Node { flex_direction: FlexDirection::Column, padding: UiRect::all(Val::Px(SIM_CARD_PAD)),
+                align_items: AlignItems::Center, row_gap: Val::Px(SIM_CARD_GAP), ..default() },
+            BackgroundColor(rgb(SIM_CARD_BG)),
+        )).with_children(|card| {
+            card.spawn((Text::new(msg), TextFont { font_size: SIM_MSG_FONT, ..default() }, TextColor(color)));
+            card.spawn((
+                Button, SimOverlayButton,
+                Node { padding: UiRect::axes(Val::Px(SIM_BTN_PAD.0), Val::Px(SIM_BTN_PAD.1)), ..default() },
+                BackgroundColor(rgb(SIM_BTN_BG)),
+            )).with_child((Text::new(btn_text), TextFont { font_size: SIM_BTN_FONT, ..default() }, TextColor(Color::WHITE)));
+        });
+    });
+}
+
+pub fn overlay_button_interaction(
+    q: Query<&Interaction, (With<SimOverlayButton>, Changed<Interaction>)>,
+    mut sim_result: ResMut<SimulationResult>, play_mode: Res<PlayMode>,
+) {
+    if !q.iter().any(|i| *i == Interaction::Pressed) { return; }
+    sim_result.stop_requested = true;
+    if *play_mode == PlayMode::TestPlaying && matches!(sim_result.result, Some(SimResult::Success)) {
+        sim_result.test_success_exit = true;
+    }
+}
