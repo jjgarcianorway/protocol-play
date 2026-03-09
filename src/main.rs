@@ -10,6 +10,7 @@ mod slot_ui;
 mod inventory;
 mod systems;
 mod simulation;
+mod bot_formation;
 mod mat_helpers;
 mod test_mode;
 mod level_io;
@@ -22,6 +23,7 @@ use board::*;
 use inventory::*;
 use systems::*;
 use simulation::*;
+use bot_formation::*;
 use ui_helpers::*;
 use mat_helpers::*;
 use test_mode::*;
@@ -45,9 +47,8 @@ fn main() {
         .insert_resource(InventoryState { level: 1, direction: None, color_index: None, last_placed_color: None })
         .insert_resource(PlacedTeleports::default())
         .insert_resource(PlayMode::default())
-        .insert_resource(DoorToggleCount::default())
-        .insert_resource(OriginalDoorStates::default())
-        .insert_resource(SimulationResult::default())
+        .insert_resource(DoorToggleCount::default()).insert_resource(OriginalDoorStates::default())
+        .insert_resource(SimulationResult::default()).insert_resource(PrevTileCounts::default())
         .insert_resource(SavedBoardState::default())
         .insert_resource(SavedTestState::default())
         .insert_resource(TestInventory::default())
@@ -60,13 +61,16 @@ fn main() {
             update_hovered_cell,
             update_ghost_and_highlight.after(update_hovered_cell),
             handle_tile_click.after(update_hovered_cell),
-            animate_scale.after(update_ghost_and_highlight).after(move_bots),
+            animate_scale.after(update_ghost_and_highlight).after(move_bots).after(apply_bot_formation),
             animate_ui_slides, cleanup_despawned.after(animate_scale),
         ))
         .add_systems(Update, (
             overlay_button_interaction,
             play_stop_interaction.after(overlay_button_interaction),
             move_bots.after(play_stop_interaction),
+            update_bot_formation.after(move_bots),
+            apply_bot_formation.after(update_bot_formation),
+            animate_merge_flashes,
             paint_bots.after(move_bots),
             toggle_doors.after(move_bots),
             check_simulation_result.after(move_bots),
@@ -81,12 +85,10 @@ fn main() {
         ))
         .add_systems(Update, (
             save_button_interaction, save_dialog_input, save_dialog_buttons,
-            load_button_interaction, load_dialog_buttons,
+            load_button_interaction, load_dialog_buttons, validation_error_ok, update_status_bar,
         ))
-        .add_systems(Update, (validation_error_ok, update_status_bar))
         .run();
 }
-
 
 fn setup_scene(
     mut commands: Commands,
@@ -161,6 +163,9 @@ fn setup_scene(
     let eye_material = materials.add(StandardMaterial { base_color: Color::WHITE, unlit: true, ..default() });
     let bot_materials: Vec<_> = SOURCE_COLORS.iter().map(|&(r, g, b)|
         materials.add(StandardMaterial { base_color: Color::srgb(r, g, b), ..default() })).collect();
+    let flash_material = materials.add(StandardMaterial {
+        base_color: Color::srgba(1.0, 1.0, 1.0, 0.6), alpha_mode: AlphaMode::Blend, unlit: true, ..default()
+    });
 
     let assets = GameAssets {
         floor_mesh: floor_mesh.clone(), floor_material,
@@ -188,7 +193,7 @@ fn setup_scene(
         arrow_symbol_mesh: sym_mesh.clone(), arrow_symbol_materials, ghost_arrow_materials: ghost_arrow_materials.clone(),
         arrowbut_symbol_mesh: sym_mesh.clone(), arrowbut_symbol_materials, ghost_arrowbut_materials: ghost_arrowbut_materials.clone(),
         marker_mesh, marker_material,
-        bot_mesh, eye_mesh, bot_materials, eye_material,
+        bot_mesh, eye_mesh, bot_materials, eye_material, flash_material,
     };
 
     spawn_board(&mut commands, board_size.0, &assets);

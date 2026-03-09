@@ -4,7 +4,7 @@ A game built with [Bevy](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.10.0** - Multiple same-color sources/goals allowed; bots form visible clusters instead of z-fighting.
+**v0.11.0** - Lane-based bot formation: bots scale down and travel side-by-side in parallel lanes when sharing a tile, with smooth transitions and merge flash effects.
 
 ### Features
 - Resizable board (3x3 to 12x12) with smooth scale animations
@@ -39,8 +39,9 @@ A game built with [Bevy](https://bevyengine.org/) (Rust).
 - Placed source/goal/teleport colors collapse out of inventory, deleted ones smoothly reappear
 - **UI helper library** (`ui_helpers.rs`): reusable color helpers, node builders, dialog spawner for consistent UX
 - **Comprehensive constants** (`constants.rs`): all colors, sizes, speeds, thresholds centralized
-- **Bot cluster rendering**: each bot gets a unique fixed XZ offset so overlapping bots form a visible cluster instead of z-fighting
-- Modular codebase: 14 modules, all files ≤400 lines
+- **Lane-based bot formation**: bots sharing a tile scale down (1.0/0.70/0.56/0.48 for 1–4 bots) and travel side-by-side in parallel lanes perpendicular to travel direction, with smooth lerp transitions
+- **Merge flash effect**: expanding white disc pulses when bots merge onto the same tile
+- Modular codebase: 15 modules, all files ≤400 lines
 
 ## Building
 

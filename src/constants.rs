@@ -198,14 +198,6 @@ pub const TELEPORT_GROW_DONE: f32 = 0.97;
 // Painter
 pub const PAINT_TRANSITION_SPEED: f32 = 2.0; // color transitions per second
 
-// Bot XZ offsets (world-space) per spawn index, so overlapping bots form a visible cluster
-pub const BOT_XZ_OFFSETS: [(f32, f32); 10] = [
-    ( 0.00,  0.00), ( 0.07,  0.00), (-0.07,  0.00),
-    ( 0.00,  0.07), ( 0.00, -0.07), ( 0.05,  0.05),
-    (-0.05,  0.05), ( 0.05, -0.05), (-0.05, -0.05),
-    ( 0.07,  0.07),
-];
-
 // Status bar
 pub const STATUS_FONT: f32 = 15.0;
 pub const STATUS_FADE_SPEED: f32 = 6.0;

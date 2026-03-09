@@ -219,6 +219,7 @@ pub struct GameAssets {
     pub eye_mesh: Handle<Mesh>,
     pub bot_materials: Vec<Handle<StandardMaterial>>,
     pub eye_material: Handle<StandardMaterial>,
+    pub flash_material: Handle<StandardMaterial>,
 }
 
 // === Components ===
@@ -342,3 +343,17 @@ pub struct LevelData { pub name: String, pub board_size: u32, pub tiles: Vec<(u3
     pub from_color: usize, pub to_color: usize, pub progress: f32,
     pub material: Handle<StandardMaterial>,
 }
+
+#[derive(Component)]
+pub struct BotFormation {
+    pub offset: Vec2, pub target_offset: Vec2,
+    pub visual_scale: f32, pub target_scale: f32,
+}
+impl Default for BotFormation {
+    fn default() -> Self {
+        Self { offset: Vec2::ZERO, target_offset: Vec2::ZERO, visual_scale: 1.0, target_scale: 1.0 }
+    }
+}
+
+#[derive(Component)]
+pub struct MergeFlash { pub progress: f32 }
