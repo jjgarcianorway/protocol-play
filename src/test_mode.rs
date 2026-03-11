@@ -216,7 +216,6 @@ pub fn spawn_test_inventory(commands: &mut Commands, test_inv: &TestInventory, i
             BorderRadius::all(Val::Px(UI_CORNER_RADIUS)),
         )).with_children(|c| {
             let br = BorderRadius::all(Val::Px(UI_CORNER_RADIUS));
-            let sn = slot_node();
             for (i, (kind, count)) in test_inv.items.iter().enumerate() {
                 let Some(icon) = tilekind_to_icon(kind, icons) else { continue };
                 let sel = !test_inv.remove_mode && test_inv.selected == Some(i);
