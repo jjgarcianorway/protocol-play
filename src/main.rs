@@ -386,11 +386,8 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
                         c.spawn((Button, sn.clone(), BackgroundColor(slot_bg()), border_for(*selected), *slot_type, br))
                             .with_child((icon_node(), ImageNode::new(icon_handle.clone())));
                     }
-                    let del_node = Node { width: Val::Vw(SLOT_VW * 0.85), height: Val::Vw(SLOT_HEIGHT_VW * 0.85),
-                        justify_content: JustifyContent::Center, align_items: AlignItems::Center, ..default() };
-                    let del_icon = Node { width: Val::Vw(ICON_VW * 0.85), height: Val::Vw(ICON_VW * 0.85), ..default() };
-                    c.spawn((Button, del_node, BackgroundColor(Color::NONE), BorderColor(Color::NONE), InventorySlot::Delete, br))
-                        .with_child((del_icon, ImageNode::new(delete_icon)));
+                    c.spawn((Button, sn.clone(), BackgroundColor(Color::NONE), BorderColor(Color::NONE), InventorySlot::Delete, br))
+                        .with_child((icon_node(), ImageNode::new(delete_icon)));
                 });
             });
     });

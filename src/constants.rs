@@ -76,7 +76,7 @@ pub const INV_MARKER_COLOR: [u8; 4] = [255, 220, 0, 200];
 
 // Empty tile marker (soft grid borders)
 pub const EMPTY_MARKER_BORDER: u32 = 2;
-pub const EMPTY_MARKER_COLOR: [u8; 4] = [120, 130, 150, 65];
+pub const EMPTY_MARKER_COLOR: [u8; 4] = [80, 90, 110, 120];
 
 // Vignette
 pub const VIGNETTE_SIZE: u32 = 256;
