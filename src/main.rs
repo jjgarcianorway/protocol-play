@@ -82,7 +82,7 @@ fn main() {
     #[cfg(feature = "player")]
     app.add_systems(Update, (
             handle_test_tile_click.after(update_hovered_cell), test_inventory_interaction,
-            reset_test_interaction,
+            reset_test_interaction, update_status_bar,
         ));
     app.run();
 }

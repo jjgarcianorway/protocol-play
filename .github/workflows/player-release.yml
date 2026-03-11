@@ -48,14 +48,11 @@ jobs:
           cp target/aarch64-apple-darwin/release/protocol-play bundle/protocol-player-macos
           chmod +x bundle/protocol-player-macos
           cp levels/paula.json bundle/level.json
-          cp macos/Play.command bundle/Play.command
-          chmod +x bundle/Play.command
-          cd bundle && zip ../protocol-player-macos.zip protocol-player-macos level.json Play.command
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: macos-zip
-          path: protocol-player-macos.zip
+          name: macos-bundle
+          path: bundle/
 
   release:
     needs: [build-windows, build-macos]
@@ -72,8 +69,8 @@ jobs:
 
       - name: Prepare release files
         run: |
-          cp artifacts/macos-zip/protocol-player-macos.zip .
           cd artifacts/windows-bundle && zip ../../protocol-player-windows.zip protocol-player-windows.exe level.json
+          cd ../../artifacts/macos-bundle && tar czf ../../protocol-player-macos.tar.gz protocol-player-macos level.json
 
       - name: Create release
         uses: softprops/action-gh-release@v2
@@ -84,7 +81,7 @@ jobs:
             Player build for testing levels.
 
             **Windows**: Extract the zip and run `protocol-player-windows.exe`. Level included.
-            **macOS**: Extract the zip and double-click `Play.command`. It handles permissions automatically. Level included.
+            **macOS**: Extract, then run in Terminal: `xattr -cr protocol-player-macos && ./protocol-player-macos`. Level included.
           files: |
             protocol-player-windows.zip
-            protocol-player-macos.zip
+            protocol-player-macos.tar.gz

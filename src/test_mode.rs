@@ -205,6 +205,10 @@ pub fn spawn_test_inventory(commands: &mut Commands, test_inv: &TestInventory, i
     ));
     if animate { ec.insert(UiBottomAnim { target: INV_SLIDE_SHOW, despawn_at_target: false }); }
     ec.with_children(|parent| {
+        parent.spawn(Node { position_type: PositionType::Absolute, top: Val::Px(-22.0),
+            width: Val::Percent(100.0), justify_content: JustifyContent::Center, ..default() })
+            .with_child((Text::new(""), gf(STATUS_FONT, f),
+                TextColor(Color::srgba(TOOLTIP_COLOR.0, TOOLTIP_COLOR.1, TOOLTIP_COLOR.2, 0.0)), StatusBarText));
         parent.spawn((
             Node { flex_direction: FlexDirection::Row, padding: UiRect::all(Val::Vw(INVENTORY_PAD_VW)),
                 column_gap: Val::Vw(INVENTORY_GAP_VW), align_items: AlignItems::Center, ..default() },
