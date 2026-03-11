@@ -112,12 +112,15 @@ pub fn inventory_interaction(
                 InventorySlot::Switch => (Tool::Switch, false), InventorySlot::Painter => (Tool::Painter, false),
                 _ => (Tool::ColorSwitchBut, false),
             };
-            if inv_state.level == 1 || selected_tool.0 != tool {
+            let sw = matches!(slot, InventorySlot::Switch);
+            let is_active = selected_tool.0 == tool || (sw && selected_tool.0 == Tool::ColorSwitch);
+            if inv_state.level == 1 || !is_active {
                 if inv_state.level > 1 { collapse_expansion(&mut commands, &l2_slots, &l3_slots, &divider_slots, expansion); }
                 if has_dir { inv_state.direction = Some(inv_state.direction.unwrap_or(Direction::North)); }
                 else { inv_state.direction = None; }
                 inv_state.color_index = Some(inv_state.last_placed_color.or(inv_state.color_index).unwrap_or(0));
-                inv_state.level = 3; selected_tool.0 = tool;
+                inv_state.level = 3;
+                selected_tool.0 = if sw && inv_state.color_index != Some(NUM_COLORS) { Tool::ColorSwitch } else { tool };
                 expand_container(&mut commands, expansion);
                 let dir = inv_state.direction.unwrap_or(Direction::North);
                 match slot {
@@ -330,14 +333,11 @@ fn tile_desc(idx: usize) -> &'static str {
         "Door \u{2013} Blocks the path until a switch opens it",
         "Switch \u{2013} Toggles all doors (grey = all bots)",
         "Switch But \u{2013} All bots EXCEPT this color toggle doors",
-        "", // unused
         "Painter \u{2013} Changes the bot's color as it walks over",
         "Arrow \u{2013} Redirects bots in the arrow direction (grey = all bots)",
         "Arrow But \u{2013} Redirects all bots EXCEPT this color",
-        "Eraser \u{2013} Removes a tile from the board",
-        "Empty",
-    ];
-    D[idx]
+        "Eraser \u{2013} Removes a tile from the board", "Empty",
+    ]; D[idx]
 }
 fn slot_description(slot: &InventorySlot) -> &'static str {
     match slot {
@@ -352,24 +352,24 @@ fn slot_description(slot: &InventorySlot) -> &'static str {
         InventorySlot::Door | InventorySlot::DoorState(_) => tile_desc(8),
         InventorySlot::Switch | InventorySlot::SwitchColor(_) => tile_desc(9),
         InventorySlot::SwitchBut | InventorySlot::SwitchButColor(_) => tile_desc(10),
-        InventorySlot::Painter | InventorySlot::PainterColor(_) => tile_desc(12),
-        InventorySlot::Arrow | InventorySlot::ArrowDir(_) | InventorySlot::ArrowColor(_) => tile_desc(13),
-        InventorySlot::ArrowBut | InventorySlot::ArrowButDir(_) | InventorySlot::ArrowButColor(_) => tile_desc(14),
-        InventorySlot::Delete => tile_desc(15),
+        InventorySlot::Painter | InventorySlot::PainterColor(_) => tile_desc(11),
+        InventorySlot::Arrow | InventorySlot::ArrowDir(_) | InventorySlot::ArrowColor(_) => tile_desc(12),
+        InventorySlot::ArrowBut | InventorySlot::ArrowButDir(_) | InventorySlot::ArrowButColor(_) => tile_desc(13),
+        InventorySlot::Delete => tile_desc(14),
     }
 }
 
 fn tilekind_description(kind: &TileKind) -> &'static str {
     match kind {
-        TileKind::Empty => tile_desc(16),
+        TileKind::Empty => tile_desc(15),
         TileKind::Floor => tile_desc(0),
         TileKind::Source(_, _) => tile_desc(1),  TileKind::Goal(_) => tile_desc(2),
         TileKind::Turn(_, _) => tile_desc(3),    TileKind::TurnBut(_, _) => tile_desc(4),
         TileKind::Teleport(_) => tile_desc(5),   TileKind::Bounce(_) => tile_desc(6),
         TileKind::BounceBut(_) => tile_desc(7),  TileKind::Door(_) => tile_desc(8),
         TileKind::Switch | TileKind::ColorSwitch(_) => tile_desc(9),
-        TileKind::ColorSwitchBut(_) => tile_desc(10), TileKind::Painter(_) => tile_desc(12),
-        TileKind::Arrow(_, _) => tile_desc(13),  TileKind::ArrowBut(_, _) => tile_desc(14),
+        TileKind::ColorSwitchBut(_) => tile_desc(10), TileKind::Painter(_) => tile_desc(11),
+        TileKind::Arrow(_, _) => tile_desc(12),  TileKind::ArrowBut(_, _) => tile_desc(13),
     }
 }
 

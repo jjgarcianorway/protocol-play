@@ -1,0 +1,81 @@
+{
+  "name": "paula",
+  "board_size": 3,
+  "tiles": [
+    [
+      0,
+      2,
+      "Empty",
+      false
+    ],
+    [
+      0,
+      1,
+      "Empty",
+      false
+    ],
+    [
+      1,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      2,
+      {
+        "Source": [
+          0,
+          "West"
+        ]
+      },
+      false
+    ],
+    [
+      2,
+      0,
+      {
+        "Goal": 0
+      },
+      false
+    ],
+    [
+      1,
+      2,
+      {
+        "Turn": [
+          0,
+          "North"
+        ]
+      },
+      true
+    ],
+    [
+      1,
+      1,
+      {
+        "Turn": [
+          0,
+          "East"
+        ]
+      },
+      true
+    ],
+    [
+      2,
+      1,
+      {
+        "Teleport": 0
+      },
+      true
+    ],
+    [
+      0,
+      0,
+      {
+        "Teleport": 0
+      },
+      true
+    ]
+  ]
+}
