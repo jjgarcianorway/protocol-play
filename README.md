@@ -4,7 +4,7 @@ A game built with [Bevy](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.11.0** - Lane-based bot formation: bots scale down and travel side-by-side in parallel lanes when sharing a tile, with smooth transitions and merge flash effects.
+**v0.12.0** - Player mode, creator solution tracking, and UI polish.
 
 ### Features
 - Resizable board (3x3 to 12x12) with smooth scale animations
@@ -29,34 +29,57 @@ A game built with [Bevy](https://bevyengine.org/) (Rust).
   - L2: 4 directional variants (N/E/S/W) for Source, Turn, TurnBut, Arrow, ArrowBut; Open/Closed for Door
   - L3: Color/number selection with count indicators and availability tracking
 - **Test mode**: mark tiles for inventory, flat sorted test inventory, remove tool, reset
+- **Player mode**: standalone exe reads `level.json` — just inventory, play, and reset (no editor UI)
+- **Creator solution tracking**: levels store the creator's tile placements for future "creative solve" detection
 - **Level save/load** with fade-in/out dialog animations
+- **Smooth UI animations**: hover fade-out trails (BorderFade), expansion height transitions (ExpHeightAnim), slide-in/out bars, fade dialogs
 - **Isometric 3D-rendered inventory icons** with correct direction and color matching
 - **Ghost preview** with smooth fade-in/out highlight on hover
 - **Seamless tile placement**: placed tiles inherit ghost preview scale for smooth transitions
-- **Orchestrated UI animations**: slide-in/out for inventory bars, fade-in/out for dialogs, coordinated startup entrance
 - Phase-based bot movement: accelerate, cruise, decelerate, rotate, bounce, teleport, spin at goal
 - Auto-color cycling: next available color selected after placement, freed color pre-selected on delete
 - Placed source/goal/teleport colors collapse out of inventory, deleted ones smoothly reappear
 - **UI helper library** (`ui_helpers.rs`): reusable color helpers, node builders, dialog spawner for consistent UX
 - **Comprehensive constants** (`constants.rs`): all colors, sizes, speeds, thresholds centralized
-- **Lane-based bot formation**: bots sharing a tile scale down (1.0/0.70/0.56/0.48 for 1–4 bots) and travel side-by-side in parallel lanes perpendicular to travel direction, with smooth lerp transitions
+- **Lane-based bot formation**: bots sharing a tile scale down and travel side-by-side in parallel lanes, with smooth transitions
 - **Merge flash effect**: expanding white disc pulses when bots merge onto the same tile
 - Modular codebase: 15 modules, all files ≤400 lines
+
+## Downloads
+
+### Player (for playtesting levels)
+
+Download from [v0.12.0-player release](https://github.com/jjgarcianorway/protocol-play/releases/tag/v0.12.0-player):
+- **Windows**: `protocol-player-windows.tar.gz`
+- **macOS**: `protocol-player-macos.tar.gz`
+
+Each package includes the executable and a sample `level.json`. Extract and run.
+
+### Editor (for creating levels)
+
+Download from [v0.12.0 release](https://github.com/jjgarcianorway/protocol-play/releases/tag/v0.12.0):
+- **Linux**: `protocol-play`
 
 ## Building
 
 Requires [Rust](https://www.rust-lang.org/tools/install).
 
 ```sh
+# Editor (full level editor)
 cargo build --release
-```
 
-The binary will be at `target/release/protocol-play`.
+# Player (standalone playtester)
+cargo build --release --features player
+```
 
 ## Running
 
 ```sh
+# Editor
 cargo run --release
+
+# Player (place level.json next to the binary)
+cargo run --release --features player
 ```
 
 ## License
