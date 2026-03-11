@@ -42,28 +42,7 @@ jobs:
           mkdir -p "Protocol Play.app/Contents/Resources"
           cp target/aarch64-apple-darwin/release/protocol-play "Protocol Play.app/Contents/MacOS/protocol-play"
           cp levels/paula.json "Protocol Play.app/Contents/MacOS/level.json"
-          cat > "Protocol Play.app/Contents/Info.plist" << 'PLIST'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>CFBundleExecutable</key>
-            <string>protocol-play</string>
-            <key>CFBundleIdentifier</key>
-            <string>com.protocol-play.player</string>
-            <key>CFBundleName</key>
-            <string>Protocol Play</string>
-            <key>CFBundleVersion</key>
-            <string>0.12</string>
-            <key>CFBundlePackageType</key>
-            <string>APPL</string>
-            <key>LSMinimumSystemVersion</key>
-            <string>11.0</string>
-            <key>NSHighResolutionCapable</key>
-            <true/>
-          </dict>
-          </plist>
-          PLIST
+          cp macos/Info.plist "Protocol Play.app/Contents/Info.plist"
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
