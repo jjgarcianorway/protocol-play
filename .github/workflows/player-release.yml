@@ -42,15 +42,15 @@ jobs:
           targets: aarch64-apple-darwin
       - name: Build player
         run: cargo build --release --features player --target aarch64-apple-darwin
-      - name: Create and zip .app bundle
+      - name: Package
         run: |
-          mkdir -p "Protocol Play.app/Contents/MacOS"
-          mkdir -p "Protocol Play.app/Contents/Resources"
-          cp target/aarch64-apple-darwin/release/protocol-play "Protocol Play.app/Contents/MacOS/protocol-play"
-          chmod +x "Protocol Play.app/Contents/MacOS/protocol-play"
-          cp levels/paula.json "Protocol Play.app/Contents/MacOS/level.json"
-          cp macos/Info.plist "Protocol Play.app/Contents/Info.plist"
-          ditto -c -k --sequesterRsrc --keepParent "Protocol Play.app" protocol-player-macos.zip
+          mkdir bundle
+          cp target/aarch64-apple-darwin/release/protocol-play bundle/protocol-player-macos
+          chmod +x bundle/protocol-player-macos
+          cp levels/paula.json bundle/level.json
+          cp macos/Play.command bundle/Play.command
+          chmod +x bundle/Play.command
+          cd bundle && zip ../protocol-player-macos.zip protocol-player-macos level.json Play.command
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -84,7 +84,7 @@ jobs:
             Player build for testing levels.
 
             **Windows**: Extract the zip and run `protocol-player-windows.exe`. Level included.
-            **macOS**: Extract the zip, run `xattr -cr "Protocol Play.app"`, then double-click. Level included.
+            **macOS**: Extract the zip and double-click `Play.command`. It handles permissions automatically. Level included.
           files: |
             protocol-player-windows.zip
             protocol-player-macos.zip
