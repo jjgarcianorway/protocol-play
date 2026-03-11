@@ -147,8 +147,8 @@ pub struct InventoryIcons {
     pub bouncebot_color_icons: Vec<Handle<Image>>,
     pub door: Handle<Image>, pub door_open: Handle<Image>, pub door_closed: Handle<Image>,
     pub switch: Handle<Image>,
-    pub colorswitch: Handle<Image>, pub colorswitch_color_icons: Vec<Handle<Image>>,
-    pub colorswitchbut: Handle<Image>, pub colorswitchbut_color_icons: Vec<Handle<Image>>,
+    pub switch_color_icons: Vec<Handle<Image>>,
+    pub switchbut: Handle<Image>, pub switchbut_color_icons: Vec<Handle<Image>>,
     pub painter: Handle<Image>, pub painter_color_icons: Vec<Handle<Image>>,
     pub arrow: Handle<Image>, pub arrow_dir_icons: [Handle<Image>; 4],
     pub arrow_color_icons: Vec<Handle<Image>>,
@@ -167,8 +167,8 @@ impl InventoryIcons {
     pub fn teleport_num(&self, num: usize) -> Handle<Image> { self.teleport_num_icons[num].clone() }
     pub fn bounce_color(&self, ci: usize) -> Handle<Image> { self.bounce_color_icons[ci].clone() }
     pub fn bouncebot_color(&self, ci: usize) -> Handle<Image> { self.bouncebot_color_icons[ci].clone() }
-    pub fn colorswitch_color(&self, ci: usize) -> Handle<Image> { self.colorswitch_color_icons[ci].clone() }
-    pub fn colorswitchbut_color(&self, ci: usize) -> Handle<Image> { self.colorswitchbut_color_icons[ci].clone() }
+    pub fn switch_color(&self, ci: usize) -> Handle<Image> { self.switch_color_icons[ci].clone() }
+    pub fn switchbut_color(&self, ci: usize) -> Handle<Image> { self.switchbut_color_icons[ci].clone() }
     pub fn painter_color(&self, ci: usize) -> Handle<Image> { self.painter_color_icons[ci].clone() }
     pub fn arrow_dir(&self, dir: Direction) -> Handle<Image> { self.arrow_dir_icons[dir.index()].clone() }
     pub fn arrow_color_dir(&self, ci: usize, dir: Direction) -> Handle<Image> { self.arrow_color_icons[ci * 4 + dir.index()].clone() }
@@ -284,8 +284,7 @@ pub enum InventorySlot {
     TurnButDir(Direction), TurnButColor(usize),
     Teleport, TeleportNum(usize),
     Bounce, BounceBut, BounceColor(usize), BounceButColor(usize),
-    Door, Switch, ColorSwitch, ColorSwitchColor(usize),
-    ColorSwitchBut, ColorSwitchButColor(usize),
+    Door, Switch, SwitchBut, SwitchColor(usize), SwitchButColor(usize),
     Painter, PainterColor(usize),
     DoorState(bool),
     Arrow, ArrowBut, ArrowDir(Direction), ArrowButDir(Direction),

@@ -279,10 +279,10 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
     let door_open_icon = icon(&mut images, &cp(&do_b, &do_m, 0.0, grey_fill));
     let door_closed_icon = icon(&mut images, &cp(&dc_b, &dc_m, 0.0, grey_fill));
     let switch_icon = icon(&mut images, &cp(&sw_b, &sw_m, 0.0, white));
-    let colorswitch_icon = icon(&mut images, &cp(&csw_b, &csw_m, 0.0, white));
-    let colorswitch_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci| icon(&mut images, &cp(&csw_b, &csw_m, 0.0, cfill(ci)))).collect();
-    let colorswitchbut_icon = icon(&mut images, &cp(&cswb_b, &cswb_m, 0.0, white));
-    let colorswitchbut_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci| icon(&mut images, &cp(&cswb_b, &cswb_m, 0.0, cfill(ci)))).collect();
+    let mut switch_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci| icon(&mut images, &cp(&csw_b, &csw_m, 0.0, cfill(ci)))).collect();
+    switch_color_icons.push(icon(&mut images, &cp(&sw_b, &sw_m, 0.0, grey_fill)));
+    let switchbut_icon = icon(&mut images, &cp(&cswb_b, &cswb_m, 0.0, white));
+    let switchbut_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci| icon(&mut images, &cp(&cswb_b, &cswb_m, 0.0, cfill(ci)))).collect();
     let painter_icon = icon(&mut images, &cp(&pnt_b, &pnt_m, 0.0, white));
     let painter_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci| icon(&mut images, &cp(&pnt_b, &pnt_m, 0.0, cfill(ci)))).collect();
     let arrow_icon = icon(&mut images, &cp(&arr_b, &arr_m, 0.0, white));
@@ -298,8 +298,8 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
         bounce: bounce_icon.clone(), bounce_color_icons,
         bouncebot: bouncebot_icon.clone(), bouncebot_color_icons,
         door: door_icon.clone(), door_open: door_open_icon, door_closed: door_closed_icon,
-        switch: switch_icon.clone(), colorswitch: colorswitch_icon.clone(), colorswitch_color_icons,
-        colorswitchbut: colorswitchbut_icon.clone(), colorswitchbut_color_icons,
+        switch: switch_icon.clone(), switch_color_icons,
+        switchbut: switchbut_icon.clone(), switchbut_color_icons,
         painter: painter_icon.clone(), painter_color_icons,
         arrow: arrow_icon.clone(), arrow_dir_icons, arrow_color_icons,
         arrowbut: arrowbut_icon.clone(), arrowbut_dir_icons, arrowbut_color_icons,
@@ -355,8 +355,7 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
         (Floor, floor_icon, true), (Source, source_icon, false), (Goal, goal_icon, false),
         (Turn, turn_icon, false), (TurnBut, turnbut_icon, false), (Teleport, teleport_icon, false),
         (Bounce, bounce_icon, false), (BounceBut, bouncebot_icon, false), (Door, door_icon, false),
-        (Switch, switch_icon, false), (ColorSwitch, colorswitch_icon, false),
-        (ColorSwitchBut, colorswitchbut_icon, false), (Painter, painter_icon, false),
+        (Switch, switch_icon, false), (SwitchBut, switchbut_icon, false), (Painter, painter_icon, false),
         (Arrow, arrow_icon, false), (ArrowBut, arrowbut_icon, false),
     ];
 

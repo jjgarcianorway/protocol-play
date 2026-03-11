@@ -48,8 +48,8 @@ pub fn inventory_interaction(
     let expansion = expansion_q.single();
 
     match clicked {
-        InventorySlot::Floor | InventorySlot::Delete | InventorySlot::Switch => {
-            selected_tool.0 = match clicked { InventorySlot::Switch => Tool::Switch, InventorySlot::Delete => Tool::Delete, _ => Tool::Floor };
+        InventorySlot::Floor | InventorySlot::Delete => {
+            selected_tool.0 = match clicked { InventorySlot::Delete => Tool::Delete, _ => Tool::Floor };
             if inv_state.level > 1 {
                 collapse_expansion(&mut commands, &l2_slots, &l3_slots, &divider_slots, expansion);
                 inv_state.level = 1; inv_state.direction = None; inv_state.color_index = None;
@@ -105,11 +105,11 @@ pub fn inventory_interaction(
             }
         }
         slot @ (InventorySlot::Turn | InventorySlot::TurnBut | InventorySlot::Bounce | InventorySlot::BounceBut
-            | InventorySlot::ColorSwitch | InventorySlot::ColorSwitchBut | InventorySlot::Painter) => {
+            | InventorySlot::Switch | InventorySlot::SwitchBut | InventorySlot::Painter) => {
             let (tool, has_dir) = match slot {
                 InventorySlot::Turn => (Tool::Turn, true), InventorySlot::TurnBut => (Tool::TurnBut, true),
                 InventorySlot::Bounce => (Tool::Bounce, false), InventorySlot::BounceBut => (Tool::BounceBut, false),
-                InventorySlot::ColorSwitch => (Tool::ColorSwitch, false), InventorySlot::Painter => (Tool::Painter, false),
+                InventorySlot::Switch => (Tool::Switch, false), InventorySlot::Painter => (Tool::Painter, false),
                 _ => (Tool::ColorSwitchBut, false),
             };
             if inv_state.level == 1 || selected_tool.0 != tool {
@@ -143,14 +143,14 @@ pub fn inventory_interaction(
                     InventorySlot::BounceBut => rebuild_l3_colors(&mut commands, expansion,
                         (0..NUM_COLORS).map(|ci| (InventorySlot::BounceButColor(ci), icons.bouncebot_color(ci), true)).collect(),
                         inv_state.color_index, " ", &font.0),
-                    InventorySlot::ColorSwitch => rebuild_l3_colors(&mut commands, expansion,
-                        (0..NUM_COLORS).map(|ci| (InventorySlot::ColorSwitchColor(ci), icons.colorswitch_color(ci), true)).collect(),
+                    InventorySlot::Switch => rebuild_l3_colors(&mut commands, expansion,
+                        (0..NUM_SWITCH_COLORS).map(|ci| (InventorySlot::SwitchColor(ci), icons.switch_color(ci), true)).collect(),
                         inv_state.color_index, " ", &font.0),
                     InventorySlot::Painter => rebuild_l3_colors(&mut commands, expansion,
                         (0..NUM_COLORS).map(|ci| (InventorySlot::PainterColor(ci), icons.painter_color(ci), true)).collect(),
                         inv_state.color_index, " ", &font.0),
                     _ => rebuild_l3_colors(&mut commands, expansion,
-                        (0..NUM_COLORS).map(|ci| (InventorySlot::ColorSwitchButColor(ci), icons.colorswitchbut_color(ci), true)).collect(),
+                        (0..NUM_COLORS).map(|ci| (InventorySlot::SwitchButColor(ci), icons.switchbut_color(ci), true)).collect(),
                         inv_state.color_index, " ", &font.0),
                 };
             } else {
@@ -249,13 +249,14 @@ pub fn inventory_interaction(
         InventorySlot::GoalColor(ci) => { inv_state.color_index = Some(ci); selected_tool.0 = Tool::Goal; }
         InventorySlot::TurnColor(ci) | InventorySlot::TurnButColor(ci)
         | InventorySlot::BounceColor(ci) | InventorySlot::BounceButColor(ci)
-        | InventorySlot::ColorSwitchColor(ci) | InventorySlot::ColorSwitchButColor(ci)
+        | InventorySlot::SwitchColor(ci) | InventorySlot::SwitchButColor(ci)
         | InventorySlot::PainterColor(ci) | InventorySlot::ArrowColor(ci) | InventorySlot::ArrowButColor(ci) => {
             inv_state.color_index = Some(ci);
             selected_tool.0 = match clicked {
                 InventorySlot::TurnColor(_) => Tool::Turn, InventorySlot::TurnButColor(_) => Tool::TurnBut,
-                InventorySlot::BounceColor(_) => Tool::Bounce, InventorySlot::ColorSwitchColor(_) => Tool::ColorSwitch,
-                InventorySlot::ColorSwitchButColor(_) => Tool::ColorSwitchBut, InventorySlot::PainterColor(_) => Tool::Painter,
+                InventorySlot::BounceColor(_) => Tool::Bounce,
+                InventorySlot::SwitchColor(c) => if c == NUM_COLORS { Tool::Switch } else { Tool::ColorSwitch },
+                InventorySlot::SwitchButColor(_) => Tool::ColorSwitchBut, InventorySlot::PainterColor(_) => Tool::Painter,
                 InventorySlot::ArrowColor(_) => Tool::Arrow, InventorySlot::ArrowButColor(_) => Tool::ArrowBut,
                 _ => Tool::BounceBut,
             };
@@ -280,7 +281,7 @@ pub fn update_inventory_visuals(
         let selected = match slot {
             InventorySlot::Floor => t == Tool::Floor,
             InventorySlot::Delete => t == Tool::Delete,
-            InventorySlot::Switch => t == Tool::Switch,
+            InventorySlot::Switch => (t == Tool::Switch || t == Tool::ColorSwitch) && lv2,
             InventorySlot::Source => t == Tool::Source && lv2,
             InventorySlot::Goal => t == Tool::Goal && lv2,
             InventorySlot::Turn => t == Tool::Turn && lv2,
@@ -291,8 +292,7 @@ pub fn update_inventory_visuals(
             InventorySlot::Arrow => t == Tool::Arrow && lv2,
             InventorySlot::ArrowBut => t == Tool::ArrowBut && lv2,
             InventorySlot::Door => t == Tool::Door && lv2,
-            InventorySlot::ColorSwitch => t == Tool::ColorSwitch && lv2,
-            InventorySlot::ColorSwitchBut => t == Tool::ColorSwitchBut && lv2,
+            InventorySlot::SwitchBut => t == Tool::ColorSwitchBut && lv2,
             InventorySlot::Painter => t == Tool::Painter && lv2,
             InventorySlot::SourceDir(dir) | InventorySlot::TurnDir(dir) | InventorySlot::TurnButDir(dir)
             | InventorySlot::ArrowDir(dir) | InventorySlot::ArrowButDir(dir) => inv_state.direction == Some(*dir),
@@ -300,7 +300,7 @@ pub fn update_inventory_visuals(
             InventorySlot::SourceColor(ci) | InventorySlot::GoalColor(ci)
             | InventorySlot::TurnColor(ci) | InventorySlot::TurnButColor(ci) | InventorySlot::TeleportNum(ci)
             | InventorySlot::BounceColor(ci) | InventorySlot::BounceButColor(ci)
-            | InventorySlot::ColorSwitchColor(ci) | InventorySlot::ColorSwitchButColor(ci)
+            | InventorySlot::SwitchColor(ci) | InventorySlot::SwitchButColor(ci)
             | InventorySlot::PainterColor(ci) | InventorySlot::ArrowColor(ci) | InventorySlot::ArrowButColor(ci) => inv_state.color_index == Some(*ci),
         };
         if matches!(*interaction, Interaction::Hovered | Interaction::Pressed) {
@@ -328,9 +328,9 @@ fn tile_desc(idx: usize) -> &'static str {
         "Bounce \u{2013} Sends bots back the way they came (grey = all bots)",
         "Bounce But \u{2013} Bounces all bots EXCEPT this color",
         "Door \u{2013} Blocks the path until a switch opens it",
-        "Switch \u{2013} Press to toggle all doors open or closed",
-        "Color Switch \u{2013} Only bots of this color can toggle doors",
-        "Color Switch But \u{2013} All bots EXCEPT this color toggle doors",
+        "Switch \u{2013} Toggles all doors (grey = all bots)",
+        "Switch But \u{2013} All bots EXCEPT this color toggle doors",
+        "", // unused
         "Painter \u{2013} Changes the bot's color as it walks over",
         "Arrow \u{2013} Redirects bots in the arrow direction (grey = all bots)",
         "Arrow But \u{2013} Redirects all bots EXCEPT this color",
@@ -350,9 +350,8 @@ fn slot_description(slot: &InventorySlot) -> &'static str {
         InventorySlot::Bounce | InventorySlot::BounceColor(_) => tile_desc(6),
         InventorySlot::BounceBut | InventorySlot::BounceButColor(_) => tile_desc(7),
         InventorySlot::Door | InventorySlot::DoorState(_) => tile_desc(8),
-        InventorySlot::Switch => tile_desc(9),
-        InventorySlot::ColorSwitch | InventorySlot::ColorSwitchColor(_) => tile_desc(10),
-        InventorySlot::ColorSwitchBut | InventorySlot::ColorSwitchButColor(_) => tile_desc(11),
+        InventorySlot::Switch | InventorySlot::SwitchColor(_) => tile_desc(9),
+        InventorySlot::SwitchBut | InventorySlot::SwitchButColor(_) => tile_desc(10),
         InventorySlot::Painter | InventorySlot::PainterColor(_) => tile_desc(12),
         InventorySlot::Arrow | InventorySlot::ArrowDir(_) | InventorySlot::ArrowColor(_) => tile_desc(13),
         InventorySlot::ArrowBut | InventorySlot::ArrowButDir(_) | InventorySlot::ArrowButColor(_) => tile_desc(14),
@@ -368,8 +367,8 @@ fn tilekind_description(kind: &TileKind) -> &'static str {
         TileKind::Turn(_, _) => tile_desc(3),    TileKind::TurnBut(_, _) => tile_desc(4),
         TileKind::Teleport(_) => tile_desc(5),   TileKind::Bounce(_) => tile_desc(6),
         TileKind::BounceBut(_) => tile_desc(7),  TileKind::Door(_) => tile_desc(8),
-        TileKind::Switch => tile_desc(9),        TileKind::ColorSwitch(_) => tile_desc(10),
-        TileKind::ColorSwitchBut(_) => tile_desc(11), TileKind::Painter(_) => tile_desc(12),
+        TileKind::Switch | TileKind::ColorSwitch(_) => tile_desc(9),
+        TileKind::ColorSwitchBut(_) => tile_desc(10), TileKind::Painter(_) => tile_desc(12),
         TileKind::Arrow(_, _) => tile_desc(13),  TileKind::ArrowBut(_, _) => tile_desc(14),
     }
 }
