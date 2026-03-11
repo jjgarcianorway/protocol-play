@@ -25,7 +25,7 @@ pub fn spawn_base_slot(
             p.spawn(Node { position_type: PositionType::Absolute, bottom: Val::Px(2.0),
                 width: Val::Percent(100.0), justify_content: JustifyContent::Center, ..default() })
                 .with_child((Text::new(count_text), gf(COUNT_FONT, font),
-                    TextColor(Color::srgba(1.0, 1.0, 1.0, COUNT_TEXT_ALPHA))));
+                    TextColor(rgb(COUNT_AVAIL_COLOR))));
         }
     }).id();
     commands.entity(parent).add_child(child);
