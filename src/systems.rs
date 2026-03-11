@@ -7,19 +7,13 @@ use crate::board::*;
 
 // === Animation ===
 pub fn animate_scale(
-    mut query: Query<(&mut Transform, &TargetScale, Option<&GhostPreview>, Option<&TileHighlight>)>,
+    mut query: Query<(&mut Transform, &TargetScale, Option<&GhostPreview>, Option<&TileHighlight>, Option<&GhostTrail>)>,
     time: Res<Time>,
 ) {
-    for (mut transform, target, ghost, highlight) in &mut query {
-        let speed = if ghost.is_some() || highlight.is_some() {
-            HOVER_ANIM_SPEED
-        } else {
-            ANIM_SPEED
-        };
+    for (mut transform, target, ghost, highlight, trail) in &mut query {
+        let speed = if ghost.is_some() || highlight.is_some() || trail.is_some() { HOVER_ANIM_SPEED } else { ANIM_SPEED };
         transform.scale = transform.scale.lerp(target.0, speed * time.delta_secs());
-        if transform.scale.distance(target.0) < SCALE_SNAP {
-            transform.scale = target.0;
-        }
+        if transform.scale.distance(target.0) < SCALE_SNAP { transform.scale = target.0; }
     }
 }
 
@@ -127,12 +121,7 @@ pub fn update_hovered_cell(
 ) {
     let can_hover = matches!(*play_mode, PlayMode::Editing | PlayMode::Marking | PlayMode::TestEditing);
     if !can_hover { hovered.0 = None; return; }
-    for interaction in &ui_interactions {
-        if *interaction != Interaction::None {
-            hovered.0 = None;
-            return;
-        }
-    }
+    if ui_interactions.iter().any(|i| *i != Interaction::None) { hovered.0 = None; return; }
     let window = windows.single();
     let (camera, cam_transform) = cameras.single();
     let Some(cursor) = window.cursor_position() else { hovered.0 = None; return; };
@@ -154,6 +143,7 @@ pub fn update_hovered_cell(
 
 // === Ghost & Highlight ===
 pub fn update_ghost_and_highlight(
+    mut commands: Commands,
     hovered: Res<HoveredCell>,
     selected_tool: Res<SelectedTool>,
     inv_state: Res<InventoryState>,
@@ -165,7 +155,7 @@ pub fn update_ghost_and_highlight(
         (With<GhostPreview>, Without<TileHighlight>),
     >,
     mut ghost_overlay_q: Query<
-        (&mut Transform, &mut MeshMaterial3d<StandardMaterial>),
+        (&mut Transform, &Mesh3d, &mut MeshMaterial3d<StandardMaterial>),
         (With<GhostSymbolOverlay>, Without<GhostPreview>, Without<TileHighlight>, Without<Tile>),
     >,
     mut highlight_q: Query<
@@ -188,7 +178,7 @@ pub fn update_ghost_and_highlight(
     }
 
     let (mut ghost_tf, mut ghost_target, mut ghost_mesh, mut ghost_mat) = ghost_q.single_mut();
-    let (mut overlay_tf, mut overlay_mat) = ghost_overlay_q.single_mut();
+    let (mut overlay_tf, overlay_mesh_3d, mut overlay_mat) = ghost_overlay_q.single_mut();
     let (mut hl_tf, mut hl_target) = highlight_q.single_mut();
     let mut show_overlay = false;
 
@@ -216,6 +206,27 @@ pub fn update_ghost_and_highlight(
     } else { ghost_cell.last_placed = None; }
 
     if ghost_cell.current != Some((col, row)) {
+        // Spawn fade-out trails at the old position so animations finish smoothly
+        if ghost_tf.scale.length() > DESPAWN_SCALE {
+            let mut trail = commands.spawn((
+                Mesh3d(ghost_mesh.0.clone()), MeshMaterial3d(ghost_mat.0.clone()),
+                Transform { translation: ghost_tf.translation, rotation: ghost_tf.rotation, scale: ghost_tf.scale },
+                TargetScale(Vec3::ZERO), DespawnAtZeroScale, GhostTrail,
+            ));
+            if overlay_tf.scale.length() > 0.5 {
+                trail.with_children(|p| { p.spawn((
+                    Mesh3d(overlay_mesh_3d.0.clone()), MeshMaterial3d(overlay_mat.0.clone()),
+                    Transform::from_translation(Vec3::new(0.0, FLOOR_TOP_Y + SYMBOL_OVERLAY_OFFSET, 0.0)),
+                )); });
+            }
+        }
+        if hl_tf.scale.length() > DESPAWN_SCALE {
+            commands.spawn((
+                Mesh3d(assets.highlight_mesh.clone()), MeshMaterial3d(assets.highlight_material.clone()),
+                Transform { translation: hl_tf.translation, scale: hl_tf.scale, ..default() },
+                TargetScale(Vec3::ZERO), DespawnAtZeroScale, GhostTrail,
+            ));
+        }
         ghost_tf.scale = Vec3::ZERO; hl_tf.scale = Vec3::ZERO;
         ghost_cell.current = Some((col, row));
     }
@@ -387,4 +398,3 @@ pub fn sync_inventory_play_mode(
     };
     for mut anim in &mut inv { anim.target = target; }
 }
-

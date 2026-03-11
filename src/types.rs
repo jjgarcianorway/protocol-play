@@ -269,6 +269,7 @@ pub enum TileKind {
 #[derive(Component)] pub struct TargetScale(pub Vec3);
 #[derive(Component)] pub struct DespawnAtZeroScale;
 #[derive(Component)] pub struct GhostPreview;
+#[derive(Component)] pub struct GhostTrail;
 #[derive(Component)] pub struct TileHighlight;
 #[derive(Component)] pub struct BoardSizeText;
 
