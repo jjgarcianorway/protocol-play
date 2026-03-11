@@ -34,7 +34,7 @@ pub const DESPAWN_SCALE: f32 = 0.02;
 
 // === UI slide positions ===
 pub const INV_SLIDE_SHOW: f32 = 4.0;
-pub const INV_SLIDE_HIDE: f32 = -80.0;
+pub const INV_SLIDE_HIDE: f32 = -160.0;
 pub const TOP_SLIDE_SHOW: f32 = 10.0;
 pub const BANNER_SLIDE_HIDE: f32 = -40.0;
 

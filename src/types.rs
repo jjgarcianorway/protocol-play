@@ -91,7 +91,10 @@ pub struct HoveredCell(pub Option<(u32, u32)>);
 pub struct HiddenTileEntity(pub Option<Entity>);
 
 #[derive(Resource, Default)]
-pub struct GhostCell(pub Option<(u32, u32)>);
+pub struct GhostCell {
+    pub current: Option<(u32, u32)>,
+    pub last_placed: Option<(u32, u32)>,
+}
 
 #[derive(Resource, Default, Clone)]
 pub struct InventoryState {

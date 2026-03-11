@@ -194,7 +194,7 @@ pub fn update_ghost_and_highlight(
 
     macro_rules! hide_ghost { () => {
         ghost_target.0 = Vec3::ZERO; overlay_tf.scale = Vec3::ZERO;
-        hl_target.0 = Vec3::ZERO; ghost_cell.0 = None;
+        hl_target.0 = Vec3::ZERO; ghost_cell.current = None;
     }}
     // No ghost/highlight in marking mode or during play
     if matches!(*play_mode, PlayMode::Marking | PlayMode::Playing | PlayMode::TestPlaying) {
@@ -210,9 +210,14 @@ pub fn update_ghost_and_highlight(
     let world_x = col as f32 - offset;
     let world_z = row as f32 - offset;
 
-    if ghost_cell.0 != Some((col, row)) {
+    // Clear last_placed when mouse moves to a different cell
+    if ghost_cell.last_placed == Some((col, row)) {
+        hide_ghost!(); return;
+    } else { ghost_cell.last_placed = None; }
+
+    if ghost_cell.current != Some((col, row)) {
         ghost_tf.scale = Vec3::ZERO; hl_tf.scale = Vec3::ZERO;
-        ghost_cell.0 = Some((col, row));
+        ghost_cell.current = Some((col, row));
     }
 
     // In test mode, check if tile was originally Empty (player-placed) vs level-designed
@@ -291,6 +296,7 @@ pub fn handle_tile_click(
     play_mode: Res<PlayMode>,
     ghost_q: Query<&Transform, With<GhostPreview>>,
     mut validated: ResMut<LevelValidated>,
+    mut ghost_cell: ResMut<GhostCell>,
 ) {
     if *play_mode != PlayMode::Editing { return; }
     if !mouse.just_pressed(MouseButton::Left) { return; }
@@ -366,6 +372,7 @@ pub fn handle_tile_click(
             despawn(&mut commands, entity); spawn_tile(&mut commands, col, row, board_size.0, TileKind::Empty, &assets);
         }
     }
+    ghost_cell.last_placed = Some((col, row));
 }
 
 pub fn sync_inventory_play_mode(

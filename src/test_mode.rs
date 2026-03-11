@@ -344,7 +344,7 @@ pub fn handle_test_tile_click(
     ui_interactions: Query<&Interaction, With<Button>>,
     icons: Res<InventoryIcons>,
     test_container: Query<Entity, With<TestInventoryContainer>>,
-    ghost_q: Query<&Transform, With<GhostPreview>>,
+    mut ghost_cell: ResMut<GhostCell>,
     saved_test: Res<SavedTestState>,
     font: Res<GameFont>,
 ) {
@@ -375,9 +375,8 @@ pub fn handle_test_tile_click(
         if idx >= test_inv.items.len() { return; }
         let (tile_kind, count) = test_inv.items[idx];
         if count == 0 || !matches!(kind, TileKind::Empty) { return; }
-        let gs = ghost_q.get_single().map(|t| t.scale).unwrap_or(Vec3::ZERO);
         commands.entity(entity).despawn_recursive();
-        crate::board::spawn_tile_at_scale(&mut commands, col, row, board_size.0, tile_kind, &assets, gs);
+        crate::board::spawn_tile_at_scale(&mut commands, col, row, board_size.0, tile_kind, &assets, Vec3::ZERO);
         test_inv.items[idx].1 -= 1;
         if test_inv.items[idx].1 == 0 {
             test_inv.items.remove(idx);
@@ -392,5 +391,9 @@ pub fn handle_test_tile_click(
         }
         changed = true;
     }
-    if changed { for e in &test_container { commands.entity(e).despawn_recursive(); } spawn_test_inventory(&mut commands, &test_inv, &icons, false, &font.0); }
+    if changed {
+        ghost_cell.last_placed = Some((col, row));
+        for e in &test_container { commands.entity(e).despawn_recursive(); }
+        spawn_test_inventory(&mut commands, &test_inv, &icons, false, &font.0);
+    }
 }
