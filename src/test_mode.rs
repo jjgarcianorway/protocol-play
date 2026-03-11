@@ -216,19 +216,22 @@ pub fn spawn_test_inventory(commands: &mut Commands, test_inv: &TestInventory, i
             for (i, (kind, count)) in test_inv.items.iter().enumerate() {
                 let Some(icon) = tilekind_to_icon(kind, icons) else { continue };
                 let sel = !test_inv.remove_mode && test_inv.selected == Some(i);
-                c.spawn((Button, TestInventorySlot(i), sn.clone(),
-                    BackgroundColor(slot_bg()), border_for(sel), br,
-                )).with_children(|slot| {
-                    slot.spawn((icon_node(), ImageNode::new(icon)));
+                c.spawn((Button, TestInventorySlot(i), border_for(sel),
+                    Node { flex_direction: FlexDirection::Column, align_items: AlignItems::Center,
+                        border: UiRect::all(Val::Px(SLOT_BORDER_PX)), ..default() },
+                    BackgroundColor(slot_bg()), br,
+                )).with_children(|wrapper| {
+                    wrapper.spawn((icon_node(), ImageNode::new(icon)));
                     let cc = if *count > 0 { rgb(COUNT_AVAIL_COLOR) } else { rgb(COUNT_EMPTY_COLOR) };
-                    slot.spawn(Node { position_type: PositionType::Absolute, bottom: Val::Px(0.0),
-                        width: Val::Percent(100.0), justify_content: JustifyContent::Center, ..default() })
-                        .with_child((Text::new(format!("x{count}")), gf(COUNT_FONT * 0.85, f), TextColor(cc)));
+                    wrapper.spawn(Node { justify_content: JustifyContent::Center, ..default() })
+                        .with_child((Text::new(format!("x{count}")), gf(COUNT_FONT, f), TextColor(cc)));
                 });
             }
             // Remove tool (pick up tiles)
-            c.spawn((Button, TestInventorySlot(usize::MAX), sn,
-                BackgroundColor(slot_bg()), border_for(test_inv.remove_mode), br,
+            c.spawn((Button, TestInventorySlot(usize::MAX), border_for(test_inv.remove_mode),
+                Node { flex_direction: FlexDirection::Column, align_items: AlignItems::Center,
+                    border: UiRect::all(Val::Px(SLOT_BORDER_PX)), ..default() },
+                BackgroundColor(slot_bg()), br,
             )).with_child((icon_node(), ImageNode::new(icons.delete.clone())));
         });
     });

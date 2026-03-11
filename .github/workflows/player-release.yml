@@ -12,42 +12,65 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        include:
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            src: protocol-play.exe
-            dest: protocol-player-windows.exe
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            src: protocol-play
-            dest: protocol-player-macos
-    runs-on: ${{ matrix.os }}
+  build-windows:
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
-
+          targets: x86_64-pc-windows-msvc
       - name: Build player
-        run: cargo build --release --features player --target ${{ matrix.target }}
-
-      - name: Rename binary
-        run: |
-          cp target/${{ matrix.target }}/release/${{ matrix.src }} ${{ matrix.dest }}
-
+        run: cargo build --release --features player --target x86_64-pc-windows-msvc
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.dest }}
-          path: ${{ matrix.dest }}
+          name: protocol-player-windows.exe
+          path: target/x86_64-pc-windows-msvc/release/protocol-play.exe
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+      - name: Build player
+        run: cargo build --release --features player --target aarch64-apple-darwin
+      - name: Create .app bundle
+        run: |
+          mkdir -p "Protocol Play.app/Contents/MacOS"
+          mkdir -p "Protocol Play.app/Contents/Resources"
+          cp target/aarch64-apple-darwin/release/protocol-play "Protocol Play.app/Contents/MacOS/protocol-play"
+          cat > "Protocol Play.app/Contents/Info.plist" << 'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleExecutable</key>
+            <string>protocol-play</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.protocol-play.player</string>
+            <key>CFBundleName</key>
+            <string>Protocol Play</string>
+            <key>CFBundleVersion</key>
+            <string>0.12</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+            <key>LSMinimumSystemVersion</key>
+            <string>11.0</string>
+            <key>NSHighResolutionCapable</key>
+            <true/>
+          </dict>
+          </plist>
+          PLIST
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: protocol-player-macos
+          path: Protocol Play.app
 
   release:
-    needs: build
+    needs: [build-windows, build-macos]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -61,9 +84,8 @@ jobs:
 
       - name: Prepare release files
         run: |
-          mv artifacts/protocol-player-windows.exe/protocol-player-windows.exe .
-          mv artifacts/protocol-player-macos/protocol-player-macos .
-          chmod +x protocol-player-macos
+          cp artifacts/protocol-player-windows.exe/protocol-play.exe protocol-player-windows.exe
+          cd artifacts/protocol-player-macos && zip -r ../../protocol-player-macos.zip "Protocol Play.app"
 
       - name: Create release
         uses: softprops/action-gh-release@v2
@@ -73,7 +95,8 @@ jobs:
           body: |
             Player build for testing levels.
 
-            Place `level.json` in the same directory as the executable and run it.
+            **Windows**: Extract and place `level.json` next to `protocol-player-windows.exe`.
+            **macOS**: Extract the zip, place `level.json` inside `Protocol Play.app/Contents/MacOS/`, then double-click the app.
           files: |
             protocol-player-windows.exe
-            protocol-player-macos
+            protocol-player-macos.zip
