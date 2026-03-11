@@ -22,6 +22,61 @@ pub fn load_png_texture(images: &mut Assets<Image>, path: &str, is_srgb: bool) -
     ))
 }
 
+/// Load a PNG file and return its raw RGBA pixel data + width.
+pub fn load_png_raw(path: &str) -> (Vec<u8>, u32) {
+    let img = image::open(path).unwrap_or_else(|e| panic!("Failed to load {path}: {e}"));
+    let rgba = img.to_rgba8();
+    let w = rgba.width();
+    (rgba.into_raw(), w)
+}
+
+/// Load base+mask PNG pair as raw data.
+pub fn load_png_pair(name: &str) -> (Vec<u8>, Vec<u8>, u32) {
+    let (base, w) = load_png_raw(&format!("assets/textures/{name}_base.png"));
+    let (mask, _) = load_png_raw(&format!("assets/textures/{name}_mask.png"));
+    (base, mask, w)
+}
+
+/// Composite an icon texture from base+mask PNG data.
+/// Point-samples the source PNGs at exact coordinates matching procedural generation.
+pub fn composite_icon_from_png(
+    base_data: &[u8], mask_data: &[u8], src_size: u32,
+    out_size: u32, border: u32, rotation: f32, fill: [u8; 4],
+) -> Vec<u8> {
+    let center = out_size as f32 / 2.0;
+    let src_c = src_size as f32 / 2.0;
+    let (cos_r, sin_r) = (rotation.cos(), rotation.sin());
+    let mut data = vec![0u8; (out_size * out_size * 4) as usize];
+    for py in 0..out_size {
+        for px in 0..out_size {
+            let on_edge = px < border || px >= out_size - border || py < border || py >= out_size - border;
+            let mut color = if on_edge { TILE_DARK } else { TILE_GRAY };
+            let nx = (px as f32 - center) / center;
+            let ny = (py as f32 - center) / center;
+            let rnx = nx * cos_r + ny * sin_r;
+            let rny = -nx * sin_r + ny * cos_r;
+            let spx = (rnx * src_c + src_c) as i32;
+            let spy = (rny * src_c + src_c) as i32;
+            if spx >= 0 && spy >= 0 && (spx as u32) < src_size && (spy as u32) < src_size {
+                let si = ((spy as u32 * src_size + spx as u32) * 4) as usize;
+                if base_data[si + 3] > 0 {
+                    if base_data[si] == SYMBOL_STROKE[0] && base_data[si + 1] == SYMBOL_STROKE[1]
+                        && base_data[si + 2] == SYMBOL_STROKE[2] {
+                        color = SYMBOL_STROKE;
+                    } else {
+                        let b = mask_data[si] as f32 / 255.0;
+                        color = [(fill[0] as f32 * b) as u8, (fill[1] as f32 * b) as u8,
+                                 (fill[2] as f32 * b) as u8, 255];
+                    }
+                }
+            }
+            let i = ((py * out_size + px) * 4) as usize;
+            data[i..i + 4].copy_from_slice(&color);
+        }
+    }
+    data
+}
+
 pub fn create_tile_texture(images: &mut Assets<Image>, size: u32, border: u32) -> Handle<Image> {
     make_image(images, tile_texture_data(size, border), size)
 }
@@ -65,30 +120,7 @@ pub fn create_empty_marker_texture(i: &mut Assets<Image>) -> Handle<Image> { cre
 pub fn create_highlight_texture(i: &mut Assets<Image>) -> Handle<Image> { create_border_texture(i, MARKER_TEX_SIZE, HIGHLIGHT_TEX_BORDER, HIGHLIGHT_TEX_COLOR) }
 pub fn create_inv_marker_texture(i: &mut Assets<Image>) -> Handle<Image> { create_border_texture(i, MARKER_TEX_SIZE, INV_MARKER_BORDER, INV_MARKER_COLOR) }
 
-// === Shape tests ===
-fn in_star_shape(x: f32, y: f32, e: f32) -> bool {
-    let (or, ir, d) = (0.45 + e, 0.20 + e * 0.5, (x * x + y * y).sqrt());
-    if d > or { return false; }
-    let sec = 2.0 * std::f32::consts::PI / 5.0;
-    let a = (y.atan2(x) + std::f32::consts::FRAC_PI_2).rem_euclid(sec);
-    d <= or + (a - sec / 2.0).abs() / (sec / 2.0) * (ir - or)
-}
-
-fn in_turn_shape(x: f32, y: f32, e: f32) -> bool {
-    let hw = 0.06 + e;
-    (x > -e && x < 0.75 + e && y.abs() < hw) || (y > -(0.75 + e) && y < e && x.abs() < hw)
-    || ((x - 0.75).powi(2) + y * y).sqrt() < hw || (x * x + (y + 0.75).powi(2)).sqrt() < hw
-}
-
-fn in_turn_center(x: f32, y: f32) -> bool { (x * x + y * y).sqrt() < 0.14 }
-fn in_forbidden_line(x: f32, y: f32) -> bool { in_turn_center(x, y) && (x + y).abs() / std::f32::consts::SQRT_2 < 0.035 }
-
-fn in_source_shape(x: f32, y: f32, e: f32) -> bool {
-    (x * x + y * y).sqrt() < 0.35 + e
-    || (x.abs() < 0.05 + e && y < -(0.35 - e) && y > -(0.62 + e))
-    || (y > -0.82 - e && y < -0.58 + e && x.abs() < 0.14 * ((y + 0.82) / 0.24).clamp(0.0, 1.0) + e)
-}
-
+// === Teleport (procedural — uses dynamic 7-segment numbers) ===
 fn in_ring(x: f32, y: f32, e: f32) -> bool {
     let d = (x * x + y * y).sqrt();
     d >= 0.22 - e && d <= 0.44 + e
@@ -115,7 +147,6 @@ fn in_tp_num(x: f32, y: f32, num: usize) -> bool {
     else { in_7seg(x, y, 1, -0.10) || in_7seg(x, y, 0, 0.10) }
 }
 
-// === Icon texture data ===
 pub fn tile_texture_data(size: u32, border: u32) -> Vec<u8> {
     let mut data = vec![0u8; (size * size * 4) as usize];
     for y in 0..size { for x in 0..size {
@@ -123,79 +154,6 @@ pub fn tile_texture_data(size: u32, border: u32) -> Vec<u8> {
         let i = ((y * size + x) * 4) as usize; data[i..i + 4].copy_from_slice(&color);
     }}
     data
-}
-
-fn rotated_shape_data(
-    size: u32, border: u32, rotation: f32, fill: [u8; 4],
-    shape_fn: fn(f32, f32, f32) -> bool,
-    center_fn: Option<fn(f32, f32) -> bool>, center_fill: [u8; 4],
-    forbidden_fn: Option<fn(f32, f32) -> bool>,
-) -> Vec<u8> {
-    let center = size as f32 / 2.0;
-    let scale = size as f32 / 2.0;
-    let cos_r = rotation.cos();
-    let sin_r = rotation.sin();
-    let mut data = vec![0u8; (size * size * 4) as usize];
-    for py in 0..size {
-        for px in 0..size {
-            let on_edge = px < border || px >= size - border || py < border || py >= size - border;
-            let mut color = if on_edge { TILE_DARK } else { TILE_GRAY };
-            let nx = (px as f32 - center) / scale;
-            let ny = (py as f32 - center) / scale;
-            let rnx = nx * cos_r + ny * sin_r;
-            let rny = -nx * sin_r + ny * cos_r;
-            if let Some(cf) = center_fn {
-                if forbidden_fn.is_some_and(|ff| ff(rnx, rny)) { color = SYMBOL_STROKE; }
-                else if cf(rnx, rny) { color = center_fill; }
-                else if shape_fn(rnx, rny, 0.0) { color = fill; }
-                else if shape_fn(rnx, rny, STROKE_EXPAND) { color = SYMBOL_STROKE; }
-            } else {
-                if shape_fn(rnx, rny, 0.0) { color = fill; }
-                else if shape_fn(rnx, rny, STROKE_EXPAND) { color = SYMBOL_STROKE; }
-            }
-            let i = ((py * size + px) * 4) as usize;
-            data[i..i + 4].copy_from_slice(&color);
-        }
-    }
-    data
-}
-
-pub fn source_texture_colored_data(size: u32, border: u32, rotation: f32, fill: [u8; 4]) -> Vec<u8> {
-    rotated_shape_data(size, border, rotation, fill, in_source_shape, None, [0; 4], None)
-}
-
-pub fn goal_texture_colored_data(size: u32, border: u32, fill: [u8; 4]) -> Vec<u8> {
-    rotated_shape_data(size, border, 0.0, fill, in_star_shape, None, [0; 4], None)
-}
-
-fn turn_center_fill(fill: [u8; 4]) -> [u8; 4] {
-    let b = TURN_CENTER_BRIGHTNESS / 255.0;
-    [(fill[0] as f32 * b) as u8, (fill[1] as f32 * b) as u8, (fill[2] as f32 * b) as u8, 255]
-}
-
-pub fn turn_texture_colored_data(size: u32, border: u32, rotation: f32, fill: [u8; 4]) -> Vec<u8> {
-    rotated_shape_data(size, border, rotation, fill, in_turn_shape, Some(in_turn_center), turn_center_fill(fill), None)
-}
-
-pub fn turnbut_texture_colored_data(size: u32, border: u32, rotation: f32, fill: [u8; 4]) -> Vec<u8> {
-    rotated_shape_data(size, border, rotation, fill, in_turn_shape, Some(in_turn_center), turn_center_fill(fill), Some(in_forbidden_line))
-}
-
-fn in_bounce_shape(x: f32, y: f32, e: f32) -> bool { x.abs() + y.abs() < 0.42 + e }
-
-fn in_door_sq(x: f32, y: f32, e: f32) -> bool {
-    let (s, o) = (0.12 + e, 0.30);
-    ((x-o).abs() < s && (y-o).abs() < s) || ((x+o).abs() < s && (y-o).abs() < s)
-    || ((x-o).abs() < s && (y+o).abs() < s) || ((x+o).abs() < s && (y+o).abs() < s)
-}
-fn in_door_closed_s(x: f32, y: f32, e: f32) -> bool {
-    in_door_sq(x, y, e) || (((x-y).abs() < 0.06+e || (x+y).abs() < 0.06+e) && x.abs() < 0.38+e && y.abs() < 0.38+e)
-}
-fn in_switch_s(x: f32, y: f32, e: f32) -> bool { (x*x + y*y).sqrt() < 0.25 + e }
-
-pub fn bounce_texture_colored_data(size: u32, border: u32, fill: [u8; 4], forbid: bool) -> Vec<u8> {
-    let ff = if forbid { Some(in_forbidden_line as fn(f32, f32) -> bool) } else { None };
-    rotated_shape_data(size, border, 0.0, fill, in_bounce_shape, Some(in_turn_center), turn_center_fill(fill), ff)
 }
 
 pub fn teleport_texture_colored_data(size: u32, border: u32, num: usize, fill: [u8; 4]) -> Vec<u8> {
@@ -335,42 +293,6 @@ pub fn create_play_icon(images: &mut Assets<Image>) -> Handle<Image> {
 pub fn create_stop_icon(images: &mut Assets<Image>) -> Handle<Image> {
     ui_icon(images, |fx, fy| (0.28..=0.72).contains(&fx) && (0.28..=0.72).contains(&fy),
         STOP_ICON_COLOR)
-}
-
-fn in_brush_shape(x: f32, y: f32, e: f32) -> bool {
-    (x.abs() < 0.07 + e && y > -0.05 && y < 0.55 + e)
-    || (x.abs() < 0.12 + e && y > -0.15 - e && y < 0.0 + e)
-    || (x.abs() < 0.22 + e && y > -0.50 - e && y < -0.10 + e)
-}
-
-pub fn painter_texture_colored_data(size: u32, border: u32, fill: [u8; 4]) -> Vec<u8> {
-    rotated_shape_data(size, border, 0.0, fill, in_brush_shape, None, [0; 4], None)
-}
-
-pub fn door_texture_data(s: u32, b: u32, fill: [u8; 4], closed: bool) -> Vec<u8> {
-    rotated_shape_data(s, b, 0.0, fill, if closed { in_door_closed_s } else { in_door_sq }, None, [0;4], None)
-}
-pub fn switch_texture_data(s: u32, b: u32, fill: [u8; 4]) -> Vec<u8> {
-    rotated_shape_data(s, b, 0.0, fill, in_switch_s, None, [0; 4], None)
-}
-pub fn colorswitch_texture_data(s: u32, b: u32, fill: [u8; 4]) -> Vec<u8> {
-    rotated_shape_data(s, b, 0.0, fill, in_switch_s, Some(in_turn_center), turn_center_fill(fill), None)
-}
-pub fn colorswitchbut_texture_data(s: u32, b: u32, fill: [u8; 4]) -> Vec<u8> {
-    rotated_shape_data(s, b, 0.0, fill, in_switch_s, Some(in_turn_center), turn_center_fill(fill), Some(in_forbidden_line))
-}
-
-fn in_arrow_shape(x: f32, y: f32, e: f32) -> bool {
-    (x.abs() < 0.07 + e && y > -0.15 - e && y < 0.50 + e)
-    || (y >= -0.60 - e && y < -0.10 + e && x.abs() < 0.30 * (1.0 - ((y + 0.10) / -0.50).clamp(0.0, 1.0)) + e)
-}
-
-pub fn arrow_texture_colored_data(size: u32, border: u32, rotation: f32, fill: [u8; 4]) -> Vec<u8> {
-    rotated_shape_data(size, border, rotation, fill, in_arrow_shape, None, [0; 4], None)
-}
-
-pub fn arrowbut_texture_colored_data(size: u32, border: u32, rotation: f32, fill: [u8; 4]) -> Vec<u8> {
-    rotated_shape_data(size, border, rotation, fill, in_arrow_shape, Some(in_turn_center), turn_center_fill(fill), Some(in_forbidden_line))
 }
 
 pub fn create_vignette_texture(images: &mut Assets<Image>) -> Handle<Image> {

@@ -228,64 +228,66 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
     let floor_icon = create_isometric_icon(&mut images, &floor_tex_data, TEX_SIZE, ICON_SIZE);
     let white = ICON_WHITE;
     let icon = |images: &mut Assets<Image>, data: &[u8]| create_isometric_icon(images, data, TEX_SIZE, ICON_SIZE);
-    let source_icon = icon(&mut images, &source_texture_colored_data(TEX_SIZE, TEX_BORDER, 0.0, white));
-    let goal_icon = icon(&mut images, &goal_texture_colored_data(TEX_SIZE, TEX_BORDER, white));
-    let turn_icon = icon(&mut images, &turn_texture_colored_data(TEX_SIZE, TEX_BORDER, 0.0, white));
-    let turnbut_icon = icon(&mut images, &turnbut_texture_colored_data(TEX_SIZE, TEX_BORDER, 0.0, white));
     let delete_icon = create_delete_icon(&mut images);
+    let p = |n: &str| load_png_pair(n);
+    let (src_b, src_m, ps) = p("source"); let (goal_b, goal_m, _) = p("goal");
+    let (turn_b, turn_m, _) = p("turn"); let (tbut_b, tbut_m, _) = p("turnbut");
+    let (bnc_b, bnc_m, _) = p("bounce"); let (bbot_b, bbot_m, _) = p("bouncebut");
+    let (do_b, do_m, _) = p("door_open"); let (dc_b, dc_m, _) = p("door_closed");
+    let (sw_b, sw_m, _) = p("switch"); let (csw_b, csw_m, _) = p("colorswitch");
+    let (cswb_b, cswb_m, _) = p("colorswitchbut"); let (pnt_b, pnt_m, _) = p("painter");
+    let (arr_b, arr_m, _) = p("arrow"); let (abut_b, abut_m, _) = p("arrowbut");
+    let cp = |b: &[u8], m: &[u8], rot: f32, fill: [u8; 4]| composite_icon_from_png(b, m, ps, TEX_SIZE, TEX_BORDER, rot, fill);
+    let source_icon = icon(&mut images, &cp(&src_b, &src_m, 0.0, white));
+    let goal_icon = icon(&mut images, &cp(&goal_b, &goal_m, 0.0, white));
+    let turn_icon = icon(&mut images, &cp(&turn_b, &turn_m, 0.0, white));
+    let turnbut_icon = icon(&mut images, &cp(&tbut_b, &tbut_m, 0.0, white));
 
-    let dir_icon = |images: &mut Assets<Image>, tex_fn: fn(u32, u32, f32, [u8; 4]) -> Vec<u8>| {
-        Direction::all().map(|d| create_isometric_icon(images, &tex_fn(TEX_SIZE, TEX_BORDER, -d.rotation(), white), TEX_SIZE, ICON_SIZE))
-    };
-    let source_dir_icons = dir_icon(&mut images, source_texture_colored_data);
-    let turn_dir_icons = dir_icon(&mut images, turn_texture_colored_data);
-    let turnbut_dir_icons = dir_icon(&mut images, turnbut_texture_colored_data);
-    let arrow_dir_icons = dir_icon(&mut images, arrow_texture_colored_data);
-    let arrowbut_dir_icons = dir_icon(&mut images, arrowbut_texture_colored_data);
+    let dir_icons = |images: &mut Assets<Image>, b: &[u8], m: &[u8]|
+        Direction::all().map(|d| icon(images, &cp(b, m, -d.rotation(), white)));
+    let source_dir_icons = dir_icons(&mut images, &src_b, &src_m);
+    let turn_dir_icons = dir_icons(&mut images, &turn_b, &turn_m);
+    let turnbut_dir_icons = dir_icons(&mut images, &tbut_b, &tbut_m);
+    let arrow_dir_icons = dir_icons(&mut images, &arr_b, &arr_m);
+    let arrowbut_dir_icons = dir_icons(&mut images, &abut_b, &abut_m);
 
-    let color_dir_icons = |images: &mut Assets<Image>, tex_fn: fn(u32, u32, f32, [u8; 4]) -> Vec<u8>| -> Vec<_> {
-        (0..NUM_COLORS).flat_map(|ci| { let f = color_to_u8(SOURCE_COLORS[ci].0, SOURCE_COLORS[ci].1, SOURCE_COLORS[ci].2); Direction::all().map(move |d| (f, d)) })
-            .map(|(f, d)| create_isometric_icon(images, &tex_fn(TEX_SIZE, TEX_BORDER, -d.rotation(), f), TEX_SIZE, ICON_SIZE)).collect()
-    };
-    let source_color_icons = color_dir_icons(&mut images, source_texture_colored_data);
-    let mut turn_color_icons: Vec<_> = color_dir_icons(&mut images, turn_texture_colored_data);
+    let cfill = |ci: usize| color_to_u8(SOURCE_COLORS[ci].0, SOURCE_COLORS[ci].1, SOURCE_COLORS[ci].2);
     let grey_fill = color_to_u8(GREY_COLOR.0, GREY_COLOR.1, GREY_COLOR.2);
-    for d in Direction::all() { turn_color_icons.push(create_isometric_icon(&mut images, &turn_texture_colored_data(TEX_SIZE, TEX_BORDER, -d.rotation(), grey_fill), TEX_SIZE, ICON_SIZE)); }
-    let turnbut_color_icons = color_dir_icons(&mut images, turnbut_texture_colored_data);
-    let mut arrow_color_icons: Vec<_> = color_dir_icons(&mut images, arrow_texture_colored_data);
-    for d in Direction::all() { arrow_color_icons.push(create_isometric_icon(&mut images, &arrow_texture_colored_data(TEX_SIZE, TEX_BORDER, -d.rotation(), grey_fill), TEX_SIZE, ICON_SIZE)); }
-    let arrowbut_color_icons = color_dir_icons(&mut images, arrowbut_texture_colored_data);
+    let color_dir_icons = |images: &mut Assets<Image>, b: &[u8], m: &[u8]| -> Vec<_> {
+        (0..NUM_COLORS).flat_map(|ci| { let f = cfill(ci); Direction::all().map(move |d| (f, d)) })
+            .map(|(f, d)| icon(images, &cp(b, m, -d.rotation(), f))).collect()
+    };
+    let source_color_icons = color_dir_icons(&mut images, &src_b, &src_m);
+    let mut turn_color_icons = color_dir_icons(&mut images, &turn_b, &turn_m);
+    for d in Direction::all() { turn_color_icons.push(icon(&mut images, &cp(&turn_b, &turn_m, -d.rotation(), grey_fill))); }
+    let turnbut_color_icons = color_dir_icons(&mut images, &tbut_b, &tbut_m);
+    let mut arrow_color_icons = color_dir_icons(&mut images, &arr_b, &arr_m);
+    for d in Direction::all() { arrow_color_icons.push(icon(&mut images, &cp(&arr_b, &arr_m, -d.rotation(), grey_fill))); }
+    let arrowbut_color_icons = color_dir_icons(&mut images, &abut_b, &abut_m);
 
     let teleport_icon = icon(&mut images, &teleport_texture_colored_data(TEX_SIZE, TEX_BORDER, 0, white));
     let teleport_num_icons: Vec<_> = (0..NUM_TELEPORTS).map(|n|
         icon(&mut images, &teleport_texture_colored_data(TEX_SIZE, TEX_BORDER, n, grey_fill))).collect();
-    let goal_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci|
-        icon(&mut images, &goal_texture_colored_data(TEX_SIZE, TEX_BORDER, color_to_u8(SOURCE_COLORS[ci].0, SOURCE_COLORS[ci].1, SOURCE_COLORS[ci].2)))).collect();
+    let goal_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci| icon(&mut images, &cp(&goal_b, &goal_m, 0.0, cfill(ci)))).collect();
 
-    let bounce_icon = icon(&mut images, &bounce_texture_colored_data(TEX_SIZE, TEX_BORDER, white, false));
-    let bouncebot_icon = icon(&mut images, &bounce_texture_colored_data(TEX_SIZE, TEX_BORDER, white, true));
-    let cfill = |ci: usize| color_to_u8(SOURCE_COLORS[ci].0, SOURCE_COLORS[ci].1, SOURCE_COLORS[ci].2);
-    let mut bounce_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci|
-        icon(&mut images, &bounce_texture_colored_data(TEX_SIZE, TEX_BORDER, cfill(ci), false))).collect();
-    bounce_color_icons.push(icon(&mut images, &bounce_texture_colored_data(TEX_SIZE, TEX_BORDER, grey_fill, false)));
-    let bouncebot_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci|
-        icon(&mut images, &bounce_texture_colored_data(TEX_SIZE, TEX_BORDER, cfill(ci), true))).collect();
+    let bounce_icon = icon(&mut images, &cp(&bnc_b, &bnc_m, 0.0, white));
+    let bouncebot_icon = icon(&mut images, &cp(&bbot_b, &bbot_m, 0.0, white));
+    let mut bounce_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci| icon(&mut images, &cp(&bnc_b, &bnc_m, 0.0, cfill(ci)))).collect();
+    bounce_color_icons.push(icon(&mut images, &cp(&bnc_b, &bnc_m, 0.0, grey_fill)));
+    let bouncebot_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci| icon(&mut images, &cp(&bbot_b, &bbot_m, 0.0, cfill(ci)))).collect();
 
-    let door_icon = icon(&mut images, &door_texture_data(TEX_SIZE, TEX_BORDER, white, true));
-    let door_open_icon = icon(&mut images, &door_texture_data(TEX_SIZE, TEX_BORDER, grey_fill, false));
-    let door_closed_icon = icon(&mut images, &door_texture_data(TEX_SIZE, TEX_BORDER, grey_fill, true));
-    let switch_icon = icon(&mut images, &switch_texture_data(TEX_SIZE, TEX_BORDER, white));
-    let colorswitch_icon = icon(&mut images, &colorswitch_texture_data(TEX_SIZE, TEX_BORDER, white));
-    let colorswitch_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci|
-        icon(&mut images, &colorswitch_texture_data(TEX_SIZE, TEX_BORDER, cfill(ci)))).collect();
-    let colorswitchbut_icon = icon(&mut images, &colorswitchbut_texture_data(TEX_SIZE, TEX_BORDER, white));
-    let colorswitchbut_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci|
-        icon(&mut images, &colorswitchbut_texture_data(TEX_SIZE, TEX_BORDER, cfill(ci)))).collect();
-    let painter_icon = icon(&mut images, &painter_texture_colored_data(TEX_SIZE, TEX_BORDER, white));
-    let painter_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci|
-        icon(&mut images, &painter_texture_colored_data(TEX_SIZE, TEX_BORDER, cfill(ci)))).collect();
-    let arrow_icon = icon(&mut images, &arrow_texture_colored_data(TEX_SIZE, TEX_BORDER, 0.0, white));
-    let arrowbut_icon = icon(&mut images, &arrowbut_texture_colored_data(TEX_SIZE, TEX_BORDER, 0.0, white));
+    let door_icon = icon(&mut images, &cp(&dc_b, &dc_m, 0.0, white));
+    let door_open_icon = icon(&mut images, &cp(&do_b, &do_m, 0.0, grey_fill));
+    let door_closed_icon = icon(&mut images, &cp(&dc_b, &dc_m, 0.0, grey_fill));
+    let switch_icon = icon(&mut images, &cp(&sw_b, &sw_m, 0.0, white));
+    let colorswitch_icon = icon(&mut images, &cp(&csw_b, &csw_m, 0.0, white));
+    let colorswitch_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci| icon(&mut images, &cp(&csw_b, &csw_m, 0.0, cfill(ci)))).collect();
+    let colorswitchbut_icon = icon(&mut images, &cp(&cswb_b, &cswb_m, 0.0, white));
+    let colorswitchbut_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci| icon(&mut images, &cp(&cswb_b, &cswb_m, 0.0, cfill(ci)))).collect();
+    let painter_icon = icon(&mut images, &cp(&pnt_b, &pnt_m, 0.0, white));
+    let painter_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci| icon(&mut images, &cp(&pnt_b, &pnt_m, 0.0, cfill(ci)))).collect();
+    let arrow_icon = icon(&mut images, &cp(&arr_b, &arr_m, 0.0, white));
+    let arrowbut_icon = icon(&mut images, &cp(&abut_b, &abut_m, 0.0, white));
 
     commands.insert_resource(InventoryIcons {
         floor: floor_icon.clone(), source: source_icon.clone(),
