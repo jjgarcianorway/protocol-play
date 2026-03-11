@@ -193,7 +193,7 @@ pub fn inventory_interaction(
                 inv_state.direction = None;
                 expand_container(&mut commands, expansion);
                 for (open, ico) in [(true, icons.door_open.clone()), (false, icons.door_closed.clone())] {
-                    let c = spawn_base_slot(&mut commands, expansion, InventorySlot::DoorState(open), ico, open, true, true, " ", &font.0);
+                    let c = spawn_base_slot(&mut commands, expansion, InventorySlot::DoorState(open), ico, open, true, true, true, " ", &font.0);
                     commands.entity(c).remove::<Level3Slot>().insert(Level2Slot);
                 }
             } else { collapse_and_reset(&mut commands, &l2_slots, &l3_slots, &divider_slots, expansion, &mut inv_state, &mut selected_tool); }

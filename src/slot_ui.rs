@@ -7,15 +7,18 @@ use crate::ui_helpers::*;
 
 pub fn spawn_base_slot(
     commands: &mut Commands, parent: Entity, slot: InventorySlot, icon: Handle<Image>,
-    selected: bool, is_l3: bool, available: bool, count_text: &str, font: &Handle<Font>,
+    selected: bool, is_l3: bool, available: bool, animate: bool, count_text: &str, font: &Handle<Font>,
 ) -> Entity {
     let bc = border_for(selected);
     let mut node = slot_node();
-    if is_l3 && !available { node.width = Val::Vw(0.0); }
+    let grow = animate && available;
+    if (is_l3 && !available) || grow { node.width = Val::Vw(0.0); }
     let bg = slot_bg();
-    let mut ec = commands.spawn((Button, node, BackgroundColor(bg), bc, slot,
+    let alpha = if grow { 0.0 } else { 1.0 };
+    let mut ec = commands.spawn((Button, node, BackgroundColor(bg.with_alpha(alpha)), bc, slot,
         BorderRadius::all(Val::Px(UI_CORNER_RADIUS))));
     if is_l3 { ec.insert(Level3Slot); }
+    if grow { ec.insert(NodeWidthAnim { target: SLOT_VW, despawn_at_zero: false }); }
     let child = ec.with_children(|p| {
         p.spawn((icon_node(), ImageNode::new(icon)));
         if is_l3 {
@@ -33,14 +36,14 @@ pub fn spawn_slot(
     commands: &mut Commands, parent: Entity, slot: InventorySlot, icon: Handle<Image>,
     selected: bool, font: &Handle<Font>,
 ) -> Entity {
-    spawn_base_slot(commands, parent, slot, icon, selected, false, true, " ", font)
+    spawn_base_slot(commands, parent, slot, icon, selected, false, true, true, " ", font)
 }
 
 pub fn spawn_color_slot(
     commands: &mut Commands, parent: Entity, slot: InventorySlot, icon: Handle<Image>,
     selected: bool, available: bool, count_text: &str, font: &Handle<Font>,
 ) -> Entity {
-    spawn_base_slot(commands, parent, slot, icon, selected, true, available, count_text, font)
+    spawn_base_slot(commands, parent, slot, icon, selected, true, available, true, count_text, font)
 }
 
 pub fn spawn_l2_directions(
