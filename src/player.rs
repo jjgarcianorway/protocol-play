@@ -22,9 +22,14 @@ pub fn setup_player(
     mut play_mode: ResMut<PlayMode>,
     mut placed_teleports: ResMut<PlacedTeleports>,
 ) {
-    let json = match std::fs::read_to_string(LEVEL_FILE) {
+    // Look for level.json next to the executable, then fall back to current directory
+    let level_path = std::env::current_exe().ok()
+        .and_then(|p| p.parent().map(|d| d.join(LEVEL_FILE)))
+        .filter(|p| p.exists())
+        .unwrap_or_else(|| std::path::PathBuf::from(LEVEL_FILE));
+    let json = match std::fs::read_to_string(&level_path) {
         Ok(j) => j,
-        Err(e) => { eprintln!("Failed to read {LEVEL_FILE}: {e}"); return; }
+        Err(e) => { eprintln!("Failed to read {}: {e}", level_path.display()); return; }
     };
     let level: LevelData = match serde_json::from_str(&json) {
         Ok(l) => l,
