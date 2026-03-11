@@ -66,6 +66,8 @@ fn tilekind_to_icon(kind: &TileKind, i: &InventoryIcons) -> Option<Handle<Image>
         TileKind::BounceBut(ci) => Some(i.bouncebot_color(*ci)),
         TileKind::Door(o) => Some(if *o { i.door_open.clone() } else { i.door_closed.clone() }),
         TileKind::Switch => Some(i.switch.clone()),
+        TileKind::ColorSwitch(ci) => Some(i.colorswitch_color(*ci)),
+        TileKind::ColorSwitchBut(ci) => Some(i.colorswitchbut_color(*ci)),
         TileKind::Painter(ci) => Some(i.painter_color(*ci)),
         TileKind::Arrow(ci, d) => Some(i.arrow_color_dir(*ci, *d)),
         TileKind::ArrowBut(ci, d) => Some(i.arrowbut_color_dir(*ci, *d)),
@@ -80,9 +82,10 @@ fn tile_sort_key(k: &TileKind) -> (u8, usize, u8) {
         TileKind::TurnBut(c, d) => (4, *c, d.index() as u8), TileKind::Teleport(n) => (5, *n, 0),
         TileKind::Bounce(c) => (6, *c, 0), TileKind::BounceBut(c) => (7, *c, 0),
         TileKind::Door(o) => (8, if *o { 0 } else { 1 }, 0),
-        TileKind::Switch => (9, 0, 0), TileKind::Painter(c) => (10, *c, 0),
-        TileKind::Arrow(c, d) => (11, *c, d.index() as u8), TileKind::ArrowBut(c, d) => (12, *c, d.index() as u8),
-        TileKind::Empty => (13, 0, 0),
+        TileKind::Switch => (9, 0, 0), TileKind::ColorSwitch(c) => (10, *c, 0),
+        TileKind::ColorSwitchBut(c) => (11, *c, 0), TileKind::Painter(c) => (12, *c, 0),
+        TileKind::Arrow(c, d) => (13, *c, d.index() as u8), TileKind::ArrowBut(c, d) => (14, *c, d.index() as u8),
+        TileKind::Empty => (15, 0, 0),
     }
 }
 
@@ -103,16 +106,13 @@ fn set_tool_from_kind(k: TileKind, tool: &mut ResMut<SelectedTool>, inv: &mut Re
         TileKind::Turn(c, d) => (Tool::Turn, Some(d), Some(c)),
         TileKind::TurnBut(c, d) => (Tool::TurnBut, Some(d), Some(c)),
         TileKind::Teleport(n) => (Tool::Teleport, None, Some(n)),
-        TileKind::Bounce(c) => (Tool::Bounce, None, Some(c)),
-        TileKind::BounceBut(c) => (Tool::BounceBut, None, Some(c)),
-        TileKind::Door(o) => (Tool::Door, None, Some(if o { 0 } else { 1 })),
-        TileKind::Switch => (Tool::Switch, None, None),
+        TileKind::Bounce(c) => (Tool::Bounce, None, Some(c)), TileKind::BounceBut(c) => (Tool::BounceBut, None, Some(c)),
+        TileKind::Door(o) => (Tool::Door, None, Some(if o { 0 } else { 1 })), TileKind::Switch => (Tool::Switch, None, None),
+        TileKind::ColorSwitch(c) => (Tool::ColorSwitch, None, Some(c)), TileKind::ColorSwitchBut(c) => (Tool::ColorSwitchBut, None, Some(c)),
         TileKind::Painter(c) => (Tool::Painter, None, Some(c)),
-        TileKind::Arrow(c, d) => (Tool::Arrow, Some(d), Some(c)),
-        TileKind::ArrowBut(c, d) => (Tool::ArrowBut, Some(d), Some(c)),
+        TileKind::Arrow(c, d) => (Tool::Arrow, Some(d), Some(c)), TileKind::ArrowBut(c, d) => (Tool::ArrowBut, Some(d), Some(c)),
         _ => return,
-    };
-    tool.0 = t; inv.direction = dir; inv.color_index = ci;
+    }; tool.0 = t; inv.direction = dir; inv.color_index = ci;
 }
 
 fn add_marker(commands: &mut Commands, entity: Entity, assets: &GameAssets) {
@@ -173,10 +173,10 @@ pub fn test_button_interaction(
 }
 
 fn spawn_test_banner(commands: &mut Commands, f: &Handle<Font>) {
-    commands.spawn((Node { position_type: PositionType::Absolute, top: Val::Px(BANNER_SLIDE_HIDE),
-        width: Val::Percent(100.0), height: Val::Px(BANNER_HEIGHT), justify_content: JustifyContent::Center,
-        align_items: AlignItems::Center, ..default() }, BackgroundColor(rgba(TEST_BANNER_BG)),
-        TestModeBanner, UiTopAnim { target: TOP_SLIDE_SHOW + PLAY_BTN_SIZE + 6.0, despawn_at_target: false },
+    commands.spawn((Node { position_type: PositionType::Absolute, top: Val::Px(BANNER_SLIDE_HIDE), width: Val::Percent(100.0),
+        height: Val::Px(BANNER_HEIGHT), justify_content: JustifyContent::Center, align_items: AlignItems::Center, ..default() },
+        BackgroundColor(rgba(TEST_BANNER_BG)), TestModeBanner,
+        UiTopAnim { target: TOP_SLIDE_SHOW + PLAY_BTN_SIZE + 6.0, despawn_at_target: false },
     )).with_child((Text::new("TEST MODE"), gf(DIALOG_TITLE_FONT, f), TextColor(rgb(TEST_BANNER_TEXT))));
 }
 
@@ -187,54 +187,42 @@ fn spawn_test_buttons(commands: &mut Commands, f: &Handle<Font>) {
         flex_direction: FlexDirection::Row, column_gap: Val::Px(4.0), ..default() },
         UiTopAnim { target: TOP_SLIDE_SHOW, despawn_at_target: false }, TestTopButtons,
     )).with_children(|p| {
-        p.spawn((Button, ResetTestButton, rb, BackgroundColor(btn_bg()), br))
-            .with_child((Text::new("Reset"), tf.clone(), tc));
-        p.spawn((Button, SaveButton, btn.clone(), BackgroundColor(btn_bg()), br))
-            .with_child((Text::new("Save"), tf.clone(), tc));
-        p.spawn((Button, StopTestButton, btn, BackgroundColor(rgb(STOP_TEST_BTN_BG)), br))
-            .with_child((Text::new("Stop Test"), tf, tc));
+        p.spawn((Button, ResetTestButton, rb, BackgroundColor(btn_bg()), br)).with_child((Text::new("Reset"), tf.clone(), tc));
+        p.spawn((Button, SaveButton, btn.clone(), BackgroundColor(btn_bg()), br)).with_child((Text::new("Save"), tf.clone(), tc));
+        p.spawn((Button, StopTestButton, btn, BackgroundColor(rgb(STOP_TEST_BTN_BG)), br)).with_child((Text::new("Stop Test"), tf, tc));
     });
 }
 
 pub fn spawn_test_inventory(commands: &mut Commands, test_inv: &TestInventory, icons: &InventoryIcons, animate: bool, f: &Handle<Font>) {
     let start_bottom = if animate { INV_SLIDE_HIDE } else { INV_SLIDE_SHOW };
-    let mut ec = commands.spawn((
-        Node { position_type: PositionType::Absolute, bottom: Val::Px(start_bottom),
-            width: Val::Percent(100.0), justify_content: JustifyContent::Center, ..default() },
-        TestInventoryContainer,
-    ));
+    let mut ec = commands.spawn((Node { position_type: PositionType::Absolute, bottom: Val::Px(start_bottom),
+        width: Val::Percent(100.0), justify_content: JustifyContent::Center, ..default() }, TestInventoryContainer));
     if animate { ec.insert(UiBottomAnim { target: INV_SLIDE_SHOW, despawn_at_target: false }); }
     ec.with_children(|parent| {
         parent.spawn(Node { position_type: PositionType::Absolute, top: Val::Px(-22.0),
             width: Val::Percent(100.0), justify_content: JustifyContent::Center, ..default() })
             .with_child((Text::new(""), gf(STATUS_FONT, f),
                 TextColor(Color::srgba(TOOLTIP_COLOR.0, TOOLTIP_COLOR.1, TOOLTIP_COLOR.2, 0.0)), StatusBarText));
-        parent.spawn((
-            Node { flex_direction: FlexDirection::Row, padding: UiRect::all(Val::Vw(INVENTORY_PAD_VW)),
-                column_gap: Val::Vw(INVENTORY_GAP_VW), align_items: AlignItems::Center, ..default() },
-            BackgroundColor(rgba(TEST_INVENTORY_BG)),
-            BorderRadius::all(Val::Px(UI_CORNER_RADIUS)),
+        let br = BorderRadius::all(Val::Px(UI_CORNER_RADIUS));
+        parent.spawn((Node { flex_direction: FlexDirection::Row, padding: UiRect::all(Val::Vw(INVENTORY_PAD_VW)),
+            column_gap: Val::Vw(INVENTORY_GAP_VW), align_items: AlignItems::Center, ..default() },
+            BackgroundColor(rgba(TEST_INVENTORY_BG)), br,
         )).with_children(|c| {
-            let br = BorderRadius::all(Val::Px(UI_CORNER_RADIUS));
+            let slot_n = |dir: FlexDirection| Node { flex_direction: dir, align_items: AlignItems::Center,
+                border: UiRect::all(Val::Px(SLOT_BORDER_PX)), ..default() };
             for (i, (kind, count)) in test_inv.items.iter().enumerate() {
                 let Some(icon) = tilekind_to_icon(kind, icons) else { continue };
                 let sel = !test_inv.remove_mode && test_inv.selected == Some(i);
-                c.spawn((Button, TestInventorySlot(i), border_for(sel),
-                    Node { flex_direction: FlexDirection::Column, align_items: AlignItems::Center,
-                        border: UiRect::all(Val::Px(SLOT_BORDER_PX)), ..default() },
-                    BackgroundColor(slot_bg()), br,
-                )).with_children(|wrapper| {
-                    wrapper.spawn((icon_node(), ImageNode::new(icon)));
+                c.spawn((Button, TestInventorySlot(i), border_for(sel), slot_n(FlexDirection::Column),
+                    BackgroundColor(slot_bg()), br)).with_children(|w| {
+                    w.spawn((icon_node(), ImageNode::new(icon)));
                     let cc = if *count > 0 { rgb(COUNT_AVAIL_COLOR) } else { rgb(COUNT_EMPTY_COLOR) };
-                    wrapper.spawn(Node { justify_content: JustifyContent::Center, ..default() })
+                    w.spawn(Node { justify_content: JustifyContent::Center, ..default() })
                         .with_child((Text::new(format!("x{count}")), gf(COUNT_FONT, f), TextColor(cc)));
                 });
             }
-            // Remove tool (pick up tiles)
             c.spawn((Button, TestInventorySlot(usize::MAX), border_for(test_inv.remove_mode),
-                Node { flex_direction: FlexDirection::Column, align_items: AlignItems::Center,
-                    border: UiRect::all(Val::Px(SLOT_BORDER_PX)), ..default() },
-                BackgroundColor(slot_bg()), br,
+                slot_n(FlexDirection::Column), BackgroundColor(slot_bg()), br,
             )).with_child((icon_node(), ImageNode::new(icons.delete.clone())));
         });
     });
@@ -306,15 +294,12 @@ pub fn reset_test_interaction(
 }
 
 pub fn sync_editor_buttons_visibility(
-    play_mode: Res<PlayMode>,
-    mut bar: Query<&mut Visibility, With<TopControlsBar>>,
-    mut buttons: Query<&mut BackgroundColor,
-        Or<(With<MarkButton>, With<TestButton>, With<BoardButton>, With<LoadButton>)>>,
+    play_mode: Res<PlayMode>, mut bar: Query<&mut Visibility, With<TopControlsBar>>,
+    mut buttons: Query<&mut BackgroundColor, Or<(With<MarkButton>, With<TestButton>, With<BoardButton>, With<LoadButton>)>>,
 ) {
     if !play_mode.is_changed() { return; }
     let test = matches!(*play_mode, PlayMode::TestEditing | PlayMode::TestPlaying);
-    let hide = if test { Visibility::Hidden } else { Visibility::Inherited };
-    for mut v in &mut bar { *v = hide; }
+    for mut v in &mut bar { *v = if test { Visibility::Hidden } else { Visibility::Inherited }; }
     let alpha = if *play_mode == PlayMode::Playing { DISABLED_BTN_ALPHA } else { 1.0 };
     for mut bg in &mut buttons { bg.0.set_alpha(alpha); }
 }
@@ -372,49 +357,39 @@ pub fn handle_test_tile_click(
         if *interaction != Interaction::None { return; }
     }
     let Some((col, row)) = hovered.0 else {
-        // Clicked outside board — deselect with smooth border fade
         if test_inv.selected.is_some() || test_inv.remove_mode {
-            test_inv.selected = None; test_inv.remove_mode = false;
-            selected_tool.0 = Tool::Floor;
+            test_inv.selected = None; test_inv.remove_mode = false; selected_tool.0 = Tool::Floor;
+            let t = BORDER_UNSELECTED;
             for (entity, mut border, _) in &mut border_q {
-                let t = BORDER_UNSELECTED;
                 border.0 = Color::srgba(t.0, t.1, t.2, t.3);
                 commands.entity(entity).insert(BorderFade { target: [t.0, t.1, t.2, t.3], speed: HOVER_FADE_SPEED });
             }
-        }
-        return;
+        } return;
     };
     let Some((entity, _, kind)) = tiles.iter().find(|(_, c, _)| c.col == col && c.row == row) else { return };
 
+    let mut changed = false;
     if test_inv.remove_mode {
-        // Remove mode: only pick up tiles placed from test inventory (originally Empty positions)
         if matches!(kind, TileKind::Empty | TileKind::Floor) { return; }
-        let was_empty = saved_test.tiles.iter().any(|&(c, r, k)| c == col && r == row && matches!(k, TileKind::Empty));
-        if !was_empty { return; }
-        if let Some(entry) = test_inv.items.iter_mut().find(|(k, _)| *k == *kind) {
-            entry.1 += 1;
-        } else {
-            test_inv.items.push((*kind, 1));
-            test_inv.items.sort_by(|(a, _), (b, _)| tile_sort_key(a).cmp(&tile_sort_key(b)));
-        }
+        if !saved_test.tiles.iter().any(|&(c, r, k)| c == col && r == row && matches!(k, TileKind::Empty)) { return; }
+        if let Some(e) = test_inv.items.iter_mut().find(|(k, _)| *k == *kind) { e.1 += 1; }
+        else { test_inv.items.push((*kind, 1)); test_inv.items.sort_by(|(a, _), (b, _)| tile_sort_key(a).cmp(&tile_sort_key(b))); }
         commands.entity(entity).despawn_recursive();
         spawn_tile(&mut commands, col, row, board_size.0, TileKind::Empty, &assets);
-        for e in &test_container { commands.entity(e).despawn_recursive(); }
-        spawn_test_inventory(&mut commands, &test_inv, &icons, false, &font.0);
+        changed = true;
     } else if let Some(idx) = test_inv.selected {
         if idx >= test_inv.items.len() { return; }
         let (tile_kind, count) = test_inv.items[idx];
         if count == 0 || !matches!(kind, TileKind::Empty) { return; }
-        let ghost_scale = ghost_q.get_single().map(|t| t.scale).unwrap_or(Vec3::ZERO);
+        let gs = ghost_q.get_single().map(|t| t.scale).unwrap_or(Vec3::ZERO);
         commands.entity(entity).despawn_recursive();
-        crate::board::spawn_tile_at_scale(&mut commands, col, row, board_size.0, tile_kind, &assets, ghost_scale);
+        crate::board::spawn_tile_at_scale(&mut commands, col, row, board_size.0, tile_kind, &assets, gs);
         test_inv.items[idx].1 -= 1;
         if test_inv.items[idx].1 == 0 {
             test_inv.items.remove(idx);
-            if test_inv.items.is_empty() { test_inv.selected = None; }
-            else { test_inv.selected = Some(idx.min(test_inv.items.len() - 1)); }
+            test_inv.selected = if test_inv.items.is_empty() { None } else { Some(idx.min(test_inv.items.len() - 1)) };
         }
-        for e in &test_container { commands.entity(e).despawn_recursive(); }
-        spawn_test_inventory(&mut commands, &test_inv, &icons, false, &font.0);
+        changed = true;
     }
+    if changed { for e in &test_container { commands.entity(e).despawn_recursive(); } spawn_test_inventory(&mut commands, &test_inv, &icons, false, &font.0); }
 }

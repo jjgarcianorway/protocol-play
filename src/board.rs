@@ -23,7 +23,9 @@ pub fn tile_world_pos(col: u32, row: u32, board_size: u32, kind: &TileKind) -> V
         TileKind::Floor | TileKind::Source(_, _) | TileKind::Goal(_)
         | TileKind::Turn(_, _) | TileKind::TurnBut(_, _) | TileKind::Teleport(_)
         | TileKind::Bounce(_) | TileKind::BounceBut(_)
-        | TileKind::Door(_) | TileKind::Switch | TileKind::Painter(_)
+        | TileKind::Door(_) | TileKind::Switch
+        | TileKind::ColorSwitch(_) | TileKind::ColorSwitchBut(_)
+        | TileKind::Painter(_)
         | TileKind::Arrow(_, _) | TileKind::ArrowBut(_, _) => 0.0,
     };
     Vec3::new(col as f32 - offset, y, row as f32 - offset)
@@ -132,6 +134,22 @@ pub fn spawn_tile_at_scale(
             )).with_children(|parent| {
                 parent.spawn((
                     Mesh3d(assets.goal_symbol_mesh.clone()), MeshMaterial3d(assets.switch_material.clone()),
+                    Transform::from_translation(Vec3::new(0.0, FLOOR_TOP_Y + SYMBOL_OVERLAY_OFFSET, 0.0)),
+                ));
+            }).id()
+        }
+        TileKind::ColorSwitch(ci) | TileKind::ColorSwitchBut(ci) => {
+            let mat = match kind {
+                TileKind::ColorSwitch(_) => assets.colorswitch_symbol_materials[ci].clone(),
+                _ => assets.colorswitchbut_symbol_materials[ci].clone(),
+            };
+            commands.spawn((
+                Mesh3d(assets.floor_mesh.clone()), MeshMaterial3d(assets.floor_material.clone()),
+                Transform::from_translation(pos).with_scale(initial_scale),
+                TargetScale(Vec3::ONE), Tile, TileCoord { col, row }, kind,
+            )).with_children(|parent| {
+                parent.spawn((
+                    Mesh3d(assets.goal_symbol_mesh.clone()), MeshMaterial3d(mat),
                     Transform::from_translation(Vec3::new(0.0, FLOOR_TOP_Y + SYMBOL_OVERLAY_OFFSET, 0.0)),
                 ));
             }).id()

@@ -7,46 +7,30 @@ use crate::ui_helpers::*;
 use crate::board::tile_world_pos;
 
 // === Simulation types (moved from types.rs for line budget) ===
-#[derive(Clone, Copy, PartialEq)]
-#[allow(dead_code)]
+#[derive(Clone, Copy, PartialEq)] #[allow(dead_code)]
 pub enum BotPhase {
-    Accelerating, Cruising,
-    Decelerating(Option<Direction>),
+    Accelerating, Cruising, Decelerating(Option<Direction>),
     Rotating { entry_dir: Direction, exit_dir: Direction, progress: f32 },
     Spinning, TeleportShrink { target_col: i32, target_row: i32 }, TeleportGrow,
-    FallingDecel, FallingPause(f32), Falling(f32), Stopped,
+    FallingDecel, FallingPause(f32), Falling(f32), Crushing(f32), Stopped,
 }
-
 #[derive(Component)]
 pub struct BotMovement {
-    pub direction: Direction, pub color_index: usize,
-    pub col: i32, pub row: i32,
+    pub direction: Direction, pub color_index: usize, pub col: i32, pub row: i32,
     pub progress: f32, pub speed: f32, pub phase: BotPhase, pub spawn_index: usize, pub switch_pending: bool,
 }
-
-#[derive(Resource)]
-pub struct PlayTimer(pub Timer);
-
-#[derive(Resource, Default)]
-pub struct DoorToggleCount(pub u32);
-
-#[derive(Resource, Default)]
-pub struct OriginalDoorStates(pub Vec<(u32, u32, bool)>);
-
+#[derive(Resource)] pub struct PlayTimer(pub Timer);
+#[derive(Resource, Default)] pub struct DoorToggleCount(pub u32);
+#[derive(Resource, Default)] pub struct OriginalDoorStates(pub Vec<(u32, u32, bool)>);
 pub enum SimResult { Error(&'static str), Success }
-
 #[derive(Resource, Default)]
 pub struct SimulationResult {
-    pub result: Option<SimResult>,
-    pub overlay_spawned: bool,
-    pub stop_requested: bool,
-    pub test_success_exit: bool,
+    pub result: Option<SimResult>, pub overlay_spawned: bool,
+    pub stop_requested: bool, pub test_success_exit: bool,
 }
-
 #[derive(Component)] pub struct SimulationOverlay;
 #[derive(Component)] pub struct SimOverlayButton;
 
-// === Play/Stop ===
 pub fn play_stop_interaction(
     mut commands: Commands,
     mut play_mode: ResMut<PlayMode>,
@@ -67,7 +51,6 @@ pub fn play_stop_interaction(
 ) {
     let button_pressed = interaction_query.iter().any(|i| *i == Interaction::Pressed);
     if !button_pressed && !sim_result.stop_requested { return; }
-
     let can_start = *play_mode == PlayMode::Editing || *play_mode == PlayMode::TestEditing;
     let can_stop = *play_mode == PlayMode::Playing || *play_mode == PlayMode::TestPlaying;
     if button_pressed && can_start {
@@ -103,10 +86,8 @@ pub fn play_stop_interaction(
         }
         for (e, _, kind, _) in &tiles { if matches!(*kind, TileKind::Empty) { commands.entity(e).insert(TargetScale(Vec3::ZERO)); } }
     } else if can_stop {
-        let success = matches!(sim_result.result, Some(SimResult::Success));
-        if success || (*play_mode == PlayMode::TestPlaying && sim_result.test_success_exit) {
-            validated.0 = true;
-        }
+        if matches!(sim_result.result, Some(SimResult::Success))
+            || (*play_mode == PlayMode::TestPlaying && sim_result.test_success_exit) { validated.0 = true; }
         *play_mode = if *play_mode == PlayMode::Playing { PlayMode::Editing } else { PlayMode::TestEditing };
         sim_result.stop_requested = false; sim_result.test_success_exit = false;
         sim_result.result = None; sim_result.overlay_spawned = false;
@@ -136,7 +117,6 @@ pub fn play_stop_interaction(
     }
 }
 
-// === Bot Movement ===
 pub fn move_bots(
     time: Res<Time>,
     play_mode: Res<PlayMode>,
@@ -147,19 +127,12 @@ pub fn move_bots(
     mut door_toggle: ResMut<DoorToggleCount>,
 ) {
     if *play_mode != PlayMode::Playing && *play_mode != PlayMode::TestPlaying { return; }
-    if let Some(ref mut timer) = play_timer {
-        timer.0.tick(time.delta());
-        if !timer.0.finished() { return; }
-    }
-
+    if let Some(ref mut timer) = play_timer { timer.0.tick(time.delta()); if !timer.0.finished() { return; } }
     let dt = time.delta_secs();
     let half = (board_size.0 as f32 - 1.0) / 2.0;
     let bot_y = FLOOR_TOP_Y + BOT_SIZE / 2.0;
-
     let tile_at = |col: i32, row: i32| -> Option<TileKind> {
-        if col < 0 || row < 0 || col >= board_size.0 as i32 || row >= board_size.0 as i32 {
-            return None;
-        }
+        if col < 0 || row < 0 || col >= board_size.0 as i32 || row >= board_size.0 as i32 { return None; }
         tiles.iter().find(|(c, _)| c.col == col as u32 && c.row == row as u32).map(|(_, k)| *k)
     };
 
@@ -173,28 +146,24 @@ pub fn move_bots(
             }
             BotPhase::Cruising => { mov.progress += BOT_CRUISE_SPEED * dt; }
             BotPhase::Decelerating(_) => {
-                mov.speed = (mov.speed - BOT_ACCEL * dt).max(0.0);
-                mov.progress += mov.speed * dt;
+                mov.speed = (mov.speed - BOT_ACCEL * dt).max(0.0); mov.progress += mov.speed * dt;
                 if mov.speed == 0.0 && mov.progress < 0.5 { mov.progress = 0.5; }
-                if mov.progress >= 0.5 {
-                    mov.progress = 0.5; mov.speed = 0.0;
-                    match mov.phase {
-                        BotPhase::Decelerating(Some(exit_dir)) => {
-                            mov.phase = BotPhase::Rotating { entry_dir: mov.direction, exit_dir, progress: 0.0 };
-                        }
-                        BotPhase::Decelerating(None) => {
-                            let tp = if let Some(TileKind::Teleport(num)) = tile_at(mov.col, mov.row) {
-                                tiles.iter().find(|(c, k)| matches!(k, TileKind::Teleport(n) if *n == num)
-                                    && (c.col as i32 != mov.col || c.row as i32 != mov.row))
-                                    .map(|(c, _)| (c.col as i32, c.row as i32))
-                            } else { None };
-                            if let Some((tc, tr)) = tp {
-                                target_scale.0 = Vec3::ZERO;
-                                mov.phase = BotPhase::TeleportShrink { target_col: tc, target_row: tr };
-                            } else { mov.phase = BotPhase::Spinning; }
-                        }
-                        _ => {}
+                if mov.progress >= 0.5 { mov.progress = 0.5; mov.speed = 0.0; match mov.phase {
+                    BotPhase::Decelerating(Some(exit_dir)) => {
+                        mov.phase = BotPhase::Rotating { entry_dir: mov.direction, exit_dir, progress: 0.0 };
                     }
+                    BotPhase::Decelerating(None) => {
+                        let tp = if let Some(TileKind::Teleport(num)) = tile_at(mov.col, mov.row) {
+                            tiles.iter().find(|(c, k)| matches!(k, TileKind::Teleport(n) if *n == num)
+                                && (c.col as i32 != mov.col || c.row as i32 != mov.row))
+                                .map(|(c, _)| (c.col as i32, c.row as i32))
+                        } else { None };
+                        if let Some((tc, tr)) = tp {
+                            target_scale.0 = Vec3::ZERO;
+                            mov.phase = BotPhase::TeleportShrink { target_col: tc, target_row: tr };
+                        } else { mov.phase = BotPhase::Spinning; }
+                    }
+                    _ => {} }
                 }
             }
             BotPhase::FallingDecel => {
@@ -206,6 +175,10 @@ pub fn move_bots(
             BotPhase::Falling(ref mut p) => { *p = (*p + dt / FALL_DURATION).min(1.0); let s = (1.0 - *p).max(0.0);
                 transform.translation.y = bot_y - *p * *p * FALL_DISTANCE;
                 transform.scale = Vec3::splat(s); target_scale.0 = Vec3::splat(s); continue; }
+            BotPhase::Crushing(ref mut p) => { *p = (*p + dt / CRUSH_DURATION).min(1.0);
+                let sy = (1.0 - *p).max(0.0); let sxz = 1.0 + *p * (CRUSH_EXPAND - 1.0);
+                transform.translation = Vec3::new(mov.col as f32 - half, bot_y * sy, mov.row as f32 - half);
+                transform.scale = Vec3::new(sxz, sy, sxz); target_scale.0 = transform.scale; continue; }
             BotPhase::Spinning => { let bounce = (time.elapsed_secs() * BOT_BOUNCE_SPEED).sin().abs() * BOT_BOUNCE_HEIGHT;
                 transform.translation = Vec3::new(mov.col as f32 - half, bot_y + bounce, mov.row as f32 - half); continue; }
             BotPhase::TeleportShrink { target_col, target_row } => {
@@ -220,13 +193,11 @@ pub fn move_bots(
                 transform.rotation = Quat::from_rotation_y(entry_dir.rotation())
                     .slerp(Quat::from_rotation_y(exit_dir.rotation()), *progress);
                 if *progress >= 1.0 { mov.direction = exit_dir; mov.phase = BotPhase::Accelerating; }
-                transform.translation = Vec3::new(mov.col as f32 - half, bot_y, mov.row as f32 - half);
-                continue;
+                transform.translation = Vec3::new(mov.col as f32 - half, bot_y, mov.row as f32 - half); continue;
             }
         }
 
-        // Tile transition: check when exiting current tile
-        if mov.progress >= 1.0 {
+        if mov.progress >= 1.0 { // Tile transition
             let (dc, dr) = mov.direction.grid_delta();
             let (nc, nr) = (mov.col + dc, mov.row + dr);
             macro_rules! advance { () => { mov.col = nc; mov.row = nr; mov.progress -= 1.0; } }
@@ -234,7 +205,16 @@ pub fn move_bots(
                 Some(TileKind::Goal(ci)) if ci == mov.color_index => { advance!(); mov.phase = BotPhase::Decelerating(None); }
                 Some(TileKind::Floor) | Some(TileKind::Source(_, _)) | Some(TileKind::Door(true))
                 | Some(TileKind::Painter(_)) | Some(TileKind::Goal(_)) => { advance!(); }
-                Some(TileKind::Switch) => { advance!(); mov.switch_pending = true; }
+                Some(TileKind::Switch) | Some(TileKind::ColorSwitch(_)) | Some(TileKind::ColorSwitchBut(_)) => {
+                    advance!();
+                    let trigger = match tile_at(mov.col, mov.row) {
+                        Some(TileKind::Switch) => true,
+                        Some(TileKind::ColorSwitch(ci)) => ci == mov.color_index,
+                        Some(TileKind::ColorSwitchBut(ci)) => ci != mov.color_index,
+                        _ => false,
+                    };
+                    if trigger { mov.switch_pending = true; }
+                }
                 Some(TileKind::Door(false)) => { advance!(); mov.phase = BotPhase::Decelerating(Some(mov.direction.opposite())); }
                 Some(TileKind::TurnBut(tci, _)) if tci == mov.color_index => { advance!(); }
                 Some(TileKind::BounceBut(bci)) if bci == mov.color_index => { advance!(); }
@@ -253,74 +233,68 @@ pub fn move_bots(
             }
         }
         if mov.switch_pending && mov.progress >= 0.5 { mov.switch_pending = false; door_toggle.0 += 1; }
-
         let (dc, dr) = mov.direction.grid_delta();
         transform.translation = Vec3::new(
-            mov.col as f32 - half + (mov.progress - 0.5) * dc as f32,
-            bot_y,
-            mov.row as f32 - half + (mov.progress - 0.5) * dr as f32,
-        );
+            mov.col as f32 - half + (mov.progress - 0.5) * dc as f32, bot_y,
+            mov.row as f32 - half + (mov.progress - 0.5) * dr as f32);
     }
 }
 
 pub fn toggle_doors(
     mut toggle: ResMut<DoorToggleCount>,
-    mut tiles: Query<(&mut TileKind, &Children), (With<Tile>, Without<DespawnAtZeroScale>)>,
+    mut tiles: Query<(&TileCoord, &mut TileKind, &Children), (With<Tile>, Without<DespawnAtZeroScale>)>,
     mut mat_q: Query<&mut MeshMaterial3d<StandardMaterial>>,
     assets: Res<GameAssets>,
+    mut bots: Query<&mut BotMovement, With<Bot>>,
+    mut sim_result: ResMut<SimulationResult>,
 ) {
     if toggle.0 == 0 { return; }
     let do_toggle = toggle.0 % 2 == 1;
     toggle.0 = 0;
     if !do_toggle { return; }
-    for (mut kind, children) in &mut tiles {
-        if let TileKind::Door(ref mut open) = *kind {
-            *open = !*open;
-            let mat = if *open { assets.door_open_material.clone() } else { assets.door_closed_material.clone() };
-            for &child in children.iter() {
-                if let Ok(mut m) = mat_q.get_mut(child) { m.0 = mat.clone(); }
-            }
+    let mut closed_doors = Vec::new();
+    for (coord, mut kind, children) in &mut tiles { if let TileKind::Door(ref mut open) = *kind {
+        *open = !*open;
+        if !*open { closed_doors.push((coord.col, coord.row)); }
+        let mat = if *open { assets.door_open_material.clone() } else { assets.door_closed_material.clone() };
+        for &child in children.iter() { if let Ok(mut m) = mat_q.get_mut(child) { m.0 = mat.clone(); } }
+    }}
+    for (col, row) in closed_doors { for mut mov in &mut bots {
+        if mov.col == col as i32 && mov.row == row as i32
+            && !matches!(mov.phase, BotPhase::Falling(_) | BotPhase::Stopped | BotPhase::Crushing(_))
+        {
+            mov.phase = BotPhase::Crushing(0.0); mov.speed = 0.0;
+            if sim_result.result.is_none() { sim_result.result = Some(SimResult::Error("Bot was crushed by a door!")); }
         }
-    }
+    }}
 }
 
-// === Simulation result detection ===
 pub fn check_simulation_result(
-    play_mode: Res<PlayMode>,
-    bots: Query<&BotMovement, With<Bot>>,
-    tiles: Query<(&TileCoord, &TileKind), With<Tile>>,
-    mut sim_result: ResMut<SimulationResult>,
+    play_mode: Res<PlayMode>, bots: Query<&BotMovement, With<Bot>>,
+    tiles: Query<(&TileCoord, &TileKind), With<Tile>>, mut sim_result: ResMut<SimulationResult>,
 ) {
-    let playing = *play_mode == PlayMode::Playing || *play_mode == PlayMode::TestPlaying;
-    if !playing || sim_result.result.is_some() { return; }
-    let mut count = 0;
-    let mut all_at_goal = true;
-    for mov in &bots {
-        count += 1;
-        match mov.phase {
-            BotPhase::Falling(_) => {
-                sim_result.result = Some(SimResult::Error("Bot fell off the board!"));
-                return;
-            }
-            BotPhase::Spinning => {
-                let ok = tiles.iter().any(|(c, k)| c.col as i32 == mov.col && c.row as i32 == mov.row
-                    && matches!(k, TileKind::Goal(ci) if *ci == mov.color_index));
-                if !ok { all_at_goal = false; }
-            }
-            _ => { all_at_goal = false; }
+    if !(*play_mode == PlayMode::Playing || *play_mode == PlayMode::TestPlaying) || sim_result.result.is_some() { return; }
+    let (mut count, mut all_at_goal) = (0, true);
+    for mov in &bots { count += 1; match mov.phase {
+        BotPhase::Falling(_) | BotPhase::Crushing(_) => {
+            if sim_result.result.is_none() {
+                let msg = if matches!(mov.phase, BotPhase::Crushing(_)) { "Bot was crushed by a door!" } else { "Bot fell off the board!" };
+                sim_result.result = Some(SimResult::Error(msg));
+            } return;
         }
-    }
-    if count > 0 && all_at_goal {
-        sim_result.result = Some(SimResult::Success);
-    }
+        BotPhase::Spinning => {
+            let ok = tiles.iter().any(|(c, k)| c.col as i32 == mov.col && c.row as i32 == mov.row
+                && matches!(k, TileKind::Goal(ci) if *ci == mov.color_index));
+            if !ok { all_at_goal = false; }
+        }
+        _ => { all_at_goal = false; }
+    }}
+    if count > 0 && all_at_goal { sim_result.result = Some(SimResult::Success); }
 }
 
-// === Overlay UI ===
 pub fn spawn_simulation_overlay(
-    mut commands: Commands,
-    mut sim_result: ResMut<SimulationResult>,
-    existing: Query<Entity, With<SimulationOverlay>>,
-    font: Res<GameFont>,
+    mut commands: Commands, mut sim_result: ResMut<SimulationResult>,
+    existing: Query<Entity, With<SimulationOverlay>>, font: Res<GameFont>,
 ) {
     if sim_result.result.is_none() || sim_result.overlay_spawned || !existing.is_empty() { return; }
     sim_result.overlay_spawned = true;
@@ -355,12 +329,9 @@ pub fn overlay_button_interaction(
 ) {
     if !q.iter().any(|i| *i == Interaction::Pressed) { return; }
     sim_result.stop_requested = true;
-    if *play_mode == PlayMode::TestPlaying && matches!(sim_result.result, Some(SimResult::Success)) {
-        sim_result.test_success_exit = true;
-    }
+    if *play_mode == PlayMode::TestPlaying && matches!(sim_result.result, Some(SimResult::Success)) { sim_result.test_success_exit = true; }
 }
 
-// === Painter color transition ===
 pub fn paint_bots(
     mut commands: Commands, time: Res<Time>, play_mode: Res<PlayMode>,
     tiles: Query<(&TileCoord, &TileKind), With<Tile>>,

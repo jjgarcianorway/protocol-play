@@ -353,6 +353,12 @@ pub fn door_texture_data(s: u32, b: u32, fill: [u8; 4], closed: bool) -> Vec<u8>
 pub fn switch_texture_data(s: u32, b: u32, fill: [u8; 4]) -> Vec<u8> {
     rotated_shape_data(s, b, 0.0, fill, in_switch_s, None, [0; 4], None)
 }
+pub fn colorswitch_texture_data(s: u32, b: u32, fill: [u8; 4]) -> Vec<u8> {
+    rotated_shape_data(s, b, 0.0, fill, in_switch_s, Some(in_turn_center), turn_center_fill(fill), None)
+}
+pub fn colorswitchbut_texture_data(s: u32, b: u32, fill: [u8; 4]) -> Vec<u8> {
+    rotated_shape_data(s, b, 0.0, fill, in_switch_s, Some(in_turn_center), turn_center_fill(fill), Some(in_forbidden_line))
+}
 
 fn in_arrow_shape(x: f32, y: f32, e: f32) -> bool {
     (x.abs() < 0.07 + e && y > -0.15 - e && y < 0.50 + e)

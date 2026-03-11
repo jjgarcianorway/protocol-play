@@ -213,6 +213,10 @@ pub const TELEPORT_GROW_DONE: f32 = 0.97;
 // Painter
 pub const PAINT_TRANSITION_SPEED: f32 = 2.0; // color transitions per second
 
+// Crush animation (bot crushed by closing door)
+pub const CRUSH_DURATION: f32 = 0.4;
+pub const CRUSH_EXPAND: f32 = 1.5;
+
 // Status bar
 pub const STATUS_FONT: f32 = 15.0;
 pub const STATUS_FADE_SPEED: f32 = 6.0;

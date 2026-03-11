@@ -160,6 +160,10 @@ pub fn ensure_textures() {
         && dir.join("arrow_mask.png").exists()
         && dir.join("arrowbut_base.png").exists()
         && dir.join("arrowbut_mask.png").exists()
+        && dir.join("colorswitch_base.png").exists()
+        && dir.join("colorswitch_mask.png").exists()
+        && dir.join("colorswitchbut_base.png").exists()
+        && dir.join("colorswitchbut_mask.png").exists()
         && dir.join("floor.png").exists()
     {
         return;
@@ -177,5 +181,7 @@ pub fn ensure_textures() {
     generate_symbol_textures(TILE_TEX_SIZE, dir, "painter", in_brush_shape, None, 0.0, None);
     generate_symbol_textures(TILE_TEX_SIZE, dir, "arrow", in_arrow_shape, None, 0.0, None);
     generate_symbol_textures(TILE_TEX_SIZE, dir, "arrowbut", in_arrow_shape, Some(in_turn_center), TURN_CENTER_BRIGHTNESS, Some(in_forbidden_line));
+    generate_symbol_textures(TILE_TEX_SIZE, dir, "colorswitch", in_switch_s, Some(in_turn_center), TURN_CENTER_BRIGHTNESS, None);
+    generate_symbol_textures(TILE_TEX_SIZE, dir, "colorswitchbut", in_switch_s, Some(in_turn_center), TURN_CENTER_BRIGHTNESS, Some(in_forbidden_line));
     generate_floor_texture(TILE_TEX_SIZE, TILE_TEX_BORDER, dir);
 }

@@ -96,33 +96,22 @@ fn setup_scene(
 ) {
     let floor_texture = create_tile_texture(&mut images, TILE_TEX_SIZE, TILE_TEX_BORDER);
     let floor_material = materials.add(StandardMaterial { base_color_texture: Some(floor_texture.clone()),
-        base_color: Color::srgb(FLOOR_TINT.0, FLOOR_TINT.1, FLOOR_TINT.2),
-        perceptual_roughness: 0.6, ..default() });
+        base_color: Color::srgb(FLOOR_TINT.0, FLOOR_TINT.1, FLOOR_TINT.2), perceptual_roughness: 0.6, ..default() });
     let floor_mesh = meshes.add(Cuboid::new(1.0, TILE_HEIGHT, 1.0));
     let ghost_floor_material = materials.add(StandardMaterial {
         base_color_texture: Some(floor_texture), base_color: Color::srgba(1.0, 1.0, 1.0, GHOST_ALPHA),
-        alpha_mode: AlphaMode::Blend, ..default()
-    });
+        alpha_mode: AlphaMode::Blend, ..default() });
     let ghost_delete_material = materials.add(StandardMaterial {
-        base_color: rgba(DELETE_OVERLAY_COLOR), alpha_mode: AlphaMode::Blend, unlit: true, ..default()
-    });
+        base_color: rgba(DELETE_OVERLAY_COLOR), alpha_mode: AlphaMode::Blend, unlit: true, ..default() });
     let ghost_delete_mesh = meshes.add(Cuboid::new(1.02, OVERLAY_MESH_THICKNESS, 1.02));
-    let empty_marker_texture = create_empty_marker_texture(&mut images);
-    let empty_material = materials.add(StandardMaterial {
-        base_color_texture: Some(empty_marker_texture), alpha_mode: AlphaMode::Blend, unlit: true, ..default()
-    });
+    let overlay_tex_mat = |mats: &mut Assets<StandardMaterial>, tex| mats.add(StandardMaterial {
+        base_color_texture: Some(tex), alpha_mode: AlphaMode::Blend, unlit: true, ..default() });
+    let empty_material = overlay_tex_mat(&mut materials, create_empty_marker_texture(&mut images));
     let empty_mesh = meshes.add(Cuboid::new(0.95, OVERLAY_MESH_THICKNESS, 0.95));
-    let highlight_texture = create_highlight_texture(&mut images);
-    let highlight_material = materials.add(StandardMaterial {
-        base_color_texture: Some(highlight_texture), alpha_mode: AlphaMode::Blend, unlit: true, ..default()
-    });
+    let highlight_material = overlay_tex_mat(&mut materials, create_highlight_texture(&mut images));
     let highlight_mesh = meshes.add(Cuboid::new(1.05, OVERLAY_MESH_THICKNESS, 1.05));
-    let marker_texture = create_inv_marker_texture(&mut images);
-    let marker_material = materials.add(StandardMaterial {
-        base_color_texture: Some(marker_texture), alpha_mode: AlphaMode::Blend, unlit: true, ..default()
-    });
+    let marker_material = overlay_tex_mat(&mut materials, create_inv_marker_texture(&mut images));
     let marker_mesh = meshes.add(Cuboid::new(1.03, OVERLAY_MESH_THICKNESS, 1.03));
-
     let sym_mesh = meshes.add(Cuboid::new(0.99, OVERLAY_MESH_THICKNESS, 0.99));
     let (source_symbol_materials, ghost_symbol_materials, _, _) = load_tile_mats(&mut materials, &mut images, "source");
     let (goal_symbol_materials, ghost_goal_materials, _, _) = load_tile_mats(&mut materials, &mut images, "goal");
@@ -140,16 +129,17 @@ fn setup_scene(
         teleport_symbol_materials.push(m); ghost_teleport_materials.push(g);
     }
 
-    let dob = load_png_texture(&mut images, "assets/textures/door_open_base.png", true);
-    let dom = load_png_texture(&mut images, "assets/textures/door_open_mask.png", false);
-    let (door_open_material, ghost_door_open_material) = make_grey_mat(&mut materials, dob, dom);
-    let dcb = load_png_texture(&mut images, "assets/textures/door_closed_base.png", true);
-    let dcm = load_png_texture(&mut images, "assets/textures/door_closed_mask.png", false);
-    let (door_closed_material, ghost_door_closed_material) = make_grey_mat(&mut materials, dcb, dcm);
-    let sb = load_png_texture(&mut images, "assets/textures/switch_base.png", true);
-    let sm = load_png_texture(&mut images, "assets/textures/switch_mask.png", false);
-    let (switch_material, ghost_switch_material) = make_grey_mat(&mut materials, sb, sm);
+    let load_grey = |mats: &mut Assets<StandardMaterial>, imgs: &mut Assets<Image>, name: &str| {
+        let b = load_png_texture(imgs, &format!("assets/textures/{name}_base.png"), true);
+        let m = load_png_texture(imgs, &format!("assets/textures/{name}_mask.png"), false);
+        make_grey_mat(mats, b, m)
+    };
+    let (door_open_material, ghost_door_open_material) = load_grey(&mut materials, &mut images, "door_open");
+    let (door_closed_material, ghost_door_closed_material) = load_grey(&mut materials, &mut images, "door_closed");
+    let (switch_material, ghost_switch_material) = load_grey(&mut materials, &mut images, "switch");
 
+    let (colorswitch_symbol_materials, ghost_colorswitch_materials, _, _) = load_tile_mats(&mut materials, &mut images, "colorswitch");
+    let (colorswitchbut_symbol_materials, ghost_colorswitchbut_materials, _, _) = load_tile_mats(&mut materials, &mut images, "colorswitchbut");
     let (painter_symbol_materials, ghost_painter_materials, _, _) = load_tile_mats(&mut materials, &mut images, "painter");
     let (mut arrow_symbol_materials, mut ghost_arrow_materials, ab, am) = load_tile_mats(&mut materials, &mut images, "arrow");
     add_grey_mat(&mut materials, &mut arrow_symbol_materials, &mut ghost_arrow_materials, &ab, &am);
@@ -186,6 +176,8 @@ fn setup_scene(
         door_open_material, door_closed_material,
         ghost_door_open_material, ghost_door_closed_material,
         switch_material, ghost_switch_material,
+        colorswitch_symbol_materials, ghost_colorswitch_materials: ghost_colorswitch_materials.clone(),
+        colorswitchbut_symbol_materials, ghost_colorswitchbut_materials: ghost_colorswitchbut_materials.clone(),
         painter_symbol_materials, ghost_painter_materials: ghost_painter_materials.clone(),
         arrow_symbol_mesh: sym_mesh.clone(), arrow_symbol_materials, ghost_arrow_materials: ghost_arrow_materials.clone(),
         arrowbut_symbol_mesh: sym_mesh.clone(), arrowbut_symbol_materials, ghost_arrowbut_materials: ghost_arrowbut_materials.clone(),
@@ -283,13 +275,19 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
     let door_open_icon = icon(&mut images, &door_texture_data(TEX_SIZE, TEX_BORDER, grey_fill, false));
     let door_closed_icon = icon(&mut images, &door_texture_data(TEX_SIZE, TEX_BORDER, grey_fill, true));
     let switch_icon = icon(&mut images, &switch_texture_data(TEX_SIZE, TEX_BORDER, white));
+    let colorswitch_icon = icon(&mut images, &colorswitch_texture_data(TEX_SIZE, TEX_BORDER, white));
+    let colorswitch_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci|
+        icon(&mut images, &colorswitch_texture_data(TEX_SIZE, TEX_BORDER, cfill(ci)))).collect();
+    let colorswitchbut_icon = icon(&mut images, &colorswitchbut_texture_data(TEX_SIZE, TEX_BORDER, white));
+    let colorswitchbut_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci|
+        icon(&mut images, &colorswitchbut_texture_data(TEX_SIZE, TEX_BORDER, cfill(ci)))).collect();
     let painter_icon = icon(&mut images, &painter_texture_colored_data(TEX_SIZE, TEX_BORDER, white));
     let painter_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci|
         icon(&mut images, &painter_texture_colored_data(TEX_SIZE, TEX_BORDER, cfill(ci)))).collect();
     let arrow_icon = icon(&mut images, &arrow_texture_colored_data(TEX_SIZE, TEX_BORDER, 0.0, white));
     let arrowbut_icon = icon(&mut images, &arrowbut_texture_colored_data(TEX_SIZE, TEX_BORDER, 0.0, white));
 
-    let icons = InventoryIcons {
+    commands.insert_resource(InventoryIcons {
         floor: floor_icon.clone(), source: source_icon.clone(),
         goal: goal_icon.clone(), turn: turn_icon.clone(), delete: delete_icon.clone(),
         source_dir_icons, source_color_icons, goal_color_icons,
@@ -299,11 +297,12 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
         bounce: bounce_icon.clone(), bounce_color_icons,
         bouncebot: bouncebot_icon.clone(), bouncebot_color_icons,
         door: door_icon.clone(), door_open: door_open_icon, door_closed: door_closed_icon,
-        switch: switch_icon.clone(), painter: painter_icon.clone(), painter_color_icons,
+        switch: switch_icon.clone(), colorswitch: colorswitch_icon.clone(), colorswitch_color_icons,
+        colorswitchbut: colorswitchbut_icon.clone(), colorswitchbut_color_icons,
+        painter: painter_icon.clone(), painter_color_icons,
         arrow: arrow_icon.clone(), arrow_dir_icons, arrow_color_icons,
         arrowbut: arrowbut_icon.clone(), arrowbut_dir_icons, arrowbut_color_icons,
-    };
-    commands.insert_resource(icons);
+    });
 
     // Top controls (editor only)
     if !cfg!(feature = "player") {
@@ -350,14 +349,14 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
     // Inventory bar (editor only)
     if !cfg!(feature = "player") {
     let sn = slot_node();
+    use InventorySlot::*;
     let l1_slots: Vec<(InventorySlot, Handle<Image>, bool)> = vec![
-        (InventorySlot::Floor, floor_icon, true), (InventorySlot::Source, source_icon, false),
-        (InventorySlot::Goal, goal_icon, false), (InventorySlot::Turn, turn_icon, false),
-        (InventorySlot::TurnBut, turnbut_icon, false), (InventorySlot::Teleport, teleport_icon, false),
-        (InventorySlot::Bounce, bounce_icon, false), (InventorySlot::BounceBut, bouncebot_icon, false),
-        (InventorySlot::Door, door_icon, false), (InventorySlot::Switch, switch_icon, false),
-        (InventorySlot::Painter, painter_icon, false), (InventorySlot::Arrow, arrow_icon, false),
-        (InventorySlot::ArrowBut, arrowbut_icon, false),
+        (Floor, floor_icon, true), (Source, source_icon, false), (Goal, goal_icon, false),
+        (Turn, turn_icon, false), (TurnBut, turnbut_icon, false), (Teleport, teleport_icon, false),
+        (Bounce, bounce_icon, false), (BounceBut, bouncebot_icon, false), (Door, door_icon, false),
+        (Switch, switch_icon, false), (ColorSwitch, colorswitch_icon, false),
+        (ColorSwitchBut, colorswitchbut_icon, false), (Painter, painter_icon, false),
+        (Arrow, arrow_icon, false), (ArrowBut, arrowbut_icon, false),
     ];
 
     commands.spawn((Node {
