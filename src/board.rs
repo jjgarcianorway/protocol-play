@@ -200,6 +200,7 @@ pub fn adapt_camera(
     windows: Query<&Window>,
     mut cameras: Query<(&mut Transform, &Projection), With<Camera3d>>,
     board_size: Res<BoardSize>,
+    expansion: Query<&Node, With<ExpansionContainer>>,
 ) {
     let window = windows.single();
     let (mut transform, projection) = cameras.single_mut();
@@ -211,11 +212,14 @@ pub fn adapt_camera(
     let radius = board_bounding_radius(board_size.0);
     let half_fov_v = fov / 2.0;
     let half_fov_h = (half_fov_v.tan() * aspect).atan();
-    let dist_v = radius / half_fov_v.sin();
     let dist_h = radius / half_fov_h.sin();
     // Account for UI: top bar and bottom inventory eat into viewable area
     let vw = window.width() / 100.0;
-    let inv_px = SLOT_HEIGHT_VW * vw + INVENTORY_PAD_VW * 2.0 * vw + COUNT_FONT + SLOT_BORDER_PX * 2.0 + INV_SLIDE_SHOW;
+    let exp_px = expansion.iter().next()
+        .map(|n| match n.height { Val::Vw(v) => v * vw, _ => 0.0 })
+        .unwrap_or(0.0);
+    let inv_px = SLOT_HEIGHT_VW * vw + INVENTORY_PAD_VW * 2.0 * vw + COUNT_FONT
+        + SLOT_BORDER_PX * 2.0 + INV_SLIDE_SHOW + exp_px;
     let top_px = TOP_BTN_SIZE + TOP_SLIDE_SHOW;
     let usable_h = window.height() - inv_px - top_px;
     // Recompute distance to fit board in usable vertical space

@@ -354,12 +354,14 @@ pub fn handle_test_tile_click(
     hovered: Res<HoveredCell>,
     play_mode: Res<PlayMode>,
     mut test_inv: ResMut<TestInventory>,
+    mut selected_tool: ResMut<SelectedTool>,
     board_size: Res<BoardSize>,
     tiles: Query<(Entity, &TileCoord, &TileKind), (With<Tile>, Without<DespawnAtZeroScale>)>,
     assets: Res<GameAssets>,
     ui_interactions: Query<&Interaction, With<Button>>,
     icons: Res<InventoryIcons>,
     test_container: Query<Entity, With<TestInventoryContainer>>,
+    mut border_q: Query<(Entity, &mut BorderColor, &TestInventorySlot)>,
     ghost_q: Query<&Transform, With<GhostPreview>>,
     saved_test: Res<SavedTestState>,
     font: Res<GameFont>,
@@ -369,7 +371,19 @@ pub fn handle_test_tile_click(
     for interaction in &ui_interactions {
         if *interaction != Interaction::None { return; }
     }
-    let Some((col, row)) = hovered.0 else { return };
+    let Some((col, row)) = hovered.0 else {
+        // Clicked outside board — deselect with smooth border fade
+        if test_inv.selected.is_some() || test_inv.remove_mode {
+            test_inv.selected = None; test_inv.remove_mode = false;
+            selected_tool.0 = Tool::Floor;
+            for (entity, mut border, _) in &mut border_q {
+                let t = BORDER_UNSELECTED;
+                border.0 = Color::srgba(t.0, t.1, t.2, t.3);
+                commands.entity(entity).insert(BorderFade { target: [t.0, t.1, t.2, t.3], speed: HOVER_FADE_SPEED });
+            }
+        }
+        return;
+    };
     let Some((entity, _, kind)) = tiles.iter().find(|(_, c, _)| c.col == col && c.row == row) else { return };
 
     if test_inv.remove_mode {

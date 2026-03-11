@@ -378,15 +378,42 @@ fn slot_description(slot: &InventorySlot) -> &'static str {
     }
 }
 
+fn tilekind_description(kind: &TileKind) -> &'static str {
+    match kind {
+        TileKind::Empty => "Empty",
+        TileKind::Floor => "Floor \u{2013} A simple tile for bots to walk on",
+        TileKind::Source(_, _) => "Source \u{2013} Launches a colored bot in the arrow direction",
+        TileKind::Goal(_) => "Goal \u{2013} The destination! Guide the matching bot here to win",
+        TileKind::Turn(_, _) => "Turn \u{2013} Redirects bots along the L-path (grey = all bots)",
+        TileKind::TurnBut(_, _) => "Turn But \u{2013} Redirects all bots EXCEPT this color",
+        TileKind::Teleport(_) => "Teleport \u{2013} Zap! Sends the bot to the matching portal",
+        TileKind::Bounce(_) => "Bounce \u{2013} Sends bots back the way they came (grey = all bots)",
+        TileKind::BounceBut(_) => "Bounce But \u{2013} Bounces all bots EXCEPT this color",
+        TileKind::Door(_) => "Door \u{2013} Blocks the path until a switch opens it",
+        TileKind::Switch => "Switch \u{2013} Press to toggle all doors open or closed",
+        TileKind::Painter(_) => "Painter \u{2013} Changes the bot's color as it walks over",
+        TileKind::Arrow(_, _) => "Arrow \u{2013} Redirects bots in the arrow direction (grey = all bots)",
+        TileKind::ArrowBut(_, _) => "Arrow But \u{2013} Redirects all bots EXCEPT this color",
+    }
+}
+
 pub fn update_status_bar(
     slots: Query<(&Interaction, &InventorySlot)>,
+    test_slots: Query<(&Interaction, &TestInventorySlot)>,
+    test_inv: Res<TestInventory>,
     mut text_q: Query<(&mut Text, &mut TextColor), With<StatusBarText>>,
     time: Res<Time>,
 ) {
     let Ok((mut text, mut color)) = text_q.get_single_mut() else { return };
     let desc = slots.iter()
         .find(|(i, _)| matches!(i, Interaction::Hovered | Interaction::Pressed))
-        .map(|(_, s)| slot_description(s));
+        .map(|(_, s)| slot_description(s))
+        .or_else(|| test_slots.iter()
+            .find(|(i, _)| matches!(i, Interaction::Hovered | Interaction::Pressed))
+            .and_then(|(_, s)| {
+                if s.0 == usize::MAX { Some("Remove \u{2013} Pick up a placed tile") }
+                else { test_inv.items.get(s.0).map(|(k, _)| tilekind_description(k)) }
+            }));
     let target = if desc.is_some() { 0.85 } else { 0.0 };
     if let Some(d) = desc { if **text != d { **text = d.to_string() } }
     let cur = color.0.alpha();
