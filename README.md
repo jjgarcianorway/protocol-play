@@ -4,7 +4,7 @@ A game built with [Bevy](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.12.0** - Player mode, creator solution tracking, and UI polish.
+**v0.12.1** - Dialog ghost suppression, darker grid markers, UI polish.
 
 ### Features
 - Resizable board (3x3 to 12x12) with smooth scale animations
@@ -32,9 +32,10 @@ A game built with [Bevy](https://bevyengine.org/) (Rust).
 - **Player mode**: standalone exe reads `level.json` — just inventory, play, and reset (no editor UI)
 - **Creator solution tracking**: levels store the creator's tile placements for future "creative solve" detection
 - **Level save/load** with fade-in/out dialog animations
-- **Smooth UI animations**: hover fade-out trails (BorderFade), expansion height transitions (ExpHeightAnim), slide-in/out bars, fade dialogs
+- **Switch/SwitchBut tiles** merged into 2 L1 inventory items (matching Bounce/BounceBut pattern)
+- **Smooth UI animations**: hover fade-out trails (BorderFade), expansion height transitions (ExpHeightAnim), slide-in/out bars, fade dialogs, L2/L3 slot grow-in
 - **Isometric 3D-rendered inventory icons** with correct direction and color matching
-- **Ghost preview** with smooth fade-in/out highlight on hover
+- **Ghost preview** with smooth fade-in/out highlight on hover, suppressed after tile placement and dialog dismissal
 - **Seamless tile placement**: placed tiles inherit ghost preview scale for smooth transitions
 - Phase-based bot movement: accelerate, cruise, decelerate, rotate, bounce, teleport, spin at goal
 - Auto-color cycling: next available color selected after placement, freed color pre-selected on delete

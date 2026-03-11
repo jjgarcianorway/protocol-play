@@ -331,8 +331,10 @@ pub fn spawn_simulation_overlay(
 pub fn overlay_button_interaction(
     q: Query<&Interaction, (With<SimOverlayButton>, Changed<Interaction>)>,
     mut sim_result: ResMut<SimulationResult>, play_mode: Res<PlayMode>,
+    hovered: Res<HoveredCell>, mut ghost_cell: ResMut<GhostCell>,
 ) {
     if !q.iter().any(|i| *i == Interaction::Pressed) { return; }
+    ghost_cell.last_placed = hovered.0;
     sim_result.stop_requested = true;
     if *play_mode == PlayMode::TestPlaying && matches!(sim_result.result, Some(SimResult::Success)) { sim_result.test_success_exit = true; }
 }
