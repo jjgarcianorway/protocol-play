@@ -85,7 +85,8 @@ jobs:
       - name: Prepare release files
         run: |
           cp artifacts/protocol-player-windows.exe/protocol-play.exe protocol-player-windows.exe
-          cd artifacts/protocol-player-macos && zip -r ../../protocol-player-macos.zip "Protocol Play.app"
+          ls -R artifacts/protocol-player-macos/
+          cd artifacts/protocol-player-macos && zip -r ../../protocol-player-macos.zip .
 
       - name: Create release
         uses: softprops/action-gh-release@v2
