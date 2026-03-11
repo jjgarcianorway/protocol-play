@@ -221,9 +221,9 @@ pub fn spawn_test_inventory(commands: &mut Commands, test_inv: &TestInventory, i
                 )).with_children(|slot| {
                     slot.spawn((icon_node(), ImageNode::new(icon)));
                     let cc = if *count > 0 { rgb(COUNT_AVAIL_COLOR) } else { rgb(COUNT_EMPTY_COLOR) };
-                    slot.spawn(Node { position_type: PositionType::Absolute, bottom: Val::Px(2.0),
+                    slot.spawn(Node { position_type: PositionType::Absolute, bottom: Val::Px(0.0),
                         width: Val::Percent(100.0), justify_content: JustifyContent::Center, ..default() })
-                        .with_child((Text::new(format!("x{count}")), gf(COUNT_FONT, f), TextColor(cc)));
+                        .with_child((Text::new(format!("x{count}")), gf(COUNT_FONT * 0.85, f), TextColor(cc)));
                 });
             }
             // Remove tool (pick up tiles)

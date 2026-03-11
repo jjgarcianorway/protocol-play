@@ -131,7 +131,7 @@ pub const DELETE_OVERLAY_COLOR: (f32, f32, f32, f32) = (0.9, 0.2, 0.2, 0.6);
 pub const TEST_INVENTORY_BG: (f32, f32, f32, f32) = (0.12, 0.08, 0.02, 0.90);
 pub const TEST_BANNER_BG: (f32, f32, f32, f32) = (0.85, 0.55, 0.0, 0.9);
 pub const TEST_BANNER_TEXT: (f32, f32, f32) = (0.1, 0.05, 0.0);
-pub const COUNT_AVAIL_COLOR: (f32, f32, f32) = (0.9, 0.85, 0.4);
+pub const COUNT_AVAIL_COLOR: (f32, f32, f32) = (1.0, 1.0, 1.0);
 pub const COUNT_EMPTY_COLOR: (f32, f32, f32) = (0.4, 0.4, 0.4);
 
 // Dialog colors
