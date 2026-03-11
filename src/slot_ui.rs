@@ -87,6 +87,7 @@ pub fn rebuild_l3_colors(
             | InventorySlot::TurnColor(c) | InventorySlot::TurnButColor(c)
             | InventorySlot::TeleportNum(c) | InventorySlot::PainterColor(c)
             | InventorySlot::BounceColor(c) | InventorySlot::BounceButColor(c)
+            | InventorySlot::SwitchColor(c) | InventorySlot::SwitchButColor(c)
             | InventorySlot::ArrowColor(c) | InventorySlot::ArrowButColor(c) => c,
             _ => continue,
         };
