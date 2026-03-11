@@ -253,26 +253,39 @@ pub fn update_ghost_and_highlight(
     let ci = inv_state.color_index;
     let rot_mat = |mats: &[Handle<StandardMaterial>]| dir_ci().map(|(d, ci)| (Quat::from_rotation_y(d.rotation()), Some(mats[ci].clone())));
     let id_mat = |mats: &[Handle<StandardMaterial>]| ci.map(|ci| (Quat::IDENTITY, Some(mats[ci].clone())));
-    let ghost_mode = match selected_tool.0 {
-        Tool::Floor if !matches!(kind, TileKind::Floor) => Some((Quat::IDENTITY, None)),
-        Tool::Source if !matches!(kind, TileKind::Source(_, _)) => rot_mat(&assets.ghost_symbol_materials),
-        Tool::Goal if !matches!(kind, TileKind::Goal(_)) => id_mat(&assets.ghost_goal_materials),
-        Tool::Turn if !matches!(kind, TileKind::Turn(_, _)) => rot_mat(&assets.ghost_turn_materials),
-        Tool::TurnBut if !matches!(kind, TileKind::TurnBut(_, _)) => rot_mat(&assets.ghost_turnbut_materials),
-        Tool::Arrow if !matches!(kind, TileKind::Arrow(_, _)) => rot_mat(&assets.ghost_arrow_materials),
-        Tool::ArrowBut if !matches!(kind, TileKind::ArrowBut(_, _)) => rot_mat(&assets.ghost_arrowbut_materials),
-        Tool::Teleport if !matches!(kind, TileKind::Teleport(_)) =>
-            ci.filter(|&ci| placed_teleports.0[ci] < 2).map(|ci| (Quat::IDENTITY, Some(assets.ghost_teleport_materials[ci].clone()))),
-        Tool::Bounce if !matches!(kind, TileKind::Bounce(_)) => id_mat(&assets.ghost_bounce_materials),
-        Tool::BounceBut if !matches!(kind, TileKind::BounceBut(_)) => id_mat(&assets.ghost_bouncebot_materials),
-        Tool::Door if !matches!(kind, TileKind::Door(_)) => ci.map(|s| (Quat::IDENTITY,
-            Some(if s == 0 { assets.ghost_door_open_material.clone() } else { assets.ghost_door_closed_material.clone() }))),
-        Tool::Switch if !matches!(kind, TileKind::Switch) => Some((Quat::IDENTITY, Some(assets.ghost_switch_material.clone()))),
-        Tool::ColorSwitch if !matches!(kind, TileKind::ColorSwitch(_)) => id_mat(&assets.ghost_colorswitch_materials),
-        Tool::ColorSwitchBut if !matches!(kind, TileKind::ColorSwitchBut(_)) => id_mat(&assets.ghost_colorswitchbut_materials),
-        Tool::Painter if !matches!(kind, TileKind::Painter(_)) => id_mat(&assets.ghost_painter_materials),
-        _ => None,
+    let dc = dir_ci();
+    let exact = match (selected_tool.0, kind) {
+        (Tool::Floor, TileKind::Floor) | (Tool::Switch, TileKind::Switch) => true,
+        (Tool::Source, TileKind::Source(c, d)) | (Tool::Turn, TileKind::Turn(c, d))
+        | (Tool::TurnBut, TileKind::TurnBut(c, d)) | (Tool::Arrow, TileKind::Arrow(c, d))
+        | (Tool::ArrowBut, TileKind::ArrowBut(c, d)) => dc == Some((*d, *c)),
+        (Tool::Goal, TileKind::Goal(c)) | (Tool::Teleport, TileKind::Teleport(c))
+        | (Tool::Bounce, TileKind::Bounce(c)) | (Tool::BounceBut, TileKind::BounceBut(c))
+        | (Tool::ColorSwitch, TileKind::ColorSwitch(c)) | (Tool::ColorSwitchBut, TileKind::ColorSwitchBut(c))
+        | (Tool::Painter, TileKind::Painter(c)) => ci == Some(*c),
+        (Tool::Door, TileKind::Door(o)) => ci == Some(if *o { 0 } else { 1 }),
+        _ => false,
     };
+    let ghost_mode = if exact { None } else { match selected_tool.0 {
+        Tool::Floor if !matches!(kind, TileKind::Floor) => Some((Quat::IDENTITY, None)),
+        Tool::Source => rot_mat(&assets.ghost_symbol_materials),
+        Tool::Goal => id_mat(&assets.ghost_goal_materials),
+        Tool::Turn => rot_mat(&assets.ghost_turn_materials),
+        Tool::TurnBut => rot_mat(&assets.ghost_turnbut_materials),
+        Tool::Arrow => rot_mat(&assets.ghost_arrow_materials),
+        Tool::ArrowBut => rot_mat(&assets.ghost_arrowbut_materials),
+        Tool::Teleport => ci.filter(|&ci| placed_teleports.0[ci] < 2)
+            .map(|ci| (Quat::IDENTITY, Some(assets.ghost_teleport_materials[ci].clone()))),
+        Tool::Bounce => id_mat(&assets.ghost_bounce_materials),
+        Tool::BounceBut => id_mat(&assets.ghost_bouncebot_materials),
+        Tool::Door => ci.map(|s| (Quat::IDENTITY,
+            Some(if s == 0 { assets.ghost_door_open_material.clone() } else { assets.ghost_door_closed_material.clone() }))),
+        Tool::Switch => Some((Quat::IDENTITY, Some(assets.ghost_switch_material.clone()))),
+        Tool::ColorSwitch => id_mat(&assets.ghost_colorswitch_materials),
+        Tool::ColorSwitchBut => id_mat(&assets.ghost_colorswitchbut_materials),
+        Tool::Painter => id_mat(&assets.ghost_painter_materials),
+        _ => None,
+    }};
 
     if let Some((rotation, overlay_mat_opt)) = ghost_mode {
         ghost_tf.translation = Vec3::new(world_x, 0.0, world_z);
@@ -309,14 +322,10 @@ pub fn handle_tile_click(
     mut validated: ResMut<LevelValidated>,
     mut ghost_cell: ResMut<GhostCell>,
 ) {
-    if *play_mode != PlayMode::Editing { return; }
-    if !mouse.just_pressed(MouseButton::Left) { return; }
-    for interaction in &ui_interactions {
-        if *interaction != Interaction::None { return; }
-    }
+    if *play_mode != PlayMode::Editing || !mouse.just_pressed(MouseButton::Left) { return; }
+    if ui_interactions.iter().any(|i| *i != Interaction::None) { return; }
     let Some((col, row)) = hovered.0 else { return; };
-    let tile = tiles.iter().find(|(_, c, _)| c.col == col && c.row == row);
-    let Some((entity, _, kind)) = tile else { return; };
+    let Some((entity, _, kind)) = tiles.iter().find(|(_, c, _)| c.col == col && c.row == row) else { return; };
     let ghost_scale = ghost_q.single().scale;
     if let TileKind::Teleport(num) = kind {
         if selected_tool.0 != Tool::Teleport || inv_state.color_index != Some(*num)
@@ -328,31 +337,25 @@ pub fn handle_tile_click(
         || matches!((selected_tool.0, kind, inv_state.color_index), (Tool::ColorSwitchBut, TileKind::ColorSwitchBut(ci), Some(sel)) if *ci == sel);
     if same { return; }
     validated.0 = false;
-
-    let despawn = |commands: &mut Commands, entity: Entity| {
-        commands.entity(entity).insert((TargetScale(Vec3::ZERO), DespawnAtZeroScale));
-    };
-
+    macro_rules! dp { () => { commands.entity(entity).insert((TargetScale(Vec3::ZERO), DespawnAtZeroScale)); } }
+    macro_rules! place { ($k:expr) => { dp!(); spawn_tile_at_scale(&mut commands, col, row, board_size.0, $k, &assets, ghost_scale); } }
     match selected_tool.0 {
-        Tool::Floor => { despawn(&mut commands, entity); spawn_tile_at_scale(&mut commands, col, row, board_size.0, TileKind::Floor, &assets, ghost_scale); }
+        Tool::Floor => { place!(TileKind::Floor); }
         Tool::Source => { if let (Some(dir), Some(ci)) = (inv_state.direction, inv_state.color_index) {
-            inv_state.last_placed_color = Some(ci); despawn(&mut commands, entity);
-            spawn_tile_at_scale(&mut commands, col, row, board_size.0, TileKind::Source(ci, dir), &assets, ghost_scale);
+            inv_state.last_placed_color = Some(ci); place!(TileKind::Source(ci, dir));
         }}
         Tool::Goal => { if let Some(ci) = inv_state.color_index {
-            inv_state.last_placed_color = Some(ci); despawn(&mut commands, entity);
-            spawn_tile_at_scale(&mut commands, col, row, board_size.0, TileKind::Goal(ci), &assets, ghost_scale);
+            inv_state.last_placed_color = Some(ci); place!(TileKind::Goal(ci));
         }}
         Tool::Turn | Tool::TurnBut | Tool::Arrow | Tool::ArrowBut => {
             if let (Some(dir), Some(ci)) = (inv_state.direction, inv_state.color_index) {
                 inv_state.last_placed_color = Some(ci);
                 let tile = match selected_tool.0 { Tool::Turn => TileKind::Turn(ci, dir), Tool::TurnBut => TileKind::TurnBut(ci, dir), Tool::Arrow => TileKind::Arrow(ci, dir), _ => TileKind::ArrowBut(ci, dir) };
-                despawn(&mut commands, entity); spawn_tile_at_scale(&mut commands, col, row, board_size.0, tile, &assets, ghost_scale);
+                place!(tile);
             }
         }
         Tool::Teleport => { if let Some(num) = inv_state.color_index { if placed_teleports.0[num] < 2 {
-            placed_teleports.0[num] += 1; despawn(&mut commands, entity);
-            spawn_tile_at_scale(&mut commands, col, row, board_size.0, TileKind::Teleport(num), &assets, ghost_scale);
+            placed_teleports.0[num] += 1; place!(TileKind::Teleport(num));
             let next = if placed_teleports.0[num] < 2 { Some(num) }
                 else { (1..NUM_TELEPORTS).map(|o| (num + o) % NUM_TELEPORTS).find(|n| placed_teleports.0[*n] < 2) };
             inv_state.color_index = next;
@@ -360,27 +363,21 @@ pub fn handle_tile_click(
         }}}
         Tool::Bounce | Tool::BounceBut => { if let Some(ci) = inv_state.color_index {
             inv_state.last_placed_color = Some(ci);
-            let tile = if selected_tool.0 == Tool::Bounce { TileKind::Bounce(ci) } else { TileKind::BounceBut(ci) };
-            despawn(&mut commands, entity); spawn_tile_at_scale(&mut commands, col, row, board_size.0, tile, &assets, ghost_scale);
+            place!(if selected_tool.0 == Tool::Bounce { TileKind::Bounce(ci) } else { TileKind::BounceBut(ci) });
         }}
-        Tool::Door => { if let Some(state) = inv_state.color_index {
-            despawn(&mut commands, entity);
-            spawn_tile_at_scale(&mut commands, col, row, board_size.0, TileKind::Door(state == 0), &assets, ghost_scale);
-        }}
-        Tool::Switch => { despawn(&mut commands, entity); spawn_tile_at_scale(&mut commands, col, row, board_size.0, TileKind::Switch, &assets, ghost_scale); }
+        Tool::Door => { if let Some(s) = inv_state.color_index { place!(TileKind::Door(s == 0)); } }
+        Tool::Switch => { place!(TileKind::Switch); }
         Tool::ColorSwitch | Tool::ColorSwitchBut => { if let Some(ci) = inv_state.color_index {
             inv_state.last_placed_color = Some(ci);
-            let tile = if selected_tool.0 == Tool::ColorSwitch { TileKind::ColorSwitch(ci) } else { TileKind::ColorSwitchBut(ci) };
-            despawn(&mut commands, entity); spawn_tile_at_scale(&mut commands, col, row, board_size.0, tile, &assets, ghost_scale);
+            place!(if selected_tool.0 == Tool::ColorSwitch { TileKind::ColorSwitch(ci) } else { TileKind::ColorSwitchBut(ci) });
         }}
         Tool::Painter => { if let Some(ci) = inv_state.color_index {
-            inv_state.last_placed_color = Some(ci); despawn(&mut commands, entity);
-            spawn_tile_at_scale(&mut commands, col, row, board_size.0, TileKind::Painter(ci), &assets, ghost_scale);
+            inv_state.last_placed_color = Some(ci); place!(TileKind::Painter(ci));
         }}
         Tool::Delete => {
             if let TileKind::Source(ci, _) | TileKind::Goal(ci) = kind { if inv_state.level >= 2 { inv_state.color_index = Some(*ci); } }
             if let TileKind::Teleport(num) = kind { placed_teleports.0[*num] = placed_teleports.0[*num].saturating_sub(1); if inv_state.level >= 2 { inv_state.color_index = Some(*num); } }
-            despawn(&mut commands, entity); spawn_tile(&mut commands, col, row, board_size.0, TileKind::Empty, &assets);
+            dp!(); spawn_tile(&mut commands, col, row, board_size.0, TileKind::Empty, &assets);
         }
     }
     ghost_cell.last_placed = Some((col, row));

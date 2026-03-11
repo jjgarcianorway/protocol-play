@@ -206,21 +206,21 @@ pub fn spawn_test_inventory(commands: &mut Commands, test_inv: &TestInventory, i
             column_gap: Val::Vw(INVENTORY_GAP_VW), align_items: AlignItems::Center, ..default() },
             BackgroundColor(rgba(TEST_INVENTORY_BG)), br,
         )).with_children(|c| {
-            let slot_n = |dir: FlexDirection| Node { flex_direction: dir, align_items: AlignItems::Center,
-                border: UiRect::all(Val::Px(SLOT_BORDER_PX)), ..default() };
+            let sn = slot_node();
             for (i, (kind, count)) in test_inv.items.iter().enumerate() {
                 let Some(icon) = tilekind_to_icon(kind, icons) else { continue };
                 let sel = !test_inv.remove_mode && test_inv.selected == Some(i);
-                c.spawn((Button, TestInventorySlot(i), border_for(sel), slot_n(FlexDirection::Column),
+                c.spawn((Button, TestInventorySlot(i), border_for(sel), sn.clone(),
                     BackgroundColor(slot_bg()), br)).with_children(|w| {
                     w.spawn((icon_node(), ImageNode::new(icon)));
                     let cc = if *count > 0 { rgb(COUNT_AVAIL_COLOR) } else { rgb(COUNT_EMPTY_COLOR) };
-                    w.spawn(Node { justify_content: JustifyContent::Center, ..default() })
-                        .with_child((Text::new(format!("x{count}")), gf(COUNT_FONT, f), TextColor(cc)));
+                    w.spawn(Node { width: Val::Percent(100.0), justify_content: JustifyContent::Center,
+                        position_type: PositionType::Absolute, bottom: Val::Px(2.0), ..default() })
+                        .with_child((Text::new(format!("{count}")), gf(COUNT_FONT, f), TextColor(cc)));
                 });
             }
             c.spawn((Button, TestInventorySlot(usize::MAX), border_for(test_inv.remove_mode),
-                slot_n(FlexDirection::Column), BackgroundColor(slot_bg()), br,
+                sn, BackgroundColor(Color::NONE), BorderColor(Color::NONE), br,
             )).with_child((icon_node(), ImageNode::new(icons.delete.clone())));
         });
     });
