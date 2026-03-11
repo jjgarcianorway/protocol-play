@@ -215,16 +215,20 @@ pub fn update_ghost_and_highlight(
         ghost_cell.0 = Some((col, row));
     }
 
-    // In test mode, check if tile is removable (was originally Empty = player-placed)
+    // In test mode, check if tile was originally Empty (player-placed) vs level-designed
     let in_test = matches!(*play_mode, PlayMode::TestEditing);
-    let test_removable = !in_test || saved_test.tiles.iter()
+    let is_original = in_test && !saved_test.tiles.iter()
         .any(|&(c, r, k)| c == col && r == row && matches!(k, TileKind::Empty));
 
-    // Hide highlight on non-actionable tiles in test delete mode
-    if in_test && selected_tool.0 == Tool::Delete && (!test_removable || matches!(kind, TileKind::Empty)) {
+    // Hide ghost/highlight on level-designed tiles in test mode (not interactive)
+    if in_test && is_original {
         hl_target.0 = Vec3::ZERO; ghost_target.0 = Vec3::ZERO;
-        overlay_tf.scale = Vec3::ZERO;
-        return;
+        overlay_tf.scale = Vec3::ZERO; return;
+    }
+    // In test delete mode, also hide on empty tiles (nothing to remove)
+    if in_test && selected_tool.0 == Tool::Delete && matches!(kind, TileKind::Empty) {
+        hl_target.0 = Vec3::ZERO; ghost_target.0 = Vec3::ZERO;
+        overlay_tf.scale = Vec3::ZERO; return;
     }
     hl_tf.translation = Vec3::new(world_x, FLOOR_TOP_Y + HIGHLIGHT_Y_OFFSET, world_z); hl_target.0 = Vec3::ONE;
 
@@ -262,7 +266,7 @@ pub fn update_ghost_and_highlight(
         if let Some(mat) = overlay_mat_opt { *overlay_mat = MeshMaterial3d(mat); show_overlay = true; }
         ghost_target.0 = Vec3::ONE;
         if let Ok(mut target) = tile_scale_q.get_mut(entity) { target.0 = Vec3::ZERO; hidden_tile.0 = Some(entity); }
-    } else if selected_tool.0 == Tool::Delete && !matches!(kind, TileKind::Empty) && test_removable {
+    } else if selected_tool.0 == Tool::Delete && !matches!(kind, TileKind::Empty) {
         ghost_tf.translation = Vec3::new(world_x, FLOOR_TOP_Y + DELETE_OVERLAY_OFFSET, world_z);
         ghost_tf.rotation = Quat::IDENTITY;
         *ghost_mesh = Mesh3d(assets.ghost_delete_mesh.clone());

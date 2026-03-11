@@ -295,11 +295,16 @@ pub fn check_simulation_result(
 pub fn spawn_simulation_overlay(
     mut commands: Commands, mut sim_result: ResMut<SimulationResult>,
     existing: Query<Entity, With<SimulationOverlay>>, font: Res<GameFont>,
+    play_mode: Res<PlayMode>, test_inv: Res<TestInventory>,
 ) {
     if sim_result.result.is_none() || sim_result.overlay_spawned || !existing.is_empty() { return; }
     sim_result.overlay_spawned = true;
+    let in_test = matches!(*play_mode, PlayMode::TestPlaying);
+    let pieces_left = test_inv.items.iter().map(|(_, c)| *c as usize).sum::<usize>();
     let (msg, color, btn_text) = match &sim_result.result {
         Some(SimResult::Error(s)) => (*s, rgb(SIM_ERROR_COLOR), "Stop"),
+        Some(SimResult::Success) if in_test && pieces_left > 0 =>
+            ("Solved with pieces to spare!", rgb(SIM_SUCCESS_COLOR), "Continue"),
         Some(SimResult::Success) => ("All bots reached their goals!", rgb(SIM_SUCCESS_COLOR), "Continue"),
         None => return,
     };
