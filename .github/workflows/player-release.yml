@@ -50,7 +50,7 @@ jobs:
           chmod +x "Protocol Play.app/Contents/MacOS/protocol-play"
           cp levels/paula.json "Protocol Play.app/Contents/MacOS/level.json"
           cp macos/Info.plist "Protocol Play.app/Contents/Info.plist"
-          zip -r protocol-player-macos.zip "Protocol Play.app"
+          ditto -c -k --sequesterRsrc --keepParent "Protocol Play.app" protocol-player-macos.zip
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
