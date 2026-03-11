@@ -122,18 +122,16 @@ fn setup_scene(
     add_grey_mat(&mut materials, &mut bounce_symbol_materials, &mut ghost_bounce_materials, &bb, &bm);
     let (bouncebot_symbol_materials, ghost_bouncebot_materials, _, _) = load_tile_mats(&mut materials, &mut images, "bouncebut");
 
-    let (mut teleport_symbol_materials, mut ghost_teleport_materials) = (Vec::new(), Vec::new());
-    for num in 0..NUM_TELEPORTS {
-        let (base, mask) = create_teleport_tile_textures(&mut images, TILE_TEX_SIZE, num);
-        let (m, g) = make_grey_mat(&mut materials, base, mask);
-        teleport_symbol_materials.push(m); ghost_teleport_materials.push(g);
-    }
-
     let load_grey = |mats: &mut Assets<StandardMaterial>, imgs: &mut Assets<Image>, name: &str| {
         let b = load_png_texture(imgs, &format!("assets/textures/{name}_base.png"), true);
         let m = load_png_texture(imgs, &format!("assets/textures/{name}_mask.png"), false);
         make_grey_mat(mats, b, m)
     };
+    let (mut teleport_symbol_materials, mut ghost_teleport_materials) = (Vec::new(), Vec::new());
+    for num in 0..NUM_TELEPORTS {
+        let (m, g) = load_grey(&mut materials, &mut images, &format!("teleport_{num}"));
+        teleport_symbol_materials.push(m); ghost_teleport_materials.push(g);
+    }
     let (door_open_material, ghost_door_open_material) = load_grey(&mut materials, &mut images, "door_open");
     let (door_closed_material, ghost_door_closed_material) = load_grey(&mut materials, &mut images, "door_closed");
     let (switch_material, ghost_switch_material) = load_grey(&mut materials, &mut images, "switch");
@@ -265,9 +263,10 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
     for d in Direction::all() { arrow_color_icons.push(icon(&mut images, &cp(&arr_b, &arr_m, -d.rotation(), grey_fill))); }
     let arrowbut_color_icons = color_dir_icons(&mut images, &abut_b, &abut_m);
 
-    let teleport_icon = icon(&mut images, &teleport_texture_colored_data(TEX_SIZE, TEX_BORDER, 0, white));
+    let tp_pngs: Vec<_> = (0..NUM_TELEPORTS).map(|n| load_png_pair(&format!("teleport_{n}"))).collect();
+    let teleport_icon = icon(&mut images, &cp(&tp_pngs[0].0, &tp_pngs[0].1, 0.0, white));
     let teleport_num_icons: Vec<_> = (0..NUM_TELEPORTS).map(|n|
-        icon(&mut images, &teleport_texture_colored_data(TEX_SIZE, TEX_BORDER, n, grey_fill))).collect();
+        icon(&mut images, &cp(&tp_pngs[n].0, &tp_pngs[n].1, 0.0, grey_fill))).collect();
     let goal_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci| icon(&mut images, &cp(&goal_b, &goal_m, 0.0, cfill(ci)))).collect();
 
     let bounce_icon = icon(&mut images, &cp(&bnc_b, &bnc_m, 0.0, white));

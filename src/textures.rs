@@ -120,33 +120,6 @@ pub fn create_empty_marker_texture(i: &mut Assets<Image>) -> Handle<Image> { cre
 pub fn create_highlight_texture(i: &mut Assets<Image>) -> Handle<Image> { create_border_texture(i, MARKER_TEX_SIZE, HIGHLIGHT_TEX_BORDER, HIGHLIGHT_TEX_COLOR) }
 pub fn create_inv_marker_texture(i: &mut Assets<Image>) -> Handle<Image> { create_border_texture(i, MARKER_TEX_SIZE, INV_MARKER_BORDER, INV_MARKER_COLOR) }
 
-// === Teleport (procedural — uses dynamic 7-segment numbers) ===
-fn in_ring(x: f32, y: f32, e: f32) -> bool {
-    let d = (x * x + y * y).sqrt();
-    d >= 0.22 - e && d <= 0.44 + e
-}
-
-const SEG: [u8; 10] = [0x7E, 0x30, 0x6D, 0x79, 0x33, 0x5B, 0x5F, 0x70, 0x7F, 0x7B];
-
-fn in_7seg(x: f32, y: f32, d: u8, cx: f32) -> bool {
-    let y = -y;
-    let (rx, hw, hh, t) = (x - cx, 0.08, 0.14, 0.035);
-    let s = SEG[d as usize];
-    (s & 0x40 != 0 && rx.abs() < hw && (y - hh).abs() < t)
-    || (s & 0x20 != 0 && (rx - hw).abs() < t && y > t / 2.0 && y < hh)
-    || (s & 0x10 != 0 && (rx - hw).abs() < t && y > -hh && y < -t / 2.0)
-    || (s & 0x08 != 0 && rx.abs() < hw && (y + hh).abs() < t)
-    || (s & 0x04 != 0 && (rx + hw).abs() < t && y > -hh && y < -t / 2.0)
-    || (s & 0x02 != 0 && (rx + hw).abs() < t && y > t / 2.0 && y < hh)
-    || (s & 0x01 != 0 && rx.abs() < hw && y.abs() < t)
-}
-
-fn in_tp_num(x: f32, y: f32, num: usize) -> bool {
-    let n = num + 1;
-    if n < 10 { in_7seg(x, y, n as u8, 0.0) }
-    else { in_7seg(x, y, 1, -0.10) || in_7seg(x, y, 0, 0.10) }
-}
-
 pub fn tile_texture_data(size: u32, border: u32) -> Vec<u8> {
     let mut data = vec![0u8; (size * size * 4) as usize];
     for y in 0..size { for x in 0..size {
@@ -154,49 +127,6 @@ pub fn tile_texture_data(size: u32, border: u32) -> Vec<u8> {
         let i = ((y * size + x) * 4) as usize; data[i..i + 4].copy_from_slice(&color);
     }}
     data
-}
-
-pub fn teleport_texture_colored_data(size: u32, border: u32, num: usize, fill: [u8; 4]) -> Vec<u8> {
-    let c = size as f32 / 2.0;
-    let mut data = vec![0u8; (size * size * 4) as usize];
-    for py in 0..size { for px in 0..size {
-        let on_edge = px < border || px >= size - border || py < border || py >= size - border;
-        let mut color = if on_edge { TILE_DARK } else { TILE_GRAY };
-        let (nx, ny) = ((px as f32 - c) / c, (py as f32 - c) / c);
-        if in_ring(nx, ny, 0.0) || in_tp_num(nx, ny, num) { color = fill; }
-        else if in_ring(nx, ny, STROKE_EXPAND) { color = SYMBOL_STROKE; }
-        let i = ((py * size + px) * 4) as usize; data[i..i + 4].copy_from_slice(&color);
-    }}
-    data
-}
-
-pub fn create_teleport_tile_textures(
-    images: &mut Assets<Image>, size: u32, num: usize,
-) -> (Handle<Image>, Handle<Image>) {
-    let c = size as f32 / 2.0;
-    let mut base = vec![0u8; (size * size * 4) as usize];
-    let mut mask = vec![0u8; (size * size * 4) as usize];
-    for py in 0..size {
-        for px in 0..size {
-            let (nx, ny) = ((px as f32 - c) / c, (py as f32 - c) / c);
-            let i = ((py * size + px) * 4) as usize;
-            if in_ring(nx, ny, 0.0) || in_tp_num(nx, ny, num) {
-                base[i..i + 4].copy_from_slice(&[0, 0, 0, 255]);
-                mask[i..i + 4].copy_from_slice(&[255, 255, 255, 255]);
-            } else if in_ring(nx, ny, STROKE_EXPAND) {
-                base[i..i + 4].copy_from_slice(&SYMBOL_STROKE);
-                mask[i..i + 4].copy_from_slice(&[0, 0, 0, 255]);
-            }
-        }
-    }
-    let mut mk = |data: Vec<u8>, srgb: bool| {
-        let fmt = if srgb { TextureFormat::Rgba8UnormSrgb } else { TextureFormat::Rgba8Unorm };
-        images.add(Image::new(
-            Extent3d { width: size, height: size, depth_or_array_layers: 1 },
-            TextureDimension::D2, data, fmt, default(),
-        ))
-    };
-    (mk(base, true), mk(mask, false))
 }
 
 // === Isometric icon rendering ===

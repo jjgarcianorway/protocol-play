@@ -19,9 +19,7 @@ fn in_turn_shape(x: f32, y: f32, expand: f32) -> bool {
     false
 }
 
-fn in_turn_center(x: f32, y: f32) -> bool {
-    (x * x + y * y).sqrt() < 0.14
-}
+fn in_turn_center(x: f32, y: f32) -> bool { (x * x + y * y).sqrt() < 0.14 }
 
 fn in_star_shape(x: f32, y: f32, expand: f32) -> bool {
     let outer_r = 0.45 + expand;
@@ -78,56 +76,96 @@ fn in_source_shape(x: f32, y: f32, expand: f32) -> bool {
     false
 }
 
+// === Teleport shapes (ring + 7-segment numbers) ===
+fn in_ring(x: f32, y: f32, e: f32) -> bool {
+    let d = (x * x + y * y).sqrt();
+    d >= 0.22 - e && d <= 0.44 + e
+}
+
+const SEG: [u8; 10] = [0x7E, 0x30, 0x6D, 0x79, 0x33, 0x5B, 0x5F, 0x70, 0x7F, 0x7B];
+
+fn in_7seg(x: f32, y: f32, d: u8, cx: f32) -> bool {
+    let y = -y;
+    let (rx, hw, hh, t) = (x - cx, 0.08, 0.14, 0.035);
+    let s = SEG[d as usize];
+    (s & 0x40 != 0 && rx.abs() < hw && (y - hh).abs() < t)
+    || (s & 0x20 != 0 && (rx - hw).abs() < t && y > t / 2.0 && y < hh)
+    || (s & 0x10 != 0 && (rx - hw).abs() < t && y > -hh && y < -t / 2.0)
+    || (s & 0x08 != 0 && rx.abs() < hw && (y + hh).abs() < t)
+    || (s & 0x04 != 0 && (rx + hw).abs() < t && y > -hh && y < -t / 2.0)
+    || (s & 0x02 != 0 && (rx + hw).abs() < t && y > t / 2.0 && y < hh)
+    || (s & 0x01 != 0 && rx.abs() < hw && y.abs() < t)
+}
+
+fn in_tp_num(x: f32, y: f32, num: usize) -> bool {
+    let n = num + 1;
+    if n < 10 { in_7seg(x, y, n as u8, 0.0) } else { in_7seg(x, y, 1, -0.10) || in_7seg(x, y, 0, 0.10) }
+}
+
+fn in_teleport_shape(x: f32, y: f32, e: f32, num: usize) -> bool {
+    in_ring(x, y, e) || (e == 0.0 && in_tp_num(x, y, num))
+}
+
 fn generate_symbol_textures(
-    size: u32, dir: &Path,
-    name: &str,
+    size: u32, dir: &Path, name: &str,
     shape_fn: fn(f32, f32, f32) -> bool,
-    center_fn: Option<fn(f32, f32) -> bool>,
-    center_brightness: f32,
+    center_fn: Option<fn(f32, f32) -> bool>, center_brightness: f32,
     forbidden_fn: Option<fn(f32, f32) -> bool>,
 ) {
     let c = size as f32 / 2.0;
     let mut base = RgbaImage::new(size, size);
     let mut mask = RgbaImage::new(size, size);
-
     for py in 0..size {
         for px in 0..size {
             let (nx, ny) = ((px as f32 - c) / c, (py as f32 - c) / c);
             if forbidden_fn.is_some_and(|ff| ff(nx, ny)) {
-                // Forbidden line: stroke color in base, black in mask (no color)
                 base.put_pixel(px, py, Rgba(SYMBOL_STROKE));
                 mask.put_pixel(px, py, Rgba([0, 0, 0, 255]));
             } else if center_fn.is_some_and(|cf| cf(nx, ny)) {
-                // Center: black in base (opaque), dark gray in mask
                 base.put_pixel(px, py, Rgba([0, 0, 0, 255]));
                 let b = (center_brightness * 255.0) as u8;
                 mask.put_pixel(px, py, Rgba([b, b, b, 255]));
             } else if shape_fn(nx, ny, 0.0) {
-                // Fill: black in base (opaque), white in mask
                 base.put_pixel(px, py, Rgba([0, 0, 0, 255]));
                 mask.put_pixel(px, py, Rgba([255, 255, 255, 255]));
             } else if shape_fn(nx, ny, STROKE_EXPAND) {
-                // Stroke: dark gray in base, black in mask (no color applied)
                 base.put_pixel(px, py, Rgba(SYMBOL_STROKE));
                 mask.put_pixel(px, py, Rgba([0, 0, 0, 255]));
             }
-            // else: both stay transparent [0,0,0,0]
         }
     }
-
     base.save(dir.join(format!("{name}_base.png"))).expect("Failed to save base texture");
     mask.save(dir.join(format!("{name}_mask.png"))).expect("Failed to save mask texture");
 }
 
+fn generate_teleport_textures(size: u32, dir: &Path) {
+    let c = size as f32 / 2.0;
+    for num in 0..NUM_TELEPORTS {
+        let mut base = RgbaImage::new(size, size);
+        let mut mask = RgbaImage::new(size, size);
+        for py in 0..size {
+            for px in 0..size {
+                let (nx, ny) = ((px as f32 - c) / c, (py as f32 - c) / c);
+                if in_teleport_shape(nx, ny, 0.0, num) {
+                    base.put_pixel(px, py, Rgba([0, 0, 0, 255]));
+                    mask.put_pixel(px, py, Rgba([255, 255, 255, 255]));
+                } else if in_ring(nx, ny, STROKE_EXPAND) {
+                    base.put_pixel(px, py, Rgba(SYMBOL_STROKE));
+                    mask.put_pixel(px, py, Rgba([0, 0, 0, 255]));
+                }
+            }
+        }
+        base.save(dir.join(format!("teleport_{num}_base.png"))).expect("Failed to save teleport base");
+        mask.save(dir.join(format!("teleport_{num}_mask.png"))).expect("Failed to save teleport mask");
+    }
+}
+
 fn generate_floor_texture(size: u32, border: u32, dir: &Path) {
     let mut img = RgbaImage::new(size, size);
-    for y in 0..size {
-        for x in 0..size {
-            let on_edge = x < border || x >= size - border || y < border || y >= size - border;
-            let color = if on_edge { TILE_DARK } else { TILE_GRAY };
-            img.put_pixel(x, y, Rgba(color));
-        }
-    }
+    for y in 0..size { for x in 0..size {
+        let on_edge = x < border || x >= size - border || y < border || y >= size - border;
+        img.put_pixel(x, y, Rgba(if on_edge { TILE_DARK } else { TILE_GRAY }));
+    }}
     img.save(dir.join("floor.png")).expect("Failed to save floor texture");
 }
 
@@ -135,39 +173,13 @@ fn generate_floor_texture(size: u32, border: u32, dir: &Path) {
 /// Call once at startup; the PNGs can then be edited by hand.
 pub fn ensure_textures() {
     let dir = Path::new("assets/textures");
-    // Skip if textures already exist (user may have edited them)
-    if dir.join("source_base.png").exists()
-        && dir.join("source_mask.png").exists()
-        && dir.join("turn_base.png").exists()
-        && dir.join("turn_mask.png").exists()
-        && dir.join("goal_base.png").exists()
-        && dir.join("goal_mask.png").exists()
-        && dir.join("turnbut_base.png").exists()
-        && dir.join("turnbut_mask.png").exists()
-        && dir.join("bounce_base.png").exists()
-        && dir.join("bounce_mask.png").exists()
-        && dir.join("bouncebut_base.png").exists()
-        && dir.join("bouncebut_mask.png").exists()
-        && dir.join("door_open_base.png").exists()
-        && dir.join("door_open_mask.png").exists()
-        && dir.join("door_closed_base.png").exists()
-        && dir.join("door_closed_mask.png").exists()
-        && dir.join("switch_base.png").exists()
-        && dir.join("switch_mask.png").exists()
-        && dir.join("painter_base.png").exists()
-        && dir.join("painter_mask.png").exists()
-        && dir.join("arrow_base.png").exists()
-        && dir.join("arrow_mask.png").exists()
-        && dir.join("arrowbut_base.png").exists()
-        && dir.join("arrowbut_mask.png").exists()
-        && dir.join("colorswitch_base.png").exists()
-        && dir.join("colorswitch_mask.png").exists()
-        && dir.join("colorswitchbut_base.png").exists()
-        && dir.join("colorswitchbut_mask.png").exists()
-        && dir.join("floor.png").exists()
-    {
-        return;
-    }
+    let names = ["source", "turn", "goal", "turnbut", "bounce", "bouncebut",
+        "door_open", "door_closed", "switch", "painter", "arrow", "arrowbut",
+        "colorswitch", "colorswitchbut"];
+    let all_exist = names.iter().all(|n| dir.join(format!("{n}_base.png")).exists() && dir.join(format!("{n}_mask.png")).exists())
+        && (0..NUM_TELEPORTS).all(|n| dir.join(format!("teleport_{n}_base.png")).exists() && dir.join(format!("teleport_{n}_mask.png")).exists())
+        && dir.join("floor.png").exists();
+    if all_exist { return; }
     std::fs::create_dir_all(dir).expect("Failed to create textures directory");
     generate_symbol_textures(TILE_TEX_SIZE, dir, "source", in_source_shape, None, 0.0, None);
     generate_symbol_textures(TILE_TEX_SIZE, dir, "turn", in_turn_shape, Some(in_turn_center), TURN_CENTER_BRIGHTNESS, None);
@@ -183,5 +195,6 @@ pub fn ensure_textures() {
     generate_symbol_textures(TILE_TEX_SIZE, dir, "arrowbut", in_arrow_shape, Some(in_turn_center), TURN_CENTER_BRIGHTNESS, Some(in_forbidden_line));
     generate_symbol_textures(TILE_TEX_SIZE, dir, "colorswitch", in_switch_s, Some(in_turn_center), TURN_CENTER_BRIGHTNESS, None);
     generate_symbol_textures(TILE_TEX_SIZE, dir, "colorswitchbut", in_switch_s, Some(in_turn_center), TURN_CENTER_BRIGHTNESS, Some(in_forbidden_line));
+    generate_teleport_textures(TILE_TEX_SIZE, dir);
     generate_floor_texture(TILE_TEX_SIZE, TILE_TEX_BORDER, dir);
 }
