@@ -69,7 +69,9 @@ jobs:
           cp levels/paula.json win-bundle/level.json
           cd win-bundle && zip ../protocol-player-windows.zip protocol-player-windows.exe level.json
           cd ..
-          cd artifacts/protocol-player-macos && zip -r ../../protocol-player-macos.zip .
+          mkdir mac-bundle
+          mv artifacts/protocol-player-macos "mac-bundle/Protocol Play.app"
+          cd mac-bundle && zip -r ../protocol-player-macos.zip "Protocol Play.app"
 
       - name: Create release
         uses: softprops/action-gh-release@v2
