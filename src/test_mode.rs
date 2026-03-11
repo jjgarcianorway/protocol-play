@@ -149,9 +149,7 @@ pub fn test_button_interaction(
 
         saved_board.tiles.clear();
         for (_, c, k, m) in &tiles { saved_board.tiles.push((c.col, c.row, *k, m.is_some())); }
-        saved_board.placed_teleports = placed_teleports.0;
-        saved_board.inv_state = inv_state.clone();
-        saved_board.selected_tool = selected_tool.0;
+        saved_board.placed_teleports = placed_teleports.0; saved_board.inv_state = inv_state.clone(); saved_board.selected_tool = selected_tool.0;
         let marked = tiles.iter().filter(|(_, _, _, m)| m.is_some()).map(|(_, _, k, _)| *k);
         test_inv.items = group_tiles(marked);
         test_inv.selected = None; test_inv.remove_mode = false;
@@ -286,8 +284,7 @@ pub fn reset_test_interaction(
             spawn_tile(&mut commands, col, row, board_size.0, kind, &assets);
         }
         test_inv.items = saved_test.inventory.clone();
-        test_inv.selected = None;
-        test_inv.remove_mode = false;
+        test_inv.selected = None; test_inv.remove_mode = false;
         for e in &test_container { commands.entity(e).despawn_recursive(); }
         spawn_test_inventory(&mut commands, &test_inv, &icons, false, &font.0);
     }
@@ -340,13 +337,13 @@ pub fn handle_test_tile_click(
     play_mode: Res<PlayMode>,
     mut test_inv: ResMut<TestInventory>,
     mut selected_tool: ResMut<SelectedTool>,
+    mut inv_state: ResMut<InventoryState>,
     board_size: Res<BoardSize>,
     tiles: Query<(Entity, &TileCoord, &TileKind), (With<Tile>, Without<DespawnAtZeroScale>)>,
     assets: Res<GameAssets>,
     ui_interactions: Query<&Interaction, With<Button>>,
     icons: Res<InventoryIcons>,
     test_container: Query<Entity, With<TestInventoryContainer>>,
-    mut border_q: Query<(Entity, &mut BorderColor, &TestInventorySlot)>,
     ghost_q: Query<&Transform, With<GhostPreview>>,
     saved_test: Res<SavedTestState>,
     font: Res<GameFont>,
@@ -359,11 +356,8 @@ pub fn handle_test_tile_click(
     let Some((col, row)) = hovered.0 else {
         if test_inv.selected.is_some() || test_inv.remove_mode {
             test_inv.selected = None; test_inv.remove_mode = false; selected_tool.0 = Tool::Floor;
-            let t = BORDER_UNSELECTED;
-            for (entity, mut border, _) in &mut border_q {
-                border.0 = Color::srgba(t.0, t.1, t.2, t.3);
-                commands.entity(entity).insert(BorderFade { target: [t.0, t.1, t.2, t.3], speed: HOVER_FADE_SPEED });
-            }
+            for e in &test_container { commands.entity(e).despawn_recursive(); }
+            spawn_test_inventory(&mut commands, &test_inv, &icons, false, &font.0);
         } return;
     };
     let Some((entity, _, kind)) = tiles.iter().find(|(_, c, _)| c.col == col && c.row == row) else { return };
@@ -387,7 +381,14 @@ pub fn handle_test_tile_click(
         test_inv.items[idx].1 -= 1;
         if test_inv.items[idx].1 == 0 {
             test_inv.items.remove(idx);
-            test_inv.selected = if test_inv.items.is_empty() { None } else { Some(idx.min(test_inv.items.len() - 1)) };
+            if test_inv.items.is_empty() {
+                test_inv.selected = None; test_inv.remove_mode = true;
+                selected_tool.0 = Tool::Delete;
+            } else {
+                let new_idx = idx.min(test_inv.items.len() - 1);
+                test_inv.selected = Some(new_idx);
+                set_tool_from_kind(test_inv.items[new_idx].0, &mut selected_tool, &mut inv_state);
+            }
         }
         changed = true;
     }
