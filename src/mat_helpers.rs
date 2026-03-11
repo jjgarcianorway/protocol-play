@@ -4,6 +4,11 @@ use bevy::prelude::*;
 use crate::constants::*;
 use crate::textures::load_png_texture;
 
+pub fn emissive_linear(r: f32, g: f32, b: f32) -> LinearRgba {
+    let e = LinearRgba::from(Color::srgb(r, g, b));
+    LinearRgba::new(e.red * EMISSIVE_STRENGTH, e.green * EMISSIVE_STRENGTH, e.blue * EMISSIVE_STRENGTH, 1.0)
+}
+
 pub fn load_tile_mats(
     materials: &mut Assets<StandardMaterial>, images: &mut Assets<Image>, name: &str,
 ) -> (Vec<Handle<StandardMaterial>>, Vec<Handle<StandardMaterial>>, Handle<Image>, Handle<Image>) {
@@ -11,7 +16,7 @@ pub fn load_tile_mats(
     let mask = load_png_texture(images, &format!("assets/textures/{name}_mask.png"), false);
     let mats = SOURCE_COLORS.iter().map(|&(r, g, b)| materials.add(StandardMaterial {
         base_color: Color::WHITE, base_color_texture: Some(base.clone()),
-        alpha_mode: AlphaMode::Mask(0.5), emissive: LinearRgba::from(Color::srgb(r, g, b)),
+        alpha_mode: AlphaMode::Mask(0.5), emissive: emissive_linear(r, g, b),
         emissive_texture: Some(mask.clone()), reflectance: 0.0, ..default()
     })).collect();
     let ghosts = SOURCE_COLORS.iter().map(|&(r, g, b)| materials.add(StandardMaterial {
@@ -27,7 +32,7 @@ pub fn make_grey_mat(
     let (r, g, b) = GREY_COLOR;
     let mat = materials.add(StandardMaterial {
         base_color: Color::WHITE, base_color_texture: Some(base),
-        alpha_mode: AlphaMode::Mask(0.5), emissive: LinearRgba::from(Color::srgb(r, g, b)),
+        alpha_mode: AlphaMode::Mask(0.5), emissive: emissive_linear(r, g, b),
         emissive_texture: Some(mask.clone()), reflectance: 0.0, ..default()
     });
     let ghost = materials.add(StandardMaterial {

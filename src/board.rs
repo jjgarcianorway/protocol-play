@@ -215,11 +215,12 @@ pub fn adapt_camera(
     let dist_h = radius / half_fov_h.sin();
     let distance = dist_v.max(dist_h) * CAMERA_MARGIN;
     let dir = camera_direction();
-    // Shift look-at up to center board between top bar (~50px) and inventory (~4vw + slide)
-    let inv_px = window.height() * 0.04 + 4.0; // inventory height in px
-    let top_px = 54.0; // top bar approximate height in px
-    let shift_px = (inv_px - top_px) / 2.0; // net pixel shift
-    let shift = shift_px / window.height() * distance * fov;
-    let look_at = Vec3::new(0.0, shift, 0.0);
+    // Shift look-at down to push board upward on screen
+    let vw = window.width() / 100.0;
+    let inv_px = SLOT_HEIGHT_VW * vw + INVENTORY_PAD_VW * 2.0 * vw + COUNT_FONT + SLOT_BORDER_PX * 2.0 + INV_SLIDE_SHOW;
+    let top_px = TOP_BTN_SIZE + TOP_SLIDE_SHOW;
+    let shift_px = (inv_px - top_px) / 2.0 + window.height() * 0.15;
+    let shift = shift_px / window.height() * distance * 2.0 * (fov / 2.0).tan();
+    let look_at = Vec3::new(0.0, -shift, 0.0);
     *transform = Transform::from_translation(look_at + dir * distance).looking_at(look_at, Vec3::Y);
 }

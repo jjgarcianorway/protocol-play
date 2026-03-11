@@ -4,6 +4,11 @@ use bevy::prelude::*;
 use crate::constants::*;
 use crate::types::*;
 
+// === Font helper ===
+pub fn gf(size: f32, font: &Handle<Font>) -> TextFont {
+    TextFont { font: font.clone(), font_size: size, ..default() }
+}
+
 // === Color helpers ===
 pub fn rgb(c: (f32, f32, f32)) -> Color { Color::srgb(c.0, c.1, c.2) }
 pub fn rgba(c: (f32, f32, f32, f32)) -> Color { Color::srgba(c.0, c.1, c.2, c.3) }
@@ -24,7 +29,7 @@ pub fn slot_node() -> Node {
         width: Val::Vw(SLOT_VW), height: Val::Vw(SLOT_HEIGHT_VW),
         border: UiRect::all(Val::Px(SLOT_BORDER_PX)),
         justify_content: JustifyContent::Center, align_items: AlignItems::Center,
-        flex_direction: FlexDirection::Column, overflow: Overflow::clip(),
+        overflow: Overflow::clip(),
         ..default()
     }
 }
@@ -57,10 +62,12 @@ pub fn spawn_dialog<M: Component>(
             height: Val::Percent(100.0), justify_content: JustifyContent::Center,
             align_items: AlignItems::Center, ..default() },
         BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.0)),
-        GlobalZIndex(200), marker,
+        GlobalZIndex(200), marker, Interaction::default(),
         UiBgFade { target: DIALOG_FADE_TARGET, despawn_at_zero: false },
     )).with_children(|bg| {
-        bg.spawn((panel_node, BackgroundColor(rgb(DIALOG_PANEL_BG)))).with_children(build_panel);
+        bg.spawn((panel_node, BackgroundColor(rgb(DIALOG_PANEL_BG)),
+            BorderRadius::all(Val::Px(UI_CORNER_RADIUS * 2.0)),
+        )).with_children(build_panel);
     });
 }
 

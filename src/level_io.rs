@@ -56,6 +56,31 @@ fn validate_level(
 }
 
 // === Save ===
+fn validate_saved(saved: &SavedBoardState, validated: &LevelValidated) -> Vec<String> {
+    let mut errors = Vec::new();
+    let (mut sources, mut goals, mut painters) = (HashSet::new(), HashSet::new(), HashSet::new());
+    let mut tp = [0u8; 10];
+    for (_, _, kind, _) in &saved.tiles {
+        match kind {
+            TileKind::Source(ci, _) => { sources.insert(*ci); }
+            TileKind::Goal(ci) => { goals.insert(*ci); }
+            TileKind::Painter(ci) => { painters.insert(*ci); }
+            TileKind::Teleport(n) => { tp[*n] += 1; }
+            _ => {}
+        }
+    }
+    if sources.is_empty() { errors.push("No source tiles on the board".into()); }
+    if goals.is_empty() { errors.push("No goal tiles on the board".into()); }
+    for &ci in &goals {
+        if !sources.contains(&ci) && !painters.contains(&ci) {
+            errors.push(format!("{} goal has no matching source or painter", COLOR_NAMES[ci]));
+        }
+    }
+    for i in 0..NUM_TELEPORTS { if tp[i] == 1 { errors.push(format!("Teleport {} needs a pair", i + 1)); } }
+    if !validated.0 { errors.push("Level has not been tested successfully".into()); }
+    errors
+}
+
 pub fn save_button_interaction(
     interaction_query: Query<&Interaction, (With<SaveButton>, Changed<Interaction>)>,
     play_mode: Res<PlayMode>,
@@ -64,22 +89,29 @@ pub fn save_button_interaction(
     tiles: Query<(&TileCoord, &TileKind, Option<&InventoryMarker>), (With<Tile>, Without<DespawnAtZeroScale>)>,
     placed_teleports: Res<PlacedTeleports>,
     validated: Res<LevelValidated>,
+    saved_board: Res<SavedBoardState>,
+    font: Res<GameFont>,
 ) {
-    if *play_mode != PlayMode::Editing { return; }
+    let in_test = matches!(*play_mode, PlayMode::TestEditing | PlayMode::TestPlaying);
+    if *play_mode != PlayMode::Editing && !in_test { return; }
     for interaction in &interaction_query {
         if *interaction != Interaction::Pressed { continue; }
         if !existing_dialog.is_empty() { return; }
-        let errors = validate_level(&tiles, &placed_teleports, &validated);
-        if errors.is_empty() {
-            spawn_save_dialog(&mut commands);
+        let errors = if in_test {
+            validate_saved(&saved_board, &validated)
         } else {
-            spawn_validation_error(&mut commands, &errors);
+            validate_level(&tiles, &placed_teleports, &validated)
+        };
+        if errors.is_empty() {
+            spawn_save_dialog(&mut commands, &font.0);
+        } else {
+            spawn_validation_error(&mut commands, &errors, &font.0);
         }
     }
 }
 
-fn spawn_save_dialog(commands: &mut Commands) {
-    let tf = TextFont { font_size: DIALOG_TITLE_FONT, ..default() };
+fn spawn_save_dialog(commands: &mut Commands, f: &Handle<Font>) {
+    let tf = gf(DIALOG_TITLE_FONT, f);
     let tc = TextColor(Color::WHITE);
     spawn_dialog(commands, SaveDialog, dialog_panel_node(DIALOG_ROW_GAP), |panel| {
         panel.spawn((Text::new("Save Level"), tf.clone(), tc));
@@ -88,7 +120,7 @@ fn spawn_save_dialog(commands: &mut Commands) {
                 justify_content: JustifyContent::FlexStart, align_items: AlignItems::Center,
                 border: UiRect::all(Val::Px(DIALOG_INPUT_BORDER_PX)), ..default() },
             BackgroundColor(rgb(DIALOG_INPUT_BG)), BorderColor(rgb(DIALOG_INPUT_BORDER)), SaveDialogInput,
-        )).with_child((Text::new(""), TextFont { font_size: DIALOG_BODY_FONT, ..default() }, TextColor(rgb(DIALOG_INPUT_TEXT))));
+        )).with_child((Text::new(""), gf(DIALOG_BODY_FONT, f), TextColor(rgb(DIALOG_INPUT_TEXT))));
         panel.spawn(Node { flex_direction: FlexDirection::Row, column_gap: Val::Px(DIALOG_BTN_GAP), ..default() })
             .with_children(|row| {
                 row.spawn((Button, SaveDialogConfirm, dialog_btn_node(), BackgroundColor(rgb(CONFIRM_BTN_BG))))
@@ -99,9 +131,9 @@ fn spawn_save_dialog(commands: &mut Commands) {
     });
 }
 
-fn spawn_validation_error(commands: &mut Commands, errors: &[String]) {
-    let tf = TextFont { font_size: DIALOG_TITLE_FONT, ..default() };
-    let bf = TextFont { font_size: DIALOG_BODY_FONT, ..default() };
+fn spawn_validation_error(commands: &mut Commands, errors: &[String], f: &Handle<Font>) {
+    let tf = gf(DIALOG_TITLE_FONT, f);
+    let bf = gf(DIALOG_BODY_FONT, f);
     let tc = TextColor(Color::WHITE);
     spawn_dialog(commands, ValidationErrorDialog, dialog_panel_node(DIALOG_ROW_GAP), |panel| {
         panel.spawn((Text::new("Cannot Save"), tf.clone(), TextColor(rgb(SIM_ERROR_COLOR))));
@@ -175,6 +207,8 @@ pub fn save_dialog_buttons(
     tiles: Query<(&TileCoord, &TileKind, Option<&InventoryMarker>), (With<Tile>, Without<DespawnAtZeroScale>)>,
     board_size: Res<BoardSize>,
     keys: Res<ButtonInput<KeyCode>>,
+    play_mode: Res<PlayMode>,
+    saved_board: Res<SavedBoardState>,
 ) {
     let cancel = cancel_q.iter().any(|i| *i == Interaction::Pressed) || keys.just_pressed(KeyCode::Escape);
     let confirm = confirm_q.iter().any(|i| *i == Interaction::Pressed) || keys.just_pressed(KeyCode::Enter);
@@ -186,11 +220,17 @@ pub fn save_dialog_buttons(
     let Ok(text) = text_q.get(child) else { return };
     let name = sanitize_filename(&text.0);
     if name.is_empty() { return; }
-    let mut tile_data = Vec::new();
-    for (coord, kind, marker) in &tiles {
-        tile_data.push((coord.col, coord.row, *kind, marker.is_some()));
-    }
-    let level = LevelData { name: name.clone(), board_size: board_size.0, tiles: tile_data };
+    let in_test = matches!(*play_mode, PlayMode::TestEditing | PlayMode::TestPlaying);
+    let tile_data = if in_test {
+        saved_board.tiles.clone()
+    } else {
+        tiles.iter().map(|(c, k, m)| (c.col, c.row, *k, m.is_some())).collect()
+    };
+    let solution: Vec<(u32, u32, TileKind)> = tile_data.iter()
+        .filter(|(_, _, _, marked)| *marked)
+        .map(|(c, r, k, _)| (*c, *r, *k))
+        .collect();
+    let level = LevelData { name: name.clone(), board_size: board_size.0, tiles: tile_data, solution };
     let path = levels_dir().join(format!("{name}.json"));
     if let Ok(json) = serde_json::to_string_pretty(&level) { let _ = fs::write(&path, json); }
     fade_out::<SaveDialog>(&mut commands, &dialog);
@@ -202,17 +242,18 @@ pub fn load_button_interaction(
     play_mode: Res<PlayMode>,
     mut commands: Commands,
     existing_dialog: Query<Entity, Or<(With<SaveDialog>, With<LoadDialog>)>>,
+    font: Res<GameFont>,
 ) {
     if *play_mode != PlayMode::Editing { return; }
     for interaction in &interaction_query {
         if *interaction != Interaction::Pressed { continue; }
         if !existing_dialog.is_empty() { return; }
-        spawn_load_dialog(&mut commands);
+        spawn_load_dialog(&mut commands, &font.0);
     }
 }
 
-fn spawn_load_dialog(commands: &mut Commands) {
-    let tf = TextFont { font_size: DIALOG_BODY_FONT, ..default() };
+fn spawn_load_dialog(commands: &mut Commands, f: &Handle<Font>) {
+    let tf = gf(DIALOG_BODY_FONT, f);
     let tc = TextColor(Color::WHITE);
     let dir = levels_dir();
     let mut entries: Vec<String> = Vec::new();
@@ -229,7 +270,7 @@ fn spawn_load_dialog(commands: &mut Commands) {
     let mut pn = dialog_panel_node(LOAD_DIALOG_ROW_GAP);
     pn.max_height = Val::Vh(70.0);
     spawn_dialog(commands, LoadDialog, pn, |panel| {
-        panel.spawn((Text::new("Load Level"), TextFont { font_size: DIALOG_TITLE_FONT, ..default() }, tc));
+        panel.spawn((Text::new("Load Level"), gf(DIALOG_TITLE_FONT, f), tc));
         panel.spawn(Node { flex_direction: FlexDirection::Column, row_gap: Val::Px(DIALOG_LIST_GAP),
             overflow: Overflow::scroll_y(), max_height: Val::Vh(DIALOG_LIST_MAX_H),
             width: Val::Px(DIALOG_LIST_WIDTH), ..default()

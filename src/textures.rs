@@ -11,8 +11,6 @@ fn make_image(images: &mut Assets<Image>, data: Vec<u8>, size: u32) -> Handle<Im
     ))
 }
 
-/// Load a PNG file synchronously and create a Bevy Image asset.
-/// `is_srgb` controls whether the texture uses sRGB or linear format.
 pub fn load_png_texture(images: &mut Assets<Image>, path: &str, is_srgb: bool) -> Handle<Image> {
     let img = image::open(path).unwrap_or_else(|e| panic!("Failed to load {path}: {e}"));
     let rgba = img.to_rgba8();
@@ -34,20 +32,24 @@ pub fn color_to_u8(r: f32, g: f32, b: f32) -> [u8; 4] {
 }
 
 fn ui_icon(images: &mut Assets<Image>, test: impl Fn(f32, f32) -> bool, color: [u8; 4]) -> Handle<Image> {
+    ui_icon_bg(images, test, color, ICON_DARK_BG)
+}
+
+fn ui_icon_bg(images: &mut Assets<Image>, test: impl Fn(f32, f32) -> bool, color: [u8; 4], bg: [u8; 4]) -> Handle<Image> {
     let mut data = vec![0u8; (ICON_SIZE * ICON_SIZE * 4) as usize];
     for y in 0..ICON_SIZE { for x in 0..ICON_SIZE {
         let (fx, fy) = (x as f32 / ICON_SIZE as f32, y as f32 / ICON_SIZE as f32);
-        let c = if test(fx, fy) { color } else { ICON_DARK_BG };
+        let c = if test(fx, fy) { color } else { bg };
         let i = ((y * ICON_SIZE + x) * 4) as usize; data[i..i + 4].copy_from_slice(&c);
     }}
     make_image(images, data, ICON_SIZE)
 }
 
 pub fn create_delete_icon(images: &mut Assets<Image>) -> Handle<Image> {
-    ui_icon(images, |fx, fy| {
+    ui_icon_bg(images, |fx, fy| {
         ((fx - fy).abs() < 0.09 || (fx - (1.0 - fy)).abs() < 0.09)
         && fx > 0.15 && fx < 0.85 && fy > 0.15 && fy < 0.85
-    }, DELETE_ICON_COLOR)
+    }, DELETE_ICON_COLOR, [0, 0, 0, 0])
 }
 
 fn create_border_texture(images: &mut Assets<Image>, size: u32, border: u32, edge: [u8; 4]) -> Handle<Image> {
@@ -95,6 +97,7 @@ fn in_ring(x: f32, y: f32, e: f32) -> bool {
 const SEG: [u8; 10] = [0x7E, 0x30, 0x6D, 0x79, 0x33, 0x5B, 0x5F, 0x70, 0x7F, 0x7B];
 
 fn in_7seg(x: f32, y: f32, d: u8, cx: f32) -> bool {
+    let y = -y;
     let (rx, hw, hh, t) = (x - cx, 0.08, 0.14, 0.035);
     let s = SEG[d as usize];
     (s & 0x40 != 0 && rx.abs() < hw && (y - hh).abs() < t)
@@ -239,50 +242,23 @@ pub fn create_teleport_tile_textures(
 }
 
 // === Isometric icon rendering ===
+fn bary(px: f32, py: f32, a: (f32,f32), b: (f32,f32), c: (f32,f32)) -> Option<(f32, f32)> {
+    let (d0x, d0y) = (b.0 - a.0, b.1 - a.1);
+    let (d1x, d1y) = (c.0 - a.0, c.1 - a.1);
+    let (d2x, d2y) = (px - a.0, py - a.1);
+    let det = d0x * d1y - d0y * d1x;
+    if det.abs() < 1e-10 { return None; }
+    let inv = 1.0 / det;
+    let s = (d2x * d1y - d2y * d1x) * inv;
+    let t = (d0x * d2y - d0y * d2x) * inv;
+    if s >= 0.0 && t >= 0.0 && s + t <= 1.0 { Some((s, t)) } else { None }
+}
+
 fn point_in_quad_uv(
-    px: f32, py: f32,
-    tl: (f32, f32), tr: (f32, f32), br: (f32, f32), bl: (f32, f32),
+    px: f32, py: f32, tl: (f32, f32), tr: (f32, f32), br: (f32, f32), bl: (f32, f32),
 ) -> Option<(f32, f32)> {
-    // Triangle 1: tl(0,0), tr(1,0), br(1,1)
-    {
-        let (d00x, d00y) = (tr.0 - tl.0, tr.1 - tl.1);
-        let (d01x, d01y) = (br.0 - tl.0, br.1 - tl.1);
-        let (d02x, d02y) = (px - tl.0, py - tl.1);
-        let dot00 = d00x * d00x + d00y * d00y;
-        let dot01 = d00x * d01x + d00y * d01y;
-        let dot02 = d00x * d02x + d00y * d02y;
-        let dot11 = d01x * d01x + d01y * d01y;
-        let dot12 = d01x * d02x + d01y * d02y;
-        let denom = dot00 * dot11 - dot01 * dot01;
-        if denom.abs() > 1e-10 {
-            let inv = 1.0 / denom;
-            let s = (dot11 * dot02 - dot01 * dot12) * inv;
-            let t = (dot00 * dot12 - dot01 * dot02) * inv;
-            if s >= 0.0 && t >= 0.0 && s + t <= 1.0 {
-                return Some((s + t, t));
-            }
-        }
-    }
-    // Triangle 2: tl(0,0), br(1,1), bl(0,1)
-    {
-        let (d00x, d00y) = (br.0 - tl.0, br.1 - tl.1);
-        let (d01x, d01y) = (bl.0 - tl.0, bl.1 - tl.1);
-        let (d02x, d02y) = (px - tl.0, py - tl.1);
-        let dot00 = d00x * d00x + d00y * d00y;
-        let dot01 = d00x * d01x + d00y * d01y;
-        let dot02 = d00x * d02x + d00y * d02y;
-        let dot11 = d01x * d01x + d01y * d01y;
-        let dot12 = d01x * d02x + d01y * d02y;
-        let denom = dot00 * dot11 - dot01 * dot01;
-        if denom.abs() > 1e-10 {
-            let inv = 1.0 / denom;
-            let s = (dot11 * dot02 - dot01 * dot12) * inv;
-            let t = (dot00 * dot12 - dot01 * dot02) * inv;
-            if s >= 0.0 && t >= 0.0 && s + t <= 1.0 {
-                return Some((s, s + t));
-            }
-        }
-    }
+    if let Some((s, t)) = bary(px, py, tl, tr, br) { return Some((s + t, t)); }
+    if let Some((s, t)) = bary(px, py, tl, br, bl) { return Some((s, s + t)); }
     None
 }
 
@@ -379,9 +355,7 @@ pub fn switch_texture_data(s: u32, b: u32, fill: [u8; 4]) -> Vec<u8> {
 }
 
 fn in_arrow_shape(x: f32, y: f32, e: f32) -> bool {
-    // Shaft pointing down (North in world)
     (x.abs() < 0.07 + e && y > -0.15 - e && y < 0.50 + e)
-    // Arrowhead triangle
     || (y >= -0.60 - e && y < -0.10 + e && x.abs() < 0.30 * (1.0 - ((y + 0.10) / -0.50).clamp(0.0, 1.0)) + e)
 }
 
@@ -391,4 +365,17 @@ pub fn arrow_texture_colored_data(size: u32, border: u32, rotation: f32, fill: [
 
 pub fn arrowbut_texture_colored_data(size: u32, border: u32, rotation: f32, fill: [u8; 4]) -> Vec<u8> {
     rotated_shape_data(size, border, rotation, fill, in_arrow_shape, Some(in_turn_center), turn_center_fill(fill), Some(in_forbidden_line))
+}
+
+pub fn create_vignette_texture(images: &mut Assets<Image>) -> Handle<Image> {
+    let s = VIGNETTE_SIZE;
+    let mut data = vec![0u8; (s * s * 4) as usize];
+    let c = s as f32 / 2.0;
+    for y in 0..s { for x in 0..s {
+        let d = (((x as f32 - c) / c).powi(2) + ((y as f32 - c) / c).powi(2)).sqrt();
+        let a = ((d - 0.5) / 0.8).clamp(0.0, 1.0);
+        let i = ((y * s + x) * 4) as usize;
+        data[i + 3] = (a * a * VIGNETTE_ALPHA * 255.0) as u8;
+    }}
+    make_image(images, data, s)
 }

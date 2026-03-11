@@ -7,48 +7,46 @@ use crate::ui_helpers::*;
 
 pub fn spawn_base_slot(
     commands: &mut Commands, parent: Entity, slot: InventorySlot, icon: Handle<Image>,
-    selected: bool, animated: bool, is_l3: bool, available: bool, count_text: &str,
+    selected: bool, is_l3: bool, available: bool, count_text: &str, font: &Handle<Font>,
 ) -> Entity {
     let bc = border_for(selected);
     let mut node = slot_node();
-    if (is_l3 && !available) || animated { node.width = Val::Vw(0.0); }
-    let mut ec = commands.spawn((Button, node, BackgroundColor(slot_bg()), bc, slot));
+    if is_l3 && !available { node.width = Val::Vw(0.0); }
+    let bg = slot_bg();
+    let mut ec = commands.spawn((Button, node, BackgroundColor(bg), bc, slot,
+        BorderRadius::all(Val::Px(UI_CORNER_RADIUS))));
     if is_l3 { ec.insert(Level3Slot); }
     let child = ec.with_children(|p| {
         p.spawn((icon_node(), ImageNode::new(icon)));
         if is_l3 {
-            p.spawn((Text::new(count_text), TextFont { font_size: COUNT_FONT, ..default() },
-                TextColor(Color::srgba(1.0, 1.0, 1.0, COUNT_TEXT_ALPHA))));
-        } else {
-            p.spawn((Text::new(" "), TextFont { font_size: COUNT_FONT, ..default() },
-                TextColor(Color::srgba(0.0, 0.0, 0.0, 0.0))));
+            p.spawn(Node { position_type: PositionType::Absolute, bottom: Val::Px(2.0),
+                width: Val::Percent(100.0), justify_content: JustifyContent::Center, ..default() })
+                .with_child((Text::new(count_text), gf(COUNT_FONT, font),
+                    TextColor(Color::srgba(1.0, 1.0, 1.0, COUNT_TEXT_ALPHA))));
         }
     }).id();
-    if animated && (!is_l3 || available) {
-        commands.entity(child).insert(NodeWidthAnim { target: SLOT_VW, despawn_at_zero: false });
-    }
     commands.entity(parent).add_child(child);
     child
 }
 
 pub fn spawn_slot(
     commands: &mut Commands, parent: Entity, slot: InventorySlot, icon: Handle<Image>,
-    selected: bool, animated: bool,
+    selected: bool, font: &Handle<Font>,
 ) -> Entity {
-    spawn_base_slot(commands, parent, slot, icon, selected, animated, false, true, " ")
+    spawn_base_slot(commands, parent, slot, icon, selected, false, true, " ", font)
 }
 
 pub fn spawn_color_slot(
     commands: &mut Commands, parent: Entity, slot: InventorySlot, icon: Handle<Image>,
-    selected: bool, animated: bool, available: bool, count_text: &str,
+    selected: bool, available: bool, count_text: &str, font: &Handle<Font>,
 ) -> Entity {
-    spawn_base_slot(commands, parent, slot, icon, selected, animated, true, available, count_text)
+    spawn_base_slot(commands, parent, slot, icon, selected, true, available, count_text, font)
 }
 
 pub fn spawn_l2_directions(
     commands: &mut Commands, container: Entity,
     slots_and_icons: [(InventorySlot, Handle<Image>); 4],
-    selected_dir: Option<Direction>,
+    selected_dir: Option<Direction>, font: &Handle<Font>,
 ) {
     for (slot, icon) in slots_and_icons {
         let dir = match slot {
@@ -56,15 +54,32 @@ pub fn spawn_l2_directions(
             | InventorySlot::ArrowDir(d) | InventorySlot::ArrowButDir(d) => d,
             _ => continue,
         };
-        let child = spawn_slot(commands, container, slot, icon, selected_dir == Some(dir), true);
+        let child = spawn_slot(commands, container, slot, icon, selected_dir == Some(dir), font);
         commands.entity(child).insert(Level2Slot);
     }
+}
+
+pub fn expand_container(commands: &mut Commands, container: Entity) {
+    commands.entity(container).insert(ExpHeightAnim { target: EXPANSION_HEIGHT_VW });
+}
+
+pub fn collapse_container(commands: &mut Commands, container: Entity) {
+    commands.entity(container).insert(ExpHeightAnim { target: 0.0 });
+}
+
+pub fn spawn_l2l3_divider(commands: &mut Commands, container: Entity) {
+    let child = commands.spawn((
+        Node { width: Val::Px(L2L3_DIVIDER_WIDTH), height: Val::Vw(SLOT_HEIGHT_VW * 0.6),
+            ..default() },
+        BackgroundColor(rgba(L2L3_DIVIDER_COLOR)), L2L3Divider,
+    )).id();
+    commands.entity(container).add_child(child);
 }
 
 pub fn rebuild_l3_colors(
     commands: &mut Commands, container: Entity,
     slots_and_icons: Vec<(InventorySlot, Handle<Image>, bool)>,
-    selected_color: Option<usize>, count_text: &str,
+    selected_color: Option<usize>, count_text: &str, font: &Handle<Font>,
 ) {
     for (slot, icon, available) in slots_and_icons {
         let ci = match slot {
@@ -75,7 +90,7 @@ pub fn rebuild_l3_colors(
             | InventorySlot::ArrowColor(c) | InventorySlot::ArrowButColor(c) => c,
             _ => continue,
         };
-        spawn_color_slot(commands, container, slot, icon, selected_color == Some(ci), true, available, count_text);
+        spawn_color_slot(commands, container, slot, icon, selected_color == Some(ci), available, count_text, font);
     }
 }
 
@@ -83,20 +98,25 @@ pub fn update_l3_availability(
     mut commands: Commands,
     placed_teleports: Res<PlacedTeleports>,
     inv_state: Res<InventoryState>,
-    l3_slots: Query<(Entity, &InventorySlot, &Node), With<Level3Slot>>,
+    l3_slots: Query<(Entity, &InventorySlot, &Node, &Children), With<Level3Slot>>,
+    children_q: Query<&Children>,
+    mut text_q: Query<&mut Text>,
 ) {
     if inv_state.level != 3 { return; }
     if !placed_teleports.is_changed() { return; }
-    for (entity, slot, node) in &l3_slots {
-        let should_show = match slot {
-            InventorySlot::TeleportNum(num) => Some(placed_teleports.0[*num] < 2),
-            _ => None,
-        };
-        if let Some(show) = should_show {
+    for (entity, slot, node, children) in &l3_slots {
+        if let InventorySlot::TeleportNum(num) = slot {
+            let remaining = 2u8.saturating_sub(placed_teleports.0[*num]);
+            let show = remaining > 0;
             let target = if show { SLOT_VW } else { 0.0 };
             let current = match node.width { Val::Vw(w) => w, _ => target };
             if (current - target).abs() > 0.1 {
                 commands.entity(entity).insert(NodeWidthAnim { target, despawn_at_zero: false });
+            }
+            for &child in children.iter() {
+                if let Ok(gc) = children_q.get(child) {
+                    for &g in gc.iter() { if let Ok(mut t) = text_q.get_mut(g) { **t = remaining.to_string(); } }
+                }
             }
         }
     }
@@ -105,17 +125,23 @@ pub fn update_l3_availability(
 pub fn collapse_expansion(
     commands: &mut Commands, l2: &Query<Entity, With<Level2Slot>>,
     l3: &Query<(Entity, &InventorySlot), With<Level3Slot>>,
+    dividers: &Query<Entity, With<L2L3Divider>>,
+    expansion: Entity,
 ) {
-    for e in l2.iter() { commands.entity(e).insert(NodeWidthAnim { target: 0.0, despawn_at_zero: true }); }
-    for (e, _) in l3.iter() { commands.entity(e).insert(NodeWidthAnim { target: 0.0, despawn_at_zero: true }); }
+    for e in l2.iter() { commands.entity(e).despawn_recursive(); }
+    for (e, _) in l3.iter() { commands.entity(e).despawn_recursive(); }
+    for e in dividers.iter() { commands.entity(e).despawn(); }
+    collapse_container(commands, expansion);
 }
 
 pub fn collapse_and_reset(
     commands: &mut Commands, l2: &Query<Entity, With<Level2Slot>>,
     l3: &Query<(Entity, &InventorySlot), With<Level3Slot>>,
+    dividers: &Query<Entity, With<L2L3Divider>>,
+    expansion: Entity,
     inv: &mut InventoryState, tool: &mut SelectedTool,
 ) {
-    collapse_expansion(commands, l2, l3);
+    collapse_expansion(commands, l2, l3, dividers, expansion);
     *inv = InventoryState { level: 1, ..default() };
     tool.0 = Tool::Floor;
 }

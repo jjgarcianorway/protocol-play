@@ -121,6 +121,9 @@ pub struct PlayIcons {
 }
 
 #[derive(Resource)]
+pub struct GameFont(pub Handle<Font>);
+
+#[derive(Resource)]
 #[allow(dead_code)]
 pub struct InventoryIcons {
     pub floor: Handle<Image>,
@@ -282,7 +285,9 @@ pub enum InventorySlot {
 
 #[derive(Component)] pub struct Level2Slot;
 #[derive(Component)] pub struct Level3Slot;
+#[derive(Component)] pub struct L2L3Divider;
 #[derive(Component)] pub struct ExpansionContainer;
+#[derive(Component)] pub struct ExpHeightAnim { pub target: f32 }
 #[derive(Component)] pub struct Bot;
 #[derive(Component)] pub struct PlayStopButton;
 #[derive(Component)] pub struct PlayButtonImage;
@@ -299,6 +304,8 @@ pub enum InventorySlot {
 #[derive(Component)] pub struct ResetTestButton;
 #[derive(Component)] pub struct TestInventorySlot(pub usize);
 #[derive(Component)] pub struct TestInventoryContainer;
+#[derive(Component)] pub struct TestTopButtons;
+#[derive(Component)] pub struct TopControlsBar;
 
 #[derive(Resource, Default)]
 pub struct SavedBoardState {
@@ -322,11 +329,15 @@ pub struct TestInventory {
 }
 
 #[derive(Component)] pub struct TestModeBanner;
+#[derive(Component)] pub struct BorderFade { pub target: [f32; 4], pub speed: f32 }
 #[derive(Component)] pub struct UiBottomAnim { pub target: f32, pub despawn_at_target: bool }
 #[derive(Component)] pub struct UiTopAnim { pub target: f32, pub despawn_at_target: bool }
 #[derive(Component)] pub struct UiBgFade { pub target: f32, pub despawn_at_zero: bool }
 #[derive(Serialize, Deserialize)]
-pub struct LevelData { pub name: String, pub board_size: u32, pub tiles: Vec<(u32, u32, TileKind, bool)> }
+pub struct LevelData {
+    pub name: String, pub board_size: u32, pub tiles: Vec<(u32, u32, TileKind, bool)>,
+    #[serde(default)] pub solution: Vec<(u32, u32, TileKind)>,
+}
 #[derive(Component)] pub struct SaveButton;
 #[derive(Component)] pub struct LoadButton;
 #[derive(Component)] pub struct SaveDialog;

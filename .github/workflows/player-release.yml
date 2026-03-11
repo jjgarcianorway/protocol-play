@@ -1,0 +1,79 @@
+name: Build Player Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v0.11.0-player)'
+        required: true
+        type: string
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            src: protocol-play.exe
+            dest: protocol-player-windows.exe
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            src: protocol-play
+            dest: protocol-player-macos
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build player
+        run: cargo build --release --features player --target ${{ matrix.target }}
+
+      - name: Rename binary
+        run: |
+          cp target/${{ matrix.target }}/release/${{ matrix.src }} ${{ matrix.dest }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.dest }}
+          path: ${{ matrix.dest }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release files
+        run: |
+          mv artifacts/protocol-player-windows.exe/protocol-player-windows.exe .
+          mv artifacts/protocol-player-macos/protocol-player-macos .
+          chmod +x protocol-player-macos
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          name: "Player ${{ inputs.tag }}"
+          body: |
+            Player build for testing levels.
+
+            Place `level.json` in the same directory as the executable and run it.
+          files: |
+            protocol-player-windows.exe
+            protocol-player-macos

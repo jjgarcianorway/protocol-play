@@ -1,22 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #![allow(clippy::too_many_arguments, clippy::type_complexity, clippy::collapsible_if)]
 
-mod constants;
-mod types;
-mod textures;
-mod gen_textures;
-mod board;
-mod ui_helpers;
-mod slot_ui;
-mod inventory;
-mod systems;
-mod simulation;
-mod bot_formation;
-mod mat_helpers;
-mod test_mode;
-mod level_io;
+mod constants; mod types; mod textures; mod gen_textures; mod board;
+mod ui_helpers; mod slot_ui; mod inventory; mod systems; mod simulation;
+mod bot_formation; mod mat_helpers; mod test_mode; mod level_io;
+#[cfg(feature = "player")] mod player;
 
 use bevy::prelude::*;
+use bevy::core_pipeline::bloom::Bloom;
 use constants::*;
 use types::*;
 use textures::*;
@@ -32,36 +23,30 @@ use level_io::*;
 
 fn main() {
     gen_textures::ensure_textures();
-    App::new()
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: "protocol: play".into(),
-                ..default()
-            }),
-            ..default()
+    let title = if cfg!(feature = "player") { "protocol: play (player)" } else { "protocol: play" };
+    let mut app = App::new();
+    app.add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window { title: title.into(), ..default() }), ..default()
         }))
+        .insert_resource(ClearColor(Color::srgb(CLEAR_COLOR.0, CLEAR_COLOR.1, CLEAR_COLOR.2)))
+        .insert_resource(AmbientLight { color: Color::srgb(AMBIENT_COLOR.0, AMBIENT_COLOR.1, AMBIENT_COLOR.2), brightness: AMBIENT_BRIGHTNESS })
         .insert_resource(BoardSize(3))
         .insert_resource(SelectedTool::default())
-        .insert_resource(HoveredCell::default()).insert_resource(HiddenTileEntity::default())
-        .insert_resource(GhostCell::default())
+        .insert_resource(HoveredCell::default()).insert_resource(HiddenTileEntity::default()).insert_resource(GhostCell::default())
         .insert_resource(InventoryState { level: 1, direction: None, color_index: None, last_placed_color: None })
         .insert_resource(PlacedTeleports::default())
-        .insert_resource(PlayMode::default())
-        .insert_resource(DoorToggleCount::default()).insert_resource(OriginalDoorStates::default())
+        .insert_resource(PlayMode::default()).insert_resource(DoorToggleCount::default()).insert_resource(OriginalDoorStates::default())
         .insert_resource(SimulationResult::default()).insert_resource(PrevTileCounts::default())
         .insert_resource(SavedBoardState::default()).insert_resource(SavedTestState::default())
-        .insert_resource(TestInventory::default())
-        .insert_resource(LevelValidated::default())
-        .add_systems(Startup, (setup_scene, setup_ui))
-        .add_systems(Update, (
-            animate_node_width, button_interaction, inventory_interaction,
-            update_inventory_visuals.after(inventory_interaction),
-            update_l3_availability.after(inventory_interaction),
-            update_hovered_cell,
+        .insert_resource(TestInventory::default()).insert_resource(LevelValidated::default())
+        .add_systems(Startup, (setup_scene, setup_ui));
+    #[cfg(feature = "player")]
+    app.add_systems(Startup, player::setup_player.after(setup_scene).after(setup_ui));
+    app.add_systems(Update, (
+            animate_node_width, update_hovered_cell,
             update_ghost_and_highlight.after(update_hovered_cell),
-            handle_tile_click.after(update_hovered_cell),
             animate_scale.after(update_ghost_and_highlight).after(move_bots).after(apply_bot_formation),
-            animate_ui_slides, cleanup_despawned.after(animate_scale),
+            animate_ui_slides, animate_border_fade, cleanup_despawned.after(animate_scale),
         ))
         .add_systems(Update, (
             overlay_button_interaction,
@@ -75,6 +60,14 @@ fn main() {
             check_simulation_result.after(move_bots),
             spawn_simulation_overlay.after(check_simulation_result),
             adapt_camera,
+        ));
+    #[cfg(not(feature = "player"))]
+    app.add_systems(Update, (
+            button_interaction, inventory_interaction,
+            update_inventory_visuals.after(inventory_interaction),
+            update_l3_availability.after(inventory_interaction),
+            handle_tile_click.after(update_hovered_cell),
+            sync_inventory_play_mode,
         ))
         .add_systems(Update, (
             mark_button_interaction, handle_mark_click.after(update_hovered_cell),
@@ -85,8 +78,13 @@ fn main() {
         .add_systems(Update, (
             save_button_interaction, save_dialog_input, save_dialog_buttons,
             load_button_interaction, load_dialog_buttons, validation_error_ok, update_status_bar,
-        ))
-        .run();
+        ));
+    #[cfg(feature = "player")]
+    app.add_systems(Update, (
+            handle_test_tile_click.after(update_hovered_cell), test_inventory_interaction,
+            reset_test_interaction,
+        ));
+    app.run();
 }
 
 fn setup_scene(
@@ -97,7 +95,9 @@ fn setup_scene(
     board_size: Res<BoardSize>,
 ) {
     let floor_texture = create_tile_texture(&mut images, TILE_TEX_SIZE, TILE_TEX_BORDER);
-    let floor_material = materials.add(StandardMaterial { base_color_texture: Some(floor_texture.clone()), ..default() });
+    let floor_material = materials.add(StandardMaterial { base_color_texture: Some(floor_texture.clone()),
+        base_color: Color::srgb(FLOOR_TINT.0, FLOOR_TINT.1, FLOOR_TINT.2),
+        perceptual_roughness: 0.6, ..default() });
     let floor_mesh = meshes.add(Cuboid::new(1.0, TILE_HEIGHT, 1.0));
     let ghost_floor_material = materials.add(StandardMaterial {
         base_color_texture: Some(floor_texture), base_color: Color::srgba(1.0, 1.0, 1.0, GHOST_ALPHA),
@@ -123,7 +123,6 @@ fn setup_scene(
     });
     let marker_mesh = meshes.add(Cuboid::new(1.03, OVERLAY_MESH_THICKNESS, 1.03));
 
-    // Load symbol textures from files (editable PNGs, loaded synchronously)
     let sym_mesh = meshes.add(Cuboid::new(0.99, OVERLAY_MESH_THICKNESS, 0.99));
     let (source_symbol_materials, ghost_symbol_materials, _, _) = load_tile_mats(&mut materials, &mut images, "source");
     let (goal_symbol_materials, ghost_goal_materials, _, _) = load_tile_mats(&mut materials, &mut images, "goal");
@@ -141,7 +140,6 @@ fn setup_scene(
         teleport_symbol_materials.push(m); ghost_teleport_materials.push(g);
     }
 
-    // Door/Switch materials (grey only, file-based)
     let dob = load_png_texture(&mut images, "assets/textures/door_open_base.png", true);
     let dom = load_png_texture(&mut images, "assets/textures/door_open_mask.png", false);
     let (door_open_material, ghost_door_open_material) = make_grey_mat(&mut materials, dob, dom);
@@ -220,14 +218,22 @@ fn setup_scene(
         DirectionalLight { illuminance: LIGHT_ILLUMINANCE, shadows_enabled: true, ..default() },
         Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, LIGHT_ELEVATION, LIGHT_AZIMUTH, 0.0)),
     ));
-    commands.spawn((Camera3d::default(),
+    commands.spawn((Camera3d::default(), Camera { hdr: true, ..default() },
+        Bloom { intensity: BLOOM_INTENSITY, low_frequency_boost: BLOOM_LF_BOOST,
+            low_frequency_boost_curvature: 0.7, high_pass_frequency: 1.0, ..default() },
         Transform::from_translation(camera_direction() * 5.0).looking_at(Vec3::ZERO, Vec3::Y)));
 }
 
-fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
+fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts: ResMut<Assets<Font>>) {
+    let vignette = create_vignette_texture(&mut images);
+    commands.spawn((Node { position_type: PositionType::Absolute, width: Val::Percent(100.0),
+        height: Val::Percent(100.0), ..default() }, ImageNode::new(vignette)));
+    let font_bytes = include_bytes!("../assets/fonts/FiraSans-Regular.ttf").to_vec();
+    let f = fonts.add(Font::try_from_bytes(font_bytes).unwrap());
+    commands.insert_resource(GameFont(f.clone()));
+
     let floor_tex_data = tile_texture_data(TEX_SIZE, TEX_BORDER);
     let floor_icon = create_isometric_icon(&mut images, &floor_tex_data, TEX_SIZE, ICON_SIZE);
-
     let white = ICON_WHITE;
     let icon = |images: &mut Assets<Image>, data: &[u8]| create_isometric_icon(images, data, TEX_SIZE, ICON_SIZE);
     let source_icon = icon(&mut images, &source_texture_colored_data(TEX_SIZE, TEX_BORDER, 0.0, white));
@@ -236,7 +242,6 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     let turnbut_icon = icon(&mut images, &turnbut_texture_colored_data(TEX_SIZE, TEX_BORDER, 0.0, white));
     let delete_icon = create_delete_icon(&mut images);
 
-    // Direction icons (L2) for source and turn
     let dir_icon = |images: &mut Assets<Image>, tex_fn: fn(u32, u32, f32, [u8; 4]) -> Vec<u8>| {
         Direction::all().map(|d| create_isometric_icon(images, &tex_fn(TEX_SIZE, TEX_BORDER, -d.rotation(), white), TEX_SIZE, ICON_SIZE))
     };
@@ -246,7 +251,6 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     let arrow_dir_icons = dir_icon(&mut images, arrow_texture_colored_data);
     let arrowbut_dir_icons = dir_icon(&mut images, arrowbut_texture_colored_data);
 
-    // Color icons per direction
     let color_dir_icons = |images: &mut Assets<Image>, tex_fn: fn(u32, u32, f32, [u8; 4]) -> Vec<u8>| -> Vec<_> {
         (0..NUM_COLORS).flat_map(|ci| { let f = color_to_u8(SOURCE_COLORS[ci].0, SOURCE_COLORS[ci].1, SOURCE_COLORS[ci].2); Direction::all().map(move |d| (f, d)) })
             .map(|(f, d)| create_isometric_icon(images, &tex_fn(TEX_SIZE, TEX_BORDER, -d.rotation(), f), TEX_SIZE, ICON_SIZE)).collect()
@@ -260,15 +264,11 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     for d in Direction::all() { arrow_color_icons.push(create_isometric_icon(&mut images, &arrow_texture_colored_data(TEX_SIZE, TEX_BORDER, -d.rotation(), grey_fill), TEX_SIZE, ICON_SIZE)); }
     let arrowbut_color_icons = color_dir_icons(&mut images, arrowbut_texture_colored_data);
 
-    // Teleport icons
     let teleport_icon = icon(&mut images, &teleport_texture_colored_data(TEX_SIZE, TEX_BORDER, 0, white));
-    let teleport_num_icons: Vec<_> = (0..NUM_TELEPORTS).map(|n| {
-        icon(&mut images, &teleport_texture_colored_data(TEX_SIZE, TEX_BORDER, n, grey_fill))
-    }).collect();
-
-    let goal_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci| {
-        icon(&mut images, &goal_texture_colored_data(TEX_SIZE, TEX_BORDER, color_to_u8(SOURCE_COLORS[ci].0, SOURCE_COLORS[ci].1, SOURCE_COLORS[ci].2)))
-    }).collect();
+    let teleport_num_icons: Vec<_> = (0..NUM_TELEPORTS).map(|n|
+        icon(&mut images, &teleport_texture_colored_data(TEX_SIZE, TEX_BORDER, n, grey_fill))).collect();
+    let goal_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci|
+        icon(&mut images, &goal_texture_colored_data(TEX_SIZE, TEX_BORDER, color_to_u8(SOURCE_COLORS[ci].0, SOURCE_COLORS[ci].1, SOURCE_COLORS[ci].2)))).collect();
 
     let bounce_icon = icon(&mut images, &bounce_texture_colored_data(TEX_SIZE, TEX_BORDER, white, false));
     let bouncebot_icon = icon(&mut images, &bounce_texture_colored_data(TEX_SIZE, TEX_BORDER, white, true));
@@ -279,7 +279,6 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     let bouncebot_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci|
         icon(&mut images, &bounce_texture_colored_data(TEX_SIZE, TEX_BORDER, cfill(ci), true))).collect();
 
-    // Door/Switch icons
     let door_icon = icon(&mut images, &door_texture_data(TEX_SIZE, TEX_BORDER, white, true));
     let door_open_icon = icon(&mut images, &door_texture_data(TEX_SIZE, TEX_BORDER, grey_fill, false));
     let door_closed_icon = icon(&mut images, &door_texture_data(TEX_SIZE, TEX_BORDER, grey_fill, true));
@@ -306,33 +305,34 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     };
     commands.insert_resource(icons);
 
-    // Top controls
+    // Top controls (editor only)
+    if !cfg!(feature = "player") {
     let bc = btn_bg();
     let btn = Node { width: Val::Px(TOP_BTN_SIZE), height: Val::Px(TOP_BTN_SIZE),
         justify_content: JustifyContent::Center, align_items: AlignItems::Center,
         margin: UiRect::all(Val::Px(BTN_MARGIN)), ..default() };
-    let ts = TextFont { font_size: TOP_BTN_FONT, ..default() };
+    let ts = gf(TOP_BTN_FONT, &f);
     let mut tbtn = text_btn_node();
     tbtn.margin = UiRect::left(Val::Px(TEXT_BTN_LEFT_MARGIN));
-    let tfs = TextFont { font_size: LABEL_FONT, ..default() };
+    let tfs = gf(LABEL_FONT, &f);
     commands.spawn((Node { position_type: PositionType::Absolute, left: Val::Px(10.0), top: Val::Px(-50.0),
         flex_direction: FlexDirection::Row, align_items: AlignItems::Center, column_gap: Val::Px(4.0), ..default()
-    }, UiTopAnim { target: TOP_SLIDE_SHOW, despawn_at_target: false })).with_children(|p| {
-        p.spawn((Button, btn.clone(), BackgroundColor(bc), BoardButton::Decrease))
+    }, UiTopAnim { target: TOP_SLIDE_SHOW, despawn_at_target: false }, TopControlsBar)).with_children(|p| {
+        let br = BorderRadius::all(Val::Px(UI_CORNER_RADIUS));
+        p.spawn((Button, btn.clone(), BackgroundColor(bc), BoardButton::Decrease, br))
             .with_child((Text::new("-"), ts.clone(), TextColor(Color::WHITE)));
         p.spawn(Node { width: Val::Px(70.0), justify_content: JustifyContent::Center, ..default() })
             .with_child((Text::new("3x3"), ts.clone(), TextColor(Color::WHITE), BoardSizeText));
-        p.spawn((Button, btn, BackgroundColor(bc), BoardButton::Increase))
+        p.spawn((Button, btn, BackgroundColor(bc), BoardButton::Increase, br))
             .with_child((Text::new("+"), ts, TextColor(Color::WHITE)));
-        p.spawn((Button, tbtn.clone(), BackgroundColor(bc), BorderColor(border_unsel()), MarkButton, MarkButtonImage))
+        p.spawn((Button, tbtn.clone(), BackgroundColor(bc), BorderColor(border_unsel()), MarkButton, MarkButtonImage, br))
             .with_child((Text::new("Mark"), tfs.clone(), TextColor(Color::WHITE)));
-        p.spawn((Button, tbtn.clone(), BackgroundColor(bc), TestButton))
+        p.spawn((Button, tbtn.clone(), BackgroundColor(bc), TestButton, br))
             .with_child((Text::new("Test"), tfs.clone(), TextColor(Color::WHITE)));
-        p.spawn((Button, tbtn.clone(), BackgroundColor(bc), SaveButton))
-            .with_child((Text::new("Save"), tfs.clone(), TextColor(Color::WHITE)));
-        p.spawn((Button, tbtn, BackgroundColor(bc), LoadButton))
+        p.spawn((Button, tbtn, BackgroundColor(bc), LoadButton, br))
             .with_child((Text::new("Load"), tfs, TextColor(Color::WHITE)));
     });
+    }
 
     // Play/Stop button
     let play_icon = create_play_icon(&mut images);
@@ -342,14 +342,14 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     }, UiTopAnim { target: TOP_SLIDE_SHOW, despawn_at_target: false })).with_child((
         Button, Node { width: Val::Px(PLAY_BTN_SIZE), height: Val::Px(PLAY_BTN_SIZE), justify_content: JustifyContent::Center,
             align_items: AlignItems::Center, border: UiRect::all(Val::Px(PLAY_BTN_BORDER)), ..default() },
-        BackgroundColor(slot_bg()),
-        BorderColor(border_unsel()),
+        BackgroundColor(slot_bg()), BorderColor(border_unsel()),
+        BorderRadius::all(Val::Px(UI_CORNER_RADIUS)),
         PlayStopButton, ImageNode::new(play_icon), PlayButtonImage,
     ));
 
-    // Inventory bar
+    // Inventory bar (editor only)
+    if !cfg!(feature = "player") {
     let sn = slot_node();
-
     let l1_slots: Vec<(InventorySlot, Handle<Image>, bool)> = vec![
         (InventorySlot::Floor, floor_icon, true), (InventorySlot::Source, source_icon, false),
         (InventorySlot::Goal, goal_icon, false), (InventorySlot::Turn, turn_icon, false),
@@ -362,31 +362,38 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
 
     commands.spawn((Node {
         position_type: PositionType::Absolute, bottom: Val::Px(INV_SLIDE_HIDE),
-        width: Val::Percent(100.0), justify_content: JustifyContent::Center,
+        width: Val::Percent(100.0), flex_direction: FlexDirection::Column,
         align_items: AlignItems::Center, ..default()
     }, InventoryContainer, UiBottomAnim { target: INV_SLIDE_SHOW, despawn_at_target: false },
-    )).with_children(|parent| {
-        parent.spawn((
-            Node { flex_direction: FlexDirection::Row, padding: UiRect::all(Val::Vw(INVENTORY_PAD_VW)),
-                column_gap: Val::Vw(INVENTORY_GAP_VW), align_items: AlignItems::Center, ..default() },
-            BackgroundColor(rgba(INVENTORY_BG)),
-        )).with_children(|container| {
-            for (slot_type, icon_handle, selected) in &l1_slots {
-                container.spawn((Button, sn.clone(), BackgroundColor(slot_bg()), border_for(*selected), *slot_type))
-                    .with_child((icon_node(), ImageNode::new(icon_handle.clone())));
-            }
-            container.spawn((
-                Node { flex_direction: FlexDirection::Row, column_gap: Val::Vw(INVENTORY_GAP_VW),
-                    align_items: AlignItems::Center, ..default() },
-                ExpansionContainer,
-            ));
-            container.spawn((Button, sn, BackgroundColor(slot_bg()), border_for(false), InventorySlot::Delete))
-                .with_child((icon_node(), ImageNode::new(delete_icon)));
-            // Status tooltip overlays the top of the inventory panel
-            container.spawn(Node { position_type: PositionType::Absolute, top: Val::Px(-20.0),
-                width: Val::Percent(100.0), justify_content: JustifyContent::Center, ..default() })
-                .with_child((Text::new(""), TextFont { font_size: STATUS_FONT, ..default() },
-                    TextColor(Color::srgba(1.0, 1.0, 1.0, 0.0)), StatusBarText));
-        });
+    )).with_children(|outer| {
+        outer.spawn(Node { position_type: PositionType::Absolute, top: Val::Px(-22.0),
+            width: Val::Percent(100.0), justify_content: JustifyContent::Center, ..default() })
+            .with_child((Text::new(""), gf(STATUS_FONT, &f),
+                TextColor(Color::srgba(TOOLTIP_COLOR.0, TOOLTIP_COLOR.1, TOOLTIP_COLOR.2, 0.0)), StatusBarText));
+        outer.spawn((Node { flex_direction: FlexDirection::Row, padding: UiRect::axes(Val::Vw(INVENTORY_PAD_VW), Val::ZERO),
+            column_gap: Val::Vw(INVENTORY_GAP_VW), height: Val::Vw(0.0),
+            align_items: AlignItems::Center, justify_content: JustifyContent::Center,
+            overflow: Overflow::clip(), ..default() },
+            BackgroundColor(rgba(INVENTORY_EXP_BG)), BorderRadius::all(Val::Px(UI_CORNER_RADIUS)),
+            ExpansionContainer));
+        outer.spawn(Node { width: Val::Percent(100.0), justify_content: JustifyContent::Center, ..default() })
+            .with_children(|l1| {
+                l1.spawn((Node { flex_direction: FlexDirection::Row, padding: UiRect::all(Val::Vw(INVENTORY_PAD_VW)),
+                    column_gap: Val::Vw(INVENTORY_GAP_VW), align_items: AlignItems::Center, ..default() },
+                    BackgroundColor(rgba(INVENTORY_L1_BG)), BorderRadius::all(Val::Px(UI_CORNER_RADIUS)),
+                )).with_children(|c| {
+                    let br = BorderRadius::all(Val::Px(UI_CORNER_RADIUS));
+                    for (slot_type, icon_handle, selected) in &l1_slots {
+                        c.spawn((Button, sn.clone(), BackgroundColor(slot_bg()), border_for(*selected), *slot_type, br))
+                            .with_child((icon_node(), ImageNode::new(icon_handle.clone())));
+                    }
+                    let del_node = Node { width: Val::Vw(SLOT_VW * 0.85), height: Val::Vw(SLOT_HEIGHT_VW * 0.85),
+                        justify_content: JustifyContent::Center, align_items: AlignItems::Center, ..default() };
+                    let del_icon = Node { width: Val::Vw(ICON_VW * 0.85), height: Val::Vw(ICON_VW * 0.85), ..default() };
+                    c.spawn((Button, del_node, BackgroundColor(Color::NONE), BorderColor(Color::NONE), InventorySlot::Delete, br))
+                        .with_child((del_icon, ImageNode::new(delete_icon)));
+                });
+            });
     });
+    }
 }

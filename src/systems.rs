@@ -25,10 +25,10 @@ pub fn animate_scale(
 
 pub fn animate_node_width(
     mut commands: Commands,
-    mut query: Query<(Entity, &mut Node, &NodeWidthAnim)>,
+    mut query: Query<(Entity, &mut Node, &NodeWidthAnim, Option<&mut BackgroundColor>)>,
     time: Res<Time>,
 ) {
-    for (entity, mut node, anim) in &mut query {
+    for (entity, mut node, anim, bg) in &mut query {
         let current = match node.width {
             Val::Vw(w) | Val::Px(w) => w,
             _ => anim.target,
@@ -39,19 +39,24 @@ pub fn animate_node_width(
                 commands.entity(entity).despawn_recursive();
             } else {
                 node.width = Val::Vw(anim.target);
+                if let Some(mut bg) = bg { bg.0.set_alpha(1.0); }
                 commands.entity(entity).remove::<NodeWidthAnim>();
             }
         } else {
             node.width = Val::Vw(new_w);
+            if anim.target > 0.1 {
+                if let Some(mut bg) = bg { bg.0.set_alpha((new_w / anim.target).clamp(0.0, 1.0)); }
+            }
         }
     }
 }
 
 pub fn animate_ui_slides(
     time: Res<Time>, mut commands: Commands,
-    mut bq: Query<(Entity, &mut Node, &UiBottomAnim)>,
-    mut tq: Query<(Entity, &mut Node, &UiTopAnim), Without<UiBottomAnim>>,
+    mut bq: Query<(Entity, &mut Node, &UiBottomAnim), Without<ExpHeightAnim>>,
+    mut tq: Query<(Entity, &mut Node, &UiTopAnim), (Without<UiBottomAnim>, Without<ExpHeightAnim>)>,
     mut fq: Query<(Entity, &mut BackgroundColor, &UiBgFade)>,
+    mut hq: Query<(Entity, &mut Node, &ExpHeightAnim), (Without<UiBottomAnim>, Without<UiTopAnim>)>,
 ) {
     let s = time.delta_secs() * UI_ANIM_SPEED;
     macro_rules! slide { ($q:expr, $field:ident, $comp:ty) => {
@@ -66,12 +71,40 @@ pub fn animate_ui_slides(
     }}
     slide!(bq, bottom, UiBottomAnim);
     slide!(tq, top, UiTopAnim);
+    for (e, mut n, a) in &mut hq {
+        let c = match n.height { Val::Vw(v) => v, Val::Px(v) => { n.height = Val::Vw(0.0); v }, _ => continue };
+        let d = a.target - c;
+        if d.abs() < 0.05 { n.height = Val::Vw(a.target); commands.entity(e).remove::<ExpHeightAnim>(); }
+        else { n.height = Val::Vw(c + d * s); }
+    }
     for (e, mut bg, a) in &mut fq {
         let c = bg.0.alpha(); let d = a.target - c;
         if d.abs() < FADE_SNAP {
             bg.0.set_alpha(a.target); commands.entity(e).remove::<UiBgFade>();
             if a.despawn_at_zero && a.target < FADE_SNAP { commands.entity(e).despawn_recursive(); }
         } else { bg.0.set_alpha(c + d * s); }
+    }
+}
+
+pub fn animate_border_fade(
+    mut commands: Commands,
+    mut query: Query<(Entity, &mut BorderColor, &BorderFade)>,
+    time: Res<Time>,
+) {
+    for (entity, mut border, fade) in &mut query {
+        let c = border.0.to_srgba();
+        let t = fade.target;
+        let s = fade.speed * time.delta_secs();
+        let nr = c.red + (t[0] - c.red) * s;
+        let ng = c.green + (t[1] - c.green) * s;
+        let nb = c.blue + (t[2] - c.blue) * s;
+        let na = c.alpha + (t[3] - c.alpha) * s;
+        if (nr - t[0]).abs() < 0.01 && (na - t[3]).abs() < 0.01 {
+            border.0 = Color::srgba(t[0], t[1], t[2], t[3]);
+            commands.entity(entity).remove::<BorderFade>();
+        } else {
+            border.0 = Color::srgba(nr, ng, nb, na);
+        }
     }
 }
 
@@ -89,7 +122,7 @@ pub fn update_hovered_cell(
     cameras: Query<(&Camera, &GlobalTransform), With<Camera3d>>,
     board_size: Res<BoardSize>,
     mut hovered: ResMut<HoveredCell>,
-    ui_interactions: Query<&Interaction, With<Button>>,
+    ui_interactions: Query<&Interaction>,
     play_mode: Res<PlayMode>,
 ) {
     let can_hover = matches!(*play_mode, PlayMode::Editing | PlayMode::Marking | PlayMode::TestEditing);
@@ -249,7 +282,7 @@ pub fn handle_tile_click(
     board_size: Res<BoardSize>,
     tiles: Query<(Entity, &TileCoord, &TileKind), (With<Tile>, Without<DespawnAtZeroScale>)>,
     assets: Res<GameAssets>,
-    ui_interactions: Query<&Interaction, With<Button>>,
+    ui_interactions: Query<&Interaction>,
     mut placed_teleports: ResMut<PlacedTeleports>,
     play_mode: Res<PlayMode>,
     ghost_q: Query<&Transform, With<GhostPreview>>,
@@ -270,13 +303,8 @@ pub fn handle_tile_click(
     }
 
     let same = matches!((selected_tool.0, kind),
-        (Tool::Floor, TileKind::Floor) | (Tool::Source, TileKind::Source(_, _))
-        | (Tool::Goal, TileKind::Goal(_)) | (Tool::Turn, TileKind::Turn(_, _))
-        | (Tool::TurnBut, TileKind::TurnBut(_, _)) | (Tool::Teleport, TileKind::Teleport(_))
-        | (Tool::Bounce, TileKind::Bounce(_)) | (Tool::BounceBut, TileKind::BounceBut(_))
-        | (Tool::Door, TileKind::Door(_)) | (Tool::Switch, TileKind::Switch)
-        | (Tool::Painter, TileKind::Painter(_)) | (Tool::Arrow, TileKind::Arrow(_, _))
-        | (Tool::ArrowBut, TileKind::ArrowBut(_, _)) | (Tool::Delete, TileKind::Empty));
+        (Tool::Floor, TileKind::Floor) | (Tool::Switch, TileKind::Switch)
+        | (Tool::Delete, TileKind::Empty));
     if same { return; }
     validated.0 = false;
 
@@ -312,7 +340,8 @@ pub fn handle_tile_click(
                     placed_teleports.0[num] += 1;
                     despawn(&mut commands, entity);
                     spawn_tile_at_scale(&mut commands, col, row, board_size.0, TileKind::Teleport(num), &assets, ghost_scale);
-                    let next = (1..NUM_TELEPORTS).map(|o| (num + o) % NUM_TELEPORTS).find(|n| placed_teleports.0[*n] < 2);
+                    let next = if placed_teleports.0[num] < 2 { Some(num) }
+                        else { (1..NUM_TELEPORTS).map(|o| (num + o) % NUM_TELEPORTS).find(|n| placed_teleports.0[*n] < 2) };
                     inv_state.color_index = next;
                     if next.is_none() { selected_tool.0 = Tool::Floor; }
                 }
@@ -353,5 +382,18 @@ pub fn handle_tile_click(
             spawn_tile(&mut commands, col, row, board_size.0, TileKind::Empty, &assets);
         }
     }
+}
+
+pub fn sync_inventory_play_mode(
+    play_mode: Res<PlayMode>,
+    mut inv: Query<&mut UiBottomAnim, With<InventoryContainer>>,
+) {
+    if !play_mode.is_changed() { return; }
+    let target = match *play_mode {
+        PlayMode::Playing => INV_SLIDE_HIDE,
+        PlayMode::Editing => INV_SLIDE_SHOW,
+        _ => return,
+    };
+    for mut anim in &mut inv { anim.target = target; }
 }
 
