@@ -4,51 +4,32 @@ A game built with [Bevy](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.15.0** - 6 puzzle levels, player stats tracking, multi-level navigation.
+**v0.16.0** - Bot puzzle game (6 levels) + The Gathering space runner minigame.
 
-### Features
+### Bot Game (Editor + Player)
 - Resizable board (3x3 to 12x12) with smooth scale animations
 - Adaptive camera (30° isometric view, resolution-independent)
-- **Floor tiles** with procedural gray textures and dark edge borders
-- **Source tiles** with circle+arrow symbol, 10 distinct colors, directional rotation, replaceable, unlimited per color
-- **Goal tiles** with star symbol, 10 colors, unlimited per color
-- **Turn tiles** with L-shaped corner piece, 11 colors (10 + grey for all bots), directional, unlimited
-- **TurnBut tiles** with L-shape + forbidden symbol, affects all bots except matching color, 10 colors
-- **Teleport tiles** with ring + 7-segment number, 11 colors (10 + grey for all bots), auto-paired numbering, bot shrinks/grows between paired teleports
-- **TeleportBut tiles** with ring + number + forbidden symbol, teleports all bots except matching color, 10 colors, auto-paired numbering
-- **Bouncer tiles** with diamond shape, reverses bot direction 180°, 11 colors (10 + grey), unlimited
-- **BounceBut tiles** with diamond + forbidden symbol, reverses all except matching color, 10 colors
-- **Door tiles** (open/closed) with switch tile interaction
-- **Arrow tiles** with arrow symbol, forces all bots to follow its direction (including 180° U-turns), 11 colors (10 + grey)
-- **ArrowBut tiles** with arrow + forbidden symbol, bounces matching color bots, redirects all others, 10 colors
-- **Delete tool** with smooth red overlay fade-in/out and fade trails between cells
-- **Two-texture emission system**: base texture for shape/stroke, color mask for programmatic coloring via emissive
-- **Editable file-based textures** (`assets/textures/`): base and mask PNGs auto-generated on first run, editable afterwards
-- **Color memory**: switching tools remembers last placed color instead of auto-cycling
-- **Multi-level accordion inventory** with auto-selection:
-  - L1: Floor, Source, Goal, Turn, TurnBut, Teleport, TeleportBut, Bounce, BounceBut, Door, Switch, Painter, Arrow, ArrowBut, Delete
-  - L2: 4 directional variants (N/E/S/W) for Source, Turn, TurnBut, Arrow, ArrowBut; Open/Closed for Door
-  - L3: Color/number selection with count indicators and availability tracking
-- **Test mode**: mark tiles for inventory, flat sorted test inventory, remove tool, reset
-- **Player mode**: standalone exe loads all level JSONs — inventory, play, reset, level navigation with `<`/`>` arrows
-- **6 built-in puzzle levels** with progressive difficulty: turns, painters, teleports, switches/doors, TurnBut color gates
-- **Player stats tracking**: `stats.json` updated on every interaction (tile placement, play, reset, navigation, periodic timer); `stats.jsonl` append log on completion; `--reset-stats` CLI flag to wipe progress
-- **Creative solution detection**: levels store the creator's placements; alternative solutions flagged in stats
-- **Completed level view**: shows the user's winning solution with yellow markers on placed tiles, stats in top bar
-- **Level save/load** with fade-in/out dialog animations
-- **Switch/SwitchBut tiles** merged into 2 L1 inventory items (matching Bounce/BounceBut pattern)
-- **Smooth UI animations**: hover fade-out trails (BorderFade), expansion height transitions (ExpHeightAnim), slide-in/out bars, fade dialogs, L2/L3 slot grow-in
-- **Isometric 3D-rendered inventory icons** with correct direction and color matching
-- **Ghost preview** with smooth fade-in/out highlight on hover, suppressed after tile placement and dialog dismissal
-- **Seamless tile placement**: placed tiles inherit ghost preview scale for smooth transitions
-- Phase-based bot movement: accelerate, cruise, decelerate, rotate, bounce, teleport, spin at goal
-- Auto-color cycling: next available color selected after placement, freed color pre-selected on delete
-- Placed source/goal/teleport colors collapse out of inventory, deleted ones smoothly reappear
-- **UI helper library** (`ui_helpers.rs`): reusable color helpers, node builders, dialog spawner for consistent UX
-- **Comprehensive constants** (`constants.rs`): all colors, sizes, speeds, thresholds centralized
-- **Lane-based bot formation**: bots sharing a tile scale down and travel side-by-side in parallel lanes, with smooth transitions
-- **Merge flash effect**: expanding white disc pulses when bots merge onto the same tile
-- Modular codebase: 16 modules, all files ≤400 lines
+- 14 tile types: Floor, Source, Goal, Turn, TurnBut, Teleport, TeleportBut, Bounce, BounceBut, Door, Switch, Painter, Arrow, ArrowBut
+- Multi-level accordion inventory with auto-selection and color memory
+- Phase-based bot movement with lane formation and merge flash effects
+- Test mode, player mode, level save/load, 6 built-in puzzle levels
+- Player stats tracking with creative solution detection
+- Smooth UI animations throughout
+
+### The Gathering
+- Vertical endless space runner — navigate a mining ship through asteroid fields
+- 3D ship follows mouse with inertia, tilt, and pitch
+- Procedural asteroid generation (6 mesh types, 5 colors) with rotation
+- Asteroid velocity vectors with lateral drift and side-entry spawning
+- Asteroid-asteroid marble-like deflection physics
+- Crystal clouds: absorb by proximity, shrink as collected
+- Shield + life damage system with glancing/direct hit calculation
+- Hit cooldowns prevent multi-frame damage, control loss on impact
+- Difficulty curve scales spawn rate, speed, and side-entry chance based on time and crystals
+- 4-layer parallax star background
+- HUD: crystal counter (K/M format), distance (AU), time (days)
+- Game over screen with stats and try again
+- Screen shake on impact
 
 ## Downloads
 
@@ -70,11 +51,13 @@ Download from [v0.14.0 release](https://github.com/jjgarcianorway/protocol-play/
 Requires [Rust](https://www.rust-lang.org/tools/install).
 
 ```sh
-# Editor (full level editor)
-cargo build --release
+# Build all (editor + player + gathering)
+./build-all.sh
 
-# Player (standalone playtester)
-cargo build --release --features player
+# Individual builds
+cargo build --release                      # Editor
+cargo build --release --features player    # Player
+cargo build --release --features gathering # The Gathering
 ```
 
 ## Running
@@ -85,6 +68,9 @@ cargo run --release
 
 # Player (place level.json next to the binary)
 cargo run --release --features player
+
+# The Gathering
+cargo run --release --features gathering
 ```
 
 ## License
