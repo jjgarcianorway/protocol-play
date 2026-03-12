@@ -222,7 +222,7 @@ pub fn spawn_test_inventory(commands: &mut Commands, test_inv: &TestInventory, i
                 });
             }
             c.spawn((Button, TestInventorySlot(usize::MAX), border_for(test_inv.remove_mode),
-                sn, BackgroundColor(Color::NONE), BorderColor(Color::NONE), br,
+                sn, BackgroundColor(Color::NONE), br,
             )).with_child((icon_node(), ImageNode::new(icons.delete.clone())));
         });
     });

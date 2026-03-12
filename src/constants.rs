@@ -223,6 +223,21 @@ pub const CRUSH_EXPAND: f32 = 1.5;
 pub const STATUS_FONT: f32 = 15.0;
 pub const STATUS_FADE_SPEED: f32 = 6.0;
 
+// Cursor & scrollbar
+pub const CURSOR_BLINK_RATE: f32 = 1.8;
+pub const SCROLLBAR_WIDTH: f32 = 6.0;
+pub const SCROLLBAR_COLOR: (f32, f32, f32, f32) = (0.6, 0.6, 0.7, 0.6);
+pub const SCROLLBAR_TRACK_COLOR: (f32, f32, f32, f32) = (0.25, 0.25, 0.30, 0.3);
+pub const SCROLLBAR_MIN_H: f32 = 20.0;
+pub const LOAD_ENTRY_HOVER_BG: (f32, f32, f32) = (0.28, 0.30, 0.35);
+pub const DELETE_BTN_COLOR: (f32, f32, f32) = (0.6, 0.25, 0.25);
+pub const DELETE_BTN_HOVER: (f32, f32, f32) = (0.8, 0.2, 0.2);
+
+// Player navigation
+pub const LEVEL_NAME_FONT: f32 = 15.0;
+pub const LEVEL_NAME_MIN_W: f32 = 160.0;
+pub const NAV_ARROW_FONT: f32 = 20.0;
+
 // Visual quality
 pub const CLEAR_COLOR: (f32, f32, f32) = (0.78, 0.90, 0.86);
 pub const AMBIENT_COLOR: (f32, f32, f32) = (0.75, 0.82, 0.90);

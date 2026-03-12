@@ -3,7 +3,7 @@
 
 mod constants; mod types; mod textures; mod gen_textures; mod board;
 mod ui_helpers; mod slot_ui; mod inventory; mod systems; mod simulation;
-mod bot_formation; mod mat_helpers; mod test_mode; mod level_io;
+mod bot_formation; mod mat_helpers; mod test_mode; mod level_io; mod save_dialog;
 #[cfg(feature = "player")] mod player;
 
 use bevy::prelude::*;
@@ -20,6 +20,7 @@ use ui_helpers::*;
 use mat_helpers::*;
 use test_mode::*;
 use level_io::*;
+use save_dialog::*;
 
 fn main() {
     gen_textures::ensure_textures();
@@ -31,13 +32,14 @@ fn main() {
         .insert_resource(ClearColor(Color::srgb(CLEAR_COLOR.0, CLEAR_COLOR.1, CLEAR_COLOR.2)))
         .insert_resource(AmbientLight { color: Color::srgb(AMBIENT_COLOR.0, AMBIENT_COLOR.1, AMBIENT_COLOR.2), brightness: AMBIENT_BRIGHTNESS })
         .insert_resource(BoardSize(3))
-        .insert_resource(SelectedTool::default())
-        .insert_resource(HoveredCell::default()).insert_resource(HiddenTileEntity::default()).insert_resource(GhostCell::default())
+        .insert_resource(SelectedTool::default()).insert_resource(HoveredCell::default()).insert_resource(HiddenTileEntity::default())
+        .insert_resource(GhostCell::default())
         .insert_resource(InventoryState { level: 1, direction: None, color_index: None, last_placed_color: None })
         .insert_resource(PlayMode::default()).insert_resource(DoorToggleCount::default()).insert_resource(OriginalDoorStates::default())
         .insert_resource(SimulationResult::default()).insert_resource(PrevTileCounts::default())
         .insert_resource(SavedBoardState::default()).insert_resource(SavedTestState::default())
         .insert_resource(TestInventory::default()).insert_resource(LevelValidated::default())
+        .insert_resource(CursorBlinkTimer::default()).insert_resource(LoadedLevelName::default()).insert_resource(PendingSave::default()).insert_resource(ScrollbarDrag::default())
         .add_systems(Startup, (setup_scene, setup_ui));
     #[cfg(feature = "player")]
     app.add_systems(Startup, player::setup_player.after(setup_scene).after(setup_ui));
@@ -48,14 +50,10 @@ fn main() {
             animate_ui_slides, animate_border_fade, cleanup_despawned.after(animate_scale),
         ))
         .add_systems(Update, (
-            overlay_button_interaction,
-            play_stop_interaction.after(overlay_button_interaction),
-            move_bots.after(play_stop_interaction),
-            update_bot_formation.after(move_bots),
-            apply_bot_formation.after(update_bot_formation),
-            animate_merge_flashes,
-            paint_bots.after(move_bots),
-            toggle_doors.after(move_bots),
+            overlay_button_interaction, play_stop_interaction.after(overlay_button_interaction),
+            move_bots.after(play_stop_interaction), update_bot_formation.after(move_bots),
+            apply_bot_formation.after(update_bot_formation), animate_merge_flashes,
+            paint_bots.after(move_bots), toggle_doors.after(move_bots),
             check_simulation_result.after(move_bots),
             spawn_simulation_overlay.after(check_simulation_result),
             adapt_camera,
@@ -64,7 +62,6 @@ fn main() {
     app.add_systems(Update, (
             button_interaction, inventory_interaction,
             update_inventory_visuals.after(inventory_interaction),
-            update_l3_availability.after(inventory_interaction),
             handle_tile_click.after(update_hovered_cell),
             sync_inventory_play_mode,
         ))
@@ -72,17 +69,20 @@ fn main() {
             mark_button_interaction, handle_mark_click.after(update_hovered_cell),
             test_button_interaction, stop_test_interaction.after(play_stop_interaction), reset_test_interaction,
             handle_test_tile_click.after(update_hovered_cell), test_inventory_interaction,
-            sync_editor_buttons_visibility,
+            sync_editor_buttons_visibility, save_button_interaction, save_dialog_input,
+            save_dialog_buttons, blink_save_cursor, overwrite_dialog_buttons, validation_error_ok,
         ))
         .add_systems(Update, (
-            save_button_interaction, save_dialog_input, save_dialog_buttons,
-            load_button_interaction, load_dialog_buttons, validation_error_ok, update_status_bar,
+            load_button_interaction, load_dialog_buttons, load_entry_hover,
+            delete_level_button_interaction, delete_level_dialog_buttons,
+            update_status_bar, update_load_scrollbar, scrollbar_drag,
         ));
     #[cfg(feature = "player")]
-    app.add_systems(Update, (
-            handle_test_tile_click.after(update_hovered_cell), test_inventory_interaction,
-            reset_test_interaction, update_status_bar,
-        ));
+    { app.add_systems(Update, (handle_test_tile_click.after(update_hovered_cell),
+        test_inventory_interaction, reset_test_interaction, update_status_bar));
+      app.add_systems(Update, (player::player_nav_interaction, player::update_player_stats));
+      app.add_systems(Update, (player::auto_save_progress, player::handle_level_complete));
+      app.add_systems(Update, player::populate_stats.before(spawn_simulation_overlay)); }
     app.run();
 }
 

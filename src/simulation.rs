@@ -27,6 +27,7 @@ pub enum SimResult { Error(&'static str), Success }
 pub struct SimulationResult {
     pub result: Option<SimResult>, pub overlay_spawned: bool,
     pub stop_requested: bool, pub test_success_exit: bool,
+    pub stats_lines: Vec<String>,
 }
 #[derive(Component)] pub struct SimulationOverlay;
 #[derive(Component)] pub struct SimOverlayButton;
@@ -58,6 +59,7 @@ pub fn play_stop_interaction(
         *play_mode = next;
         sim_result.result = None; sim_result.overlay_spawned = false;
         sim_result.stop_requested = false; sim_result.test_success_exit = false;
+        sim_result.stats_lines.clear();
         commands.insert_resource(PlayTimer(Timer::from_seconds(BOT_START_DELAY, TimerMode::Once)));
         let mut img = button_image.single_mut();
         img.image = play_icons.stop.clone();
@@ -320,6 +322,7 @@ pub fn spawn_simulation_overlay(
         Some(SimResult::Success) => ("All bots reached their goals!", rgb(SIM_SUCCESS_COLOR), "Continue"),
         None => return,
     };
+    let stats = sim_result.stats_lines.clone();
     commands.spawn((
         Node { position_type: PositionType::Absolute, width: Val::Percent(100.0), height: Val::Percent(100.0),
             justify_content: JustifyContent::Center, align_items: AlignItems::Center, ..default() },
@@ -331,6 +334,9 @@ pub fn spawn_simulation_overlay(
             BackgroundColor(rgb(SIM_CARD_BG)),
         )).with_children(|card| {
             card.spawn((Text::new(msg), gf(SIM_MSG_FONT, &font.0), TextColor(color)));
+            for line in &stats {
+                card.spawn((Text::new(line), gf(DIALOG_BODY_FONT, &font.0), TextColor(Color::WHITE)));
+            }
             card.spawn((
                 Button, SimOverlayButton,
                 Node { padding: UiRect::axes(Val::Px(SIM_BTN_PAD.0), Val::Px(SIM_BTN_PAD.1)), ..default() },

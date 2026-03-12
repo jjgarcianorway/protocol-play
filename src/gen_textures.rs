@@ -86,7 +86,7 @@ const SEG: [u8; 10] = [0x7E, 0x30, 0x6D, 0x79, 0x33, 0x5B, 0x5F, 0x70, 0x7F, 0x7
 
 fn in_7seg(x: f32, y: f32, d: u8, cx: f32) -> bool {
     let y = -y;
-    let (rx, hw, hh, t) = (x - cx, 0.08, 0.14, 0.035);
+    let (rx, hw, hh, t) = (x - cx, 0.07, 0.11, 0.032);
     let s = SEG[d as usize];
     (s & 0x40 != 0 && rx.abs() < hw && (y - hh).abs() < t)
     || (s & 0x20 != 0 && (rx - hw).abs() < t && y > t / 2.0 && y < hh)
@@ -99,6 +99,7 @@ fn in_7seg(x: f32, y: f32, d: u8, cx: f32) -> bool {
 
 fn in_tp_num(x: f32, y: f32, num: usize) -> bool {
     let n = num + 1;
+    let y = y - 0.66;
     if n < 10 { in_7seg(x, y, n as u8, 0.0) } else { in_7seg(x, y, 1, -0.10) || in_7seg(x, y, 0, 0.10) }
 }
 

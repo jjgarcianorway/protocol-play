@@ -4,7 +4,6 @@ use bevy::prelude::*;
 use serde::{Serialize, Deserialize};
 use std::f32::consts::{FRAC_PI_2, PI};
 
-
 // === Enums ===
 #[derive(Default, PartialEq, Clone, Copy)]
 pub enum Tool {
@@ -350,8 +349,7 @@ pub struct TestInventory {
 #[derive(Component)] pub struct UiBottomAnim { pub target: f32, pub despawn_at_target: bool }
 #[derive(Component)] pub struct UiTopAnim { pub target: f32, pub despawn_at_target: bool }
 #[derive(Component)] pub struct UiBgFade { pub target: f32, pub despawn_at_zero: bool }
-#[derive(Serialize, Deserialize)]
-pub struct LevelData {
+#[derive(Serialize, Deserialize)] pub struct LevelData {
     pub name: String, pub board_size: u32, pub tiles: Vec<(u32, u32, TileKind, bool)>,
     #[serde(default)] pub solution: Vec<(u32, u32, TileKind)>,
 }
@@ -385,3 +383,17 @@ impl Default for BotFormation {
 
 #[derive(Component)]
 pub struct MergeFlash { pub progress: f32 }
+#[derive(Component)] pub struct SaveDialogCursor;
+#[derive(Component)] pub struct OverwriteDialog;
+#[derive(Component)] pub struct OverwriteConfirm;
+#[derive(Component)] pub struct OverwriteCancel;
+#[derive(Component)] pub struct LoadDialogList;
+#[derive(Component)] pub struct ScrollbarThumb;
+#[derive(Resource, Default)] pub struct CursorBlinkTimer(pub f32);
+#[derive(Resource, Default)] pub struct LoadedLevelName(pub Option<String>);
+#[derive(Resource, Default)] pub struct PendingSave(pub Option<(String, LevelData)>);
+#[derive(Resource, Default)] pub struct ScrollbarDrag(pub Option<f32>);
+#[derive(Component)] pub struct DeleteLevelButton(pub String);
+#[derive(Component)] pub struct DeleteLevelDialog;
+#[derive(Component)] pub struct DeleteLevelConfirm(pub String);
+#[derive(Component)] pub struct DeleteLevelCancel;

@@ -99,15 +99,6 @@ pub fn rebuild_l3_colors(
     }
 }
 
-pub fn update_l3_availability(
-    _commands: Commands, _inv_state: Res<InventoryState>,
-    _l3_slots: Query<(Entity, &InventorySlot, &Node, &Children), With<Level3Slot>>,
-    _children_q: Query<&Children>, _text_q: Query<&mut Text>,
-) {
-    // Teleport colors now use auto-numbering with up to 10 pairs per color.
-    // No dynamic availability tracking needed (all colors always available).
-}
-
 pub fn collapse_expansion(
     commands: &mut Commands, l2: &Query<Entity, With<Level2Slot>>,
     l3: &Query<(Entity, &InventorySlot), With<Level3Slot>>,

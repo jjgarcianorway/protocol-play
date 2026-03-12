@@ -122,8 +122,8 @@ pub fn update_hovered_cell(
     let can_hover = matches!(*play_mode, PlayMode::Editing | PlayMode::Marking | PlayMode::TestEditing);
     if !can_hover { hovered.0 = None; return; }
     if ui_interactions.iter().any(|i| *i != Interaction::None) { hovered.0 = None; return; }
-    let window = windows.single();
-    let (camera, cam_transform) = cameras.single();
+    let Ok(window) = windows.get_single() else { hovered.0 = None; return; };
+    let Ok((camera, cam_transform)) = cameras.get_single() else { hovered.0 = None; return; };
     let Some(cursor) = window.cursor_position() else { hovered.0 = None; return; };
     let Ok(ray) = camera.viewport_to_world(cam_transform, cursor) else { hovered.0 = None; return; };
     let dir = ray.direction.as_vec3();

@@ -25,7 +25,7 @@ jobs:
         run: |
           mkdir bundle
           copy target\x86_64-pc-windows-msvc\release\protocol-play.exe bundle\protocol-player-windows.exe
-          copy levels\paula.json bundle\level.json
+          for %%f in (levels\*.json) do copy "%%f" "bundle\"
         shell: cmd
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -47,7 +47,7 @@ jobs:
           mkdir bundle
           cp target/aarch64-apple-darwin/release/protocol-play bundle/protocol-player-macos
           chmod +x bundle/protocol-player-macos
-          cp levels/paula.json bundle/level.json
+          cp levels/*.json bundle/
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -69,8 +69,8 @@ jobs:
 
       - name: Prepare release files
         run: |
-          cd artifacts/windows-bundle && zip ../../protocol-player-windows.zip protocol-player-windows.exe level.json
-          cd ../../artifacts/macos-bundle && tar czf ../../protocol-player-macos.tar.gz protocol-player-macos level.json
+          cd artifacts/windows-bundle && zip ../../protocol-player-windows.zip protocol-player-windows.exe *.json
+          cd ../../artifacts/macos-bundle && tar czf ../../protocol-player-macos.tar.gz protocol-player-macos *.json
 
       - name: Create release
         uses: softprops/action-gh-release@v2
@@ -78,10 +78,12 @@ jobs:
           tag_name: ${{ inputs.tag }}
           name: "Player ${{ inputs.tag }}"
           body: |
-            Player build for testing levels.
+            Player build with 6 puzzle levels.
 
-            **Windows**: Extract the zip and run `protocol-player-windows.exe`. Level included.
-            **macOS**: Extract, then run in Terminal: `xattr -cr protocol-player-macos && ./protocol-player-macos`. Level included.
+            **Windows**: Extract the zip and run `protocol-player-windows.exe`.
+            **macOS**: Extract, then run in Terminal: `xattr -cr protocol-player-macos && ./protocol-player-macos`
+
+            Stats are logged to `stats.jsonl` next to the executable.
           files: |
             protocol-player-windows.zip
             protocol-player-macos.tar.gz
