@@ -4,7 +4,7 @@ A game built with [Bevy](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.12.1** - Dialog ghost suppression, darker grid markers, UI polish.
+**v0.13.1** - Ghost fade trails, exact-match suppression, player/editor UI consistency.
 
 ### Features
 - Resizable board (3x3 to 12x12) with smooth scale animations
@@ -58,8 +58,8 @@ Each package includes the executable and a sample `level.json`. Extract and run.
 
 ### Editor (for creating levels)
 
-Download from [v0.12.0 release](https://github.com/jjgarcianorway/protocol-play/releases/tag/v0.12.0):
-- **Linux**: `protocol-play`
+Download from [v0.13.1 release](https://github.com/jjgarcianorway/protocol-play/releases/tag/v0.13.1):
+- **Linux**: `protocol-play-editor`
 
 ## Building
 
