@@ -4,7 +4,7 @@ A game built with [Bevy](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.14.0** - Colored teleports with auto-numbering, TeleportBut tiles.
+**v0.15.0** - 6 puzzle levels, player stats tracking, multi-level navigation.
 
 ### Features
 - Resizable board (3x3 to 12x12) with smooth scale animations
@@ -30,8 +30,11 @@ A game built with [Bevy](https://bevyengine.org/) (Rust).
   - L2: 4 directional variants (N/E/S/W) for Source, Turn, TurnBut, Arrow, ArrowBut; Open/Closed for Door
   - L3: Color/number selection with count indicators and availability tracking
 - **Test mode**: mark tiles for inventory, flat sorted test inventory, remove tool, reset
-- **Player mode**: standalone exe reads `level.json` — just inventory, play, and reset (no editor UI)
-- **Creator solution tracking**: levels store the creator's tile placements for future "creative solve" detection
+- **Player mode**: standalone exe loads all level JSONs — inventory, play, reset, level navigation with `<`/`>` arrows
+- **6 built-in puzzle levels** with progressive difficulty: turns, painters, teleports, switches/doors, TurnBut color gates
+- **Player stats tracking**: `stats.json` updated on every interaction (tile placement, play, reset, navigation, periodic timer); `stats.jsonl` append log on completion; `--reset-stats` CLI flag to wipe progress
+- **Creative solution detection**: levels store the creator's placements; alternative solutions flagged in stats
+- **Completed level view**: shows the user's winning solution with yellow markers on placed tiles, stats in top bar
 - **Level save/load** with fade-in/out dialog animations
 - **Switch/SwitchBut tiles** merged into 2 L1 inventory items (matching Bounce/BounceBut pattern)
 - **Smooth UI animations**: hover fade-out trails (BorderFade), expansion height transitions (ExpHeightAnim), slide-in/out bars, fade dialogs, L2/L3 slot grow-in
@@ -45,17 +48,17 @@ A game built with [Bevy](https://bevyengine.org/) (Rust).
 - **Comprehensive constants** (`constants.rs`): all colors, sizes, speeds, thresholds centralized
 - **Lane-based bot formation**: bots sharing a tile scale down and travel side-by-side in parallel lanes, with smooth transitions
 - **Merge flash effect**: expanding white disc pulses when bots merge onto the same tile
-- Modular codebase: 15 modules, all files ≤400 lines
+- Modular codebase: 16 modules, all files ≤400 lines
 
 ## Downloads
 
 ### Player (for playtesting levels)
 
-Download from [v0.12.0-player release](https://github.com/jjgarcianorway/protocol-play/releases/tag/v0.12.0-player):
-- **Windows**: `protocol-player-windows.tar.gz`
-- **macOS**: `protocol-player-macos.tar.gz`
+Download from [v0.15.0-player release](https://github.com/jjgarcianorway/protocol-play/releases/tag/v0.15.0-player):
+- **Windows**: `protocol-player-windows.zip` — extract and run `protocol-player-windows.exe`
+- **macOS**: `protocol-player-macos.tar.gz` — extract, then `xattr -cr protocol-player-macos && ./protocol-player-macos`
 
-Each package includes the executable and a sample `level.json`. Extract and run.
+Includes 6 puzzle levels. Stats logged to `stats.json` and `stats.jsonl` next to the executable. Use `--reset-stats` to clear progress between testers.
 
 ### Editor (for creating levels)
 

@@ -235,8 +235,9 @@ pub const DELETE_BTN_HOVER: (f32, f32, f32) = (0.8, 0.2, 0.2);
 
 // Player navigation
 pub const LEVEL_NAME_FONT: f32 = 15.0;
-pub const LEVEL_NAME_MIN_W: f32 = 160.0;
+pub const LEVEL_NAME_MIN_W: f32 = 280.0;
 pub const NAV_ARROW_FONT: f32 = 20.0;
+pub const STATS_WRITE_INTERVAL: f32 = 10.0;
 
 // Visual quality
 pub const CLEAR_COLOR: (f32, f32, f32) = (0.78, 0.90, 0.86);

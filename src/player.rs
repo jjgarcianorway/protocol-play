@@ -1,7 +1,4 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//
-// Player mode: standalone exe that loads level JSONs and enters test mode directly.
-
 use bevy::prelude::*;
 use crate::constants::*;
 use crate::types::*;
@@ -12,7 +9,6 @@ use crate::simulation::SimulationResult;
 #[path = "player_progress.rs"] mod player_progress;
 use player_progress::*;
 
-// === Player-specific types ===
 #[derive(Resource)]
 pub struct PlayerLevels {
     pub levels: Vec<LevelData>,
@@ -22,7 +18,6 @@ pub struct PlayerLevels {
 #[derive(Component)] pub struct PrevLevelButton;
 #[derive(Component)] pub struct NextLevelButton;
 #[derive(Component)] pub struct LevelNameText;
-#[derive(Component)] pub struct LevelCountText;
 #[derive(Component)] pub struct CongratsScreen;
 
 #[derive(Resource, Default)]
@@ -30,9 +25,9 @@ pub struct LevelStats {
     pub editing_time: f32,
     pub play_count: u32,
     pub reset_count: u32,
+    pub last_stats_write: f32,
 }
 
-// === Setup ===
 pub fn setup_player(
     mut commands: Commands,
     tiles: Query<Entity, With<Tile>>,
@@ -46,7 +41,7 @@ pub fn setup_player(
     let exe_dir = std::env::current_exe().ok()
         .and_then(|p| p.parent().map(|d| d.to_path_buf()));
     let search_dir = exe_dir.unwrap_or_else(|| std::path::PathBuf::from("."));
-    info!("Scanning for levels in: {}", search_dir.display());
+    let do_reset = std::env::args().any(|a| a == "--reset-stats");
 
     let mut levels: Vec<LevelData> = Vec::new();
     let mut filenames: Vec<String> = Vec::new();
@@ -79,6 +74,8 @@ pub fn setup_player(
         return;
     }
 
+    if do_reset { reset_all_progress(&search_dir, &filenames); info!("Stats reset."); }
+    ensure_stats_file(&search_dir);
     let progress_data: Vec<LevelProgress> = filenames.iter()
         .map(|f| load_progress(&search_dir, f)).collect();
     let start_idx = first_unsolved(&progress_data).unwrap_or(0);
@@ -92,10 +89,7 @@ pub fn setup_player(
     load_level(&mut commands, &assets, &mut board_size, &mut test_inv, &icons,
         &font.0, &mut play_mode, &player_levels, &p, &mut stats, true);
 
-    if first_unsolved(&progress.data).is_none() {
-        spawn_congrats(&mut commands, &font.0, &progress);
-    }
-
+    if first_unsolved(&progress.data).is_none() { spawn_congrats(&mut commands, &font.0, &progress); }
     commands.insert_resource(player_levels);
     commands.insert_resource(progress);
     commands.insert_resource(stats);
@@ -124,7 +118,8 @@ fn load_level(
     board_size.0 = level.board_size.clamp(MIN_BOARD_SIZE, MAX_BOARD_SIZE);
 
     *stats = LevelStats { editing_time: progress.stats.editing_time,
-        play_count: progress.stats.play_count, reset_count: progress.stats.reset_count };
+        play_count: progress.stats.play_count, reset_count: progress.stats.reset_count,
+        last_stats_write: 0.0 };
 
     if progress.completed {
         let mut board_tiles: Vec<(u32, u32, TileKind)> = Vec::new();
@@ -190,7 +185,6 @@ fn load_level(
     *play_mode = PlayMode::TestEditing;
 }
 
-// === Player UI ===
 fn spawn_player_buttons(commands: &mut Commands, f: &Handle<Font>, levels: &PlayerLevels,
     progress: &LevelProgress, animate: bool,
 ) {
@@ -198,10 +192,9 @@ fn spawn_player_buttons(commands: &mut Commands, f: &Handle<Font>, levels: &Play
     let btn = text_btn_node();
     let nav = Node { padding: UiRect::axes(Val::Px(TEXT_BTN_PAD.0), Val::Px(TEXT_BTN_PAD.1)), ..default() };
     let level = &levels.levels[levels.current];
-    let status = if progress.completed { format!("{} (completed)", level.name) }
-        else if progress.board_state.is_some() { format!("{} (in progress)", level.name) }
-        else { level.name.clone() };
-    let count_str = format!("{} / {}", levels.current + 1, levels.levels.len());
+    let suffix = if progress.completed { " (completed)" }
+        else if progress.board_state.is_some() { " (in progress)" } else { "" };
+    let label = format!("{}{suffix} ({}/{})", level.name, levels.current + 1, levels.levels.len());
 
     let start_top = if animate { -50.0 } else { TOP_SLIDE_SHOW };
     let mut ec = commands.spawn((Node { position_type: PositionType::Absolute, left: Val::Px(10.0), top: Val::Px(start_top),
@@ -214,10 +207,7 @@ fn spawn_player_buttons(commands: &mut Commands, f: &Handle<Font>, levels: &Play
                 .with_child((Text::new("<"), gf(NAV_ARROW_FONT, f), tc));
         }
         p.spawn(Node { min_width: Val::Px(LEVEL_NAME_MIN_W), justify_content: JustifyContent::Center, ..default() })
-            .with_child((Text::new(&status), gf(LEVEL_NAME_FONT, f), tc, LevelNameText));
-        p.spawn(Node::default())
-            .with_child((Text::new(&count_str), gf(LEVEL_NAME_FONT, f),
-                TextColor(Color::srgba(1.0, 1.0, 1.0, 0.5)), LevelCountText));
+            .with_child((Text::new(&label), gf(LEVEL_NAME_FONT, f), tc, LevelNameText));
         if levels.levels.len() > 1 {
             p.spawn((Button, NextLevelButton, nav, BackgroundColor(btn_bg()), br))
                 .with_child((Text::new(">"), gf(NAV_ARROW_FONT, f), tc));
@@ -229,7 +219,8 @@ fn spawn_player_buttons(commands: &mut Commands, f: &Handle<Font>, levels: &Play
             p.spawn(Node::default()).with_child((Text::new(stat_str),
                 gf(LEVEL_NAME_FONT, f), TextColor(Color::srgba(1.0, 1.0, 1.0, 0.5))));
         } else {
-            p.spawn((Button, ResetTestButton, btn, BackgroundColor(btn_bg()), br))
+            let mut rb = btn.clone(); rb.margin = UiRect::left(Val::Px(8.0));
+            p.spawn((Button, ResetTestButton, rb, BackgroundColor(btn_bg()), br))
                 .with_child((Text::new("Reset"), tf, tc));
         }
     });
@@ -274,6 +265,10 @@ pub fn player_nav_interaction(
     for i in &next_q { if *i == Interaction::Pressed { dir = Some(1); } }
     let Some(d) = dir else { return };
     if !matches!(*play_mode, PlayMode::TestEditing | PlayMode::Playing) { return; }
+    let live = ProgressStats { editing_time: stats.editing_time,
+        play_count: stats.play_count, reset_count: stats.reset_count };
+    save_stats_summary(&progress.save_dir, &progress.filenames,
+        &levels.levels, &progress.data, levels.current, &live);
     let next = next_level(&progress.data, levels.current, d);
     levels.current = next;
     for e in &cleanup { commands.entity(e).despawn_recursive(); }
@@ -283,19 +278,25 @@ pub fn player_nav_interaction(
         &font.0, &mut play_mode, &levels, &p, &mut stats, false);
 }
 
-// === Stats & persistence ===
 pub fn update_player_stats(
     time: Res<Time>, play_mode: Res<PlayMode>, mut stats: ResMut<LevelStats>,
     reset_q: Query<&Interaction, (With<ResetTestButton>, Changed<Interaction>)>,
-    progress: Res<PlayerProgress>,
-    levels: Res<PlayerLevels>,
+    progress: Res<PlayerProgress>, levels: Res<PlayerLevels>,
 ) {
     if levels.levels.is_empty() { return; }
     if progress.data[levels.current].completed { return; }
+    let mut changed = false;
     if *play_mode == PlayMode::TestEditing { stats.editing_time += time.delta_secs(); }
-    if play_mode.is_changed() && *play_mode == PlayMode::TestPlaying { stats.play_count += 1; }
+    if play_mode.is_changed() && *play_mode == PlayMode::TestPlaying { stats.play_count += 1; changed = true; }
     if *play_mode == PlayMode::TestEditing && reset_q.iter().any(|i| *i == Interaction::Pressed) {
-        stats.reset_count += 1;
+        stats.reset_count += 1; changed = true;
+    }
+    if changed || stats.editing_time - stats.last_stats_write >= STATS_WRITE_INTERVAL {
+        stats.last_stats_write = stats.editing_time;
+        let live = ProgressStats { editing_time: stats.editing_time,
+            play_count: stats.play_count, reset_count: stats.reset_count };
+        save_stats_summary(&progress.save_dir, &progress.filenames,
+            &levels.levels, &progress.data, levels.current, &live);
     }
 }
 
@@ -321,9 +322,10 @@ pub fn auto_save_progress(
     progress.data[idx].board_state = if placements.is_empty() { None } else { Some(placements) };
     progress.data[idx].inventory_state = Some(test_inv.items.clone());
     progress.data[idx].stats = ProgressStats {
-        editing_time: stats.editing_time, play_count: stats.play_count, reset_count: stats.reset_count,
-    };
+        editing_time: stats.editing_time, play_count: stats.play_count, reset_count: stats.reset_count };
     save_one(&progress, idx);
+    save_stats_summary(&progress.save_dir, &progress.filenames,
+        &levels.levels, &progress.data, idx, &progress.data[idx].stats);
 }
 
 pub fn handle_level_complete(
@@ -349,6 +351,7 @@ pub fn handle_level_complete(
         .map(|(_, c, k)| (c.col, c.row, *k)).collect();
     let creative = is_creative_solution(&levels.levels[idx].solution, &placed);
     progress.data[idx].completed = true;
+    progress.data[idx].creative_solution = creative;
     progress.data[idx].inventory_state = None;
     progress.data[idx].stats = ProgressStats {
         editing_time: stats.editing_time, play_count: stats.play_count, reset_count: stats.reset_count,

@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 use serde::{Serialize, Deserialize};
-use crate::types::TileKind;
+use crate::types::{TileKind, LevelData};
 use std::path::{Path, PathBuf};
 use std::fs;
 use std::io::Write;
@@ -10,6 +10,7 @@ use std::io::Write;
 #[derive(Serialize, Deserialize, Default, Clone)]
 pub struct LevelProgress {
     pub completed: bool,
+    #[serde(default)] pub creative_solution: bool,
     pub stats: ProgressStats,
     pub board_state: Option<Vec<(u32, u32, TileKind)>>,
     pub inventory_state: Option<Vec<(TileKind, u8)>>,
@@ -59,6 +60,39 @@ pub fn next_unsolved(data: &[LevelProgress], from: usize, dir: i32) -> Option<us
         if !data[idx].completed { return Some(idx); }
     }
     None
+}
+
+pub fn reset_all_progress(dir: &Path, filenames: &[String]) {
+    for f in filenames {
+        let _ = fs::remove_file(dir.join(format!("{f}.progress.json")));
+    }
+    let _ = fs::remove_file(dir.join("stats.jsonl"));
+}
+
+pub fn ensure_stats_file(dir: &Path) {
+    let path = dir.join("stats.jsonl");
+    if !path.exists() { let _ = fs::File::create(&path); }
+}
+
+#[derive(Serialize)]
+struct LevelStatsSummary {
+    name: String, filename: String, completed: bool,
+    #[serde(skip_serializing_if = "std::ops::Not::not")] creative_solution: bool,
+    editing_time_secs: f32, play_count: u32, reset_count: u32,
+}
+
+pub fn save_stats_summary(dir: &Path, filenames: &[String], levels: &[LevelData],
+    data: &[LevelProgress], current_idx: usize, live: &ProgressStats,
+) {
+    let entries: Vec<LevelStatsSummary> = data.iter().enumerate().map(|(i, p)| {
+        let s = if i == current_idx && !p.completed { live } else { &p.stats };
+        LevelStatsSummary { name: levels[i].name.clone(), filename: filenames[i].clone(),
+            completed: p.completed, creative_solution: p.creative_solution,
+            editing_time_secs: s.editing_time, play_count: s.play_count, reset_count: s.reset_count }
+    }).collect();
+    if let Ok(json) = serde_json::to_string_pretty(&entries) {
+        let _ = fs::write(dir.join("stats.json"), json);
+    }
 }
 
 pub fn is_creative_solution(solution: &[(u32, u32, TileKind)], placed: &[(u32, u32, TileKind)]) -> bool {
