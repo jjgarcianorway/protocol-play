@@ -89,6 +89,28 @@ pub const STATS_CARD_PAD: f32 = 40.0;
 pub const STATS_CARD_GAP: f32 = 12.0;
 pub const STATS_SUCCESS_COLOR: (f32, f32, f32) = (0.3, 0.7, 1.0);
 
+// Crystal clouds
+pub const CRYSTAL_MIN_RADIUS: f32 = 1.5;
+pub const CRYSTAL_MAX_RADIUS: f32 = 3.5;
+pub const CRYSTAL_ABSORB_RANGE: f32 = 4.0;
+pub const CRYSTAL_ABSORB_RATE: f32 = 0.6;
+pub const CRYSTAL_MIN_VALUE: u64 = 5_000;
+pub const CRYSTAL_MAX_VALUE: u64 = 50_000;
+pub const CRYSTAL_COLOR: (f32, f32, f32) = (0.2, 0.6, 1.0);
+pub const CRYSTAL_EMISSIVE_MULT: f32 = 5.0;
+pub const CRYSTAL_SPAWN_INTERVAL: f32 = 4.0;
+pub const CRYSTAL_ICO_SUBDIVISIONS: u32 = 1;
+
+// Difficulty
+pub const DIFFICULTY_TIME_SCALE: f32 = 0.003;
+pub const DIFFICULTY_CRYSTAL_SCALE: f32 = 0.00001;
+pub const DIFFICULTY_MAX_SPAWN_MULT: f32 = 3.0;
+pub const DIFFICULTY_MAX_SPEED_MULT: f32 = 1.8;
+pub const DIFFICULTY_SIDE_SPAWN_CHANCE: f32 = 0.25;
+
+// Asteroid-asteroid collision
+pub const ASTEROID_BOUNCE_FACTOR: f32 = 0.8;
+
 // Lighting
 pub const DIR_LIGHT_DIR: [f32; 3] = [-0.4, -0.6, -0.8];
 pub const DIR_LIGHT_BRIGHTNESS: f32 = 3000.0;

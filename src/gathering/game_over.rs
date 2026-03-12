@@ -102,6 +102,8 @@ pub fn spawn_game_over_screen(
             card.spawn(Node { height: Val::Px(8.0), ..default() });
             stat_row(card, "Distance", &format!("{:.1} AU", au), &stat_font, label_color, value_color);
             stat_row(card, "Time", &format!("{} days", days), &stat_font, label_color, value_color);
+            let crys = if state.crystals >= 1_000 { format!("{}K", state.crystals / 1_000) } else { format!("{}", state.crystals) };
+            stat_row(card, "Crystals", &crys, &stat_font, label_color, value_color);
             stat_row(card, "Hits taken", &format!("{}", state.hits_taken), &stat_font, label_color, value_color);
             card.spawn(Node { height: Val::Px(8.0), ..default() });
             card.spawn((
@@ -141,6 +143,8 @@ pub fn try_again_interaction(
     game_over_q: Query<Entity, With<GameOverScreen>>,
     fade_q: Query<Entity, With<FadeOverlay>>,
     asteroid_q: Query<Entity, With<Asteroid>>,
+    crystal_q: Query<Entity, With<CrystalCloud>>,
+    mut difficulty: ResMut<Difficulty>,
     mut commands: Commands,
 ) {
     for interaction in interaction_q.iter() {
@@ -148,6 +152,7 @@ pub fn try_again_interaction(
         *state = ShipState::default();
         *shake = ScreenShake::default();
         *fade = FadeTimer::default();
+        *difficulty = Difficulty::default();
         next_state.set(GatheringState::Running);
         for entity in game_over_q.iter() { commands.entity(entity).despawn_recursive(); }
         for entity in fade_q.iter() {
@@ -156,6 +161,7 @@ pub fn try_again_interaction(
             }
         }
         for entity in asteroid_q.iter() { commands.entity(entity).despawn(); }
+        for entity in crystal_q.iter() { commands.entity(entity).despawn(); }
     }
 }
 

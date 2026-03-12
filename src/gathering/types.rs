@@ -10,7 +10,7 @@ use super::constants::*;
 #[derive(Component)]
 pub struct Asteroid {
     pub radius: f32,
-    pub speed: f32,
+    pub velocity: Vec2,
     pub rot_axis: Vec3,
     pub rot_speed: f32,
 }
@@ -26,6 +26,14 @@ pub struct Star {
 #[derive(Component)] pub struct TimeText;
 #[derive(Component)] pub struct GameOverScreen;
 #[derive(Component)] pub struct TryAgainButton;
+#[derive(Component)] pub struct CrystalText;
+
+#[derive(Component)]
+pub struct CrystalCloud {
+    pub radius: f32,
+    pub value: u64,
+    pub remaining: f32,
+}
 
 // === Resources ===
 #[derive(Resource)]
@@ -84,6 +92,24 @@ impl Default for AsteroidSpawnTimer {
 pub struct GatheringAssets {
     pub asteroid_meshes: Vec<Handle<Mesh>>,
     pub asteroid_materials: Vec<Handle<StandardMaterial>>,
+    pub crystal_mesh: Handle<Mesh>,
+    pub crystal_material: Handle<StandardMaterial>,
+}
+
+#[derive(Resource)]
+pub struct CrystalSpawnTimer(pub Timer);
+
+impl Default for CrystalSpawnTimer {
+    fn default() -> Self {
+        Self(Timer::from_seconds(CRYSTAL_SPAWN_INTERVAL, TimerMode::Repeating))
+    }
+}
+
+#[derive(Resource)]
+pub struct Difficulty {
+    pub spawn_mult: f32,
+    pub speed_mult: f32,
+    pub side_chance: f32,
 }
 
 #[derive(States, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]

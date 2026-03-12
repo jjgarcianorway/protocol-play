@@ -5,7 +5,9 @@ mod types;
 mod ship;
 mod asteroids;
 mod collision;
+mod crystals;
 mod damage;
+mod difficulty;
 mod background;
 mod hud;
 mod game_over;
@@ -26,6 +28,8 @@ pub fn build_app(app: &mut App) {
         .insert_resource(ScreenShake::default())
         .insert_resource(ViewBounds::default())
         .insert_resource(AsteroidSpawnTimer::default())
+        .insert_resource(CrystalSpawnTimer::default())
+        .insert_resource(Difficulty::default())
         .insert_resource(FadeTimer::default())
         .init_state::<GatheringState>()
         .add_systems(Startup, setup_gathering)
@@ -33,11 +37,16 @@ pub fn build_app(app: &mut App) {
             ship::move_ship,
             asteroids::spawn_asteroids,
             asteroids::move_asteroids,
+            asteroids::asteroid_asteroid_collisions.after(asteroids::move_asteroids),
             collision::check_collisions.after(asteroids::move_asteroids),
             collision::tick_hit_cooldowns,
+            crystals::spawn_crystals,
+            crystals::move_crystals,
+            crystals::absorb_crystals.after(crystals::move_crystals),
             damage::update_shield_regen,
             damage::update_screen_shake.after(collision::check_collisions),
             damage::update_bars,
+            difficulty::update_difficulty,
             background::scroll_stars,
             hud::update_hud,
             hud::update_game_time,
@@ -54,7 +63,6 @@ fn setup_gathering(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut fonts: ResMut<Assets<Font>>,
 ) {
-    // Camera
     commands.spawn((
         Camera3d::default(),
         Camera { hdr: true, ..default() },
@@ -66,31 +74,24 @@ fn setup_gathering(
         }),
     ));
 
-    // Directional light
     commands.spawn((
         DirectionalLight { illuminance: DIR_LIGHT_BRIGHTNESS, shadows_enabled: false, ..default() },
         Transform::default().looking_to(Vec3::new(DIR_LIGHT_DIR[0], DIR_LIGHT_DIR[1], DIR_LIGHT_DIR[2]), Vec3::Y),
     ));
 
-    // View bounds from camera
     let bounds = ViewBounds::default();
 
-    // Font
     let font_bytes = include_bytes!("../../assets/fonts/FiraSans-Regular.ttf").to_vec();
     let font = fonts.add(Font::try_from_bytes(font_bytes).unwrap());
     commands.insert_resource(GatheringFont(font.clone()));
 
-    // Ship
     ship::spawn_ship(&mut commands, &mut meshes, &mut materials);
 
-    // Asteroid assets
     let assets = asteroids::create_asteroid_assets(&mut meshes, &mut materials);
     commands.insert_resource(assets);
 
-    // Background stars
     background::spawn_stars(&mut commands, &mut meshes, &mut materials, &bounds);
 
-    // UI
     damage::spawn_bars(&mut commands, font.clone());
     hud::spawn_hud(&mut commands, font);
     spawn_fade_overlay(&mut commands);

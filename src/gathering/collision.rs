@@ -26,7 +26,8 @@ pub fn check_collisions(
         if dist < collision_dist {
             let overlap = 1.0 - (dist / collision_dist).clamp(0.0, 1.0);
             let directness = if overlap > 0.5 { 1.0 } else { DAMAGE_GLANCING_MULT + (1.0 - DAMAGE_GLANCING_MULT) * (overlap / 0.5) };
-            let damage = (asteroid.radius * DAMAGE_SIZE_FACTOR + asteroid.speed * DAMAGE_SPEED_FACTOR) * directness;
+            let speed = asteroid.velocity.length();
+            let damage = (asteroid.radius * DAMAGE_SIZE_FACTOR + speed * DAMAGE_SPEED_FACTOR) * directness;
 
             if state.shield > 0.0 {
                 let shield_absorb = damage.min(state.shield);
