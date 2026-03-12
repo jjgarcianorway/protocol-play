@@ -5,6 +5,7 @@ mod constants; mod types; mod textures; mod gen_textures; mod board;
 mod ui_helpers; mod slot_ui; mod inventory; mod systems; mod simulation;
 mod bot_formation; mod mat_helpers; mod test_mode; mod level_io; mod save_dialog;
 #[cfg(feature = "player")] mod player;
+#[cfg(feature = "gathering")] mod gathering;
 
 use bevy::prelude::*;
 use bevy::core_pipeline::bloom::Bloom;
@@ -23,6 +24,17 @@ use level_io::*;
 use save_dialog::*;
 
 fn main() {
+    #[cfg(feature = "gathering")]
+    {
+        let mut app = App::new();
+        app.add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window { title: "The Gathering".into(), ..default() }), ..default()
+        }));
+        gathering::build_app(&mut app);
+        app.run();
+        return;
+    }
+
     gen_textures::ensure_textures();
     let title = if cfg!(feature = "player") { "protocol: play (player)" } else { "protocol: play" };
     let mut app = App::new();
