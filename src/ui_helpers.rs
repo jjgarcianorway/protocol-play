@@ -75,3 +75,8 @@ pub fn spawn_dialog<M: Component>(
 pub fn fade_out<T: Component>(commands: &mut Commands, q: &Query<Entity, With<T>>) {
     for e in q { commands.entity(e).insert(UiBgFade { target: 0.0, despawn_at_zero: true }); }
 }
+
+/// Suppress ghost hover until mouse moves to a different tile.
+pub fn suppress_ghost(hovered: &HoveredCell, ghost_cell: &mut GhostCell) {
+    ghost_cell.last_placed = hovered.0;
+}

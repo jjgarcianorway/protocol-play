@@ -155,7 +155,7 @@ pub fn validation_error_ok(
     let ok = q.iter().any(|i| *i == Interaction::Pressed) || keys.just_pressed(KeyCode::Escape)
         || keys.just_pressed(KeyCode::Enter);
     if !ok || dialog.is_empty() { return; }
-    ghost_cell.last_placed = hovered.0;
+    suppress_ghost(&hovered, &mut ghost_cell);
     fade_out::<ValidationErrorDialog>(&mut commands, &dialog);
 }
 
@@ -216,7 +216,7 @@ pub fn save_dialog_buttons(
     let cancel = cancel_q.iter().any(|i| *i == Interaction::Pressed) || keys.just_pressed(KeyCode::Escape);
     let confirm = confirm_q.iter().any(|i| *i == Interaction::Pressed) || keys.just_pressed(KeyCode::Enter);
 
-    if cancel { ghost_cell.last_placed = hovered.0; fade_out(&mut commands, &dialog); return; }
+    if cancel { suppress_ghost(&hovered, &mut ghost_cell); fade_out(&mut commands, &dialog); return; }
     if !confirm { return; }
     let Ok(children) = input_q.get_single() else { return };
     let Some(&child) = children.iter().next() else { return };
@@ -236,7 +236,7 @@ pub fn save_dialog_buttons(
     let level = LevelData { name: name.clone(), board_size: board_size.0, tiles: tile_data, solution };
     let path = levels_dir().join(format!("{name}.json"));
     if let Ok(json) = serde_json::to_string_pretty(&level) { let _ = fs::write(&path, json); }
-    ghost_cell.last_placed = hovered.0;
+    suppress_ghost(&hovered, &mut ghost_cell);
     fade_out::<SaveDialog>(&mut commands, &dialog);
 }
 
@@ -314,7 +314,7 @@ pub fn load_dialog_buttons(
     hovered: Res<HoveredCell>, mut ghost_cell: ResMut<GhostCell>,
 ) {
     let cancel = cancel_q.iter().any(|i| *i == Interaction::Pressed) || keys.just_pressed(KeyCode::Escape);
-    if cancel { ghost_cell.last_placed = hovered.0; fade_out(&mut commands, &dialog); return; }
+    if cancel { suppress_ghost(&hovered, &mut ghost_cell); fade_out(&mut commands, &dialog); return; }
     let mut selected_file = None;
     for (interaction, entry) in &entry_q {
         if *interaction == Interaction::Pressed { selected_file = Some(entry.0.clone()); }
@@ -360,7 +360,7 @@ pub fn load_dialog_buttons(
     *inv_state = InventoryState::default();
     inv_state.level = 1;
     selected_tool.0 = Tool::Floor;
-    ghost_cell.last_placed = hovered.0;
+    suppress_ghost(&hovered, &mut ghost_cell);
     if let Ok((_, children)) = expansion.get_single() {
         for &child in children.iter() { commands.entity(child).despawn_recursive(); }
     }

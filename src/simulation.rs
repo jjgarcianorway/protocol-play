@@ -334,7 +334,7 @@ pub fn overlay_button_interaction(
     hovered: Res<HoveredCell>, mut ghost_cell: ResMut<GhostCell>,
 ) {
     if !q.iter().any(|i| *i == Interaction::Pressed) { return; }
-    ghost_cell.last_placed = hovered.0;
+    suppress_ghost(&hovered, &mut ghost_cell);
     sim_result.stop_requested = true;
     if *play_mode == PlayMode::TestPlaying && matches!(sim_result.result, Some(SimResult::Success)) { sim_result.test_success_exit = true; }
 }
