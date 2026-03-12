@@ -20,7 +20,7 @@ pub fn border_sel() -> Color { rgba(BORDER_SELECTED) }
 pub fn border_unsel() -> Color { rgba(BORDER_UNSELECTED) }
 pub fn border_hovered() -> Color { rgba(BORDER_HOVERED) }
 pub fn border_for(selected: bool) -> BorderColor {
-    BorderColor(if selected { border_sel() } else { border_unsel() })
+    BorderColor::all(if selected { border_sel() } else { border_unsel() })
 }
 
 // === Node builders ===
@@ -30,6 +30,7 @@ pub fn slot_node() -> Node {
         border: UiRect::all(Val::Px(SLOT_BORDER_PX)),
         justify_content: JustifyContent::Center, align_items: AlignItems::Center,
         overflow: Overflow::clip(),
+        border_radius: BorderRadius::all(Val::Px(UI_CORNER_RADIUS)),
         ..default()
     }
 }
@@ -55,7 +56,7 @@ pub fn dialog_panel_node(row_gap: f32) -> Node {
 // === Dialog spawn ===
 pub fn spawn_dialog<M: Component>(
     commands: &mut Commands, marker: M, panel_node: Node,
-    build_panel: impl FnOnce(&mut ChildBuilder),
+    build_panel: impl FnOnce(&mut ChildSpawnerCommands),
 ) {
     commands.spawn((
         Node { position_type: PositionType::Absolute, width: Val::Percent(100.0),
@@ -65,8 +66,9 @@ pub fn spawn_dialog<M: Component>(
         GlobalZIndex(200), marker, Interaction::default(),
         UiBgFade { target: DIALOG_FADE_TARGET, despawn_at_zero: false },
     )).with_children(|bg| {
-        bg.spawn((panel_node, BackgroundColor(rgb(DIALOG_PANEL_BG)),
-            BorderRadius::all(Val::Px(UI_CORNER_RADIUS * 2.0)),
+        let mut pn = panel_node;
+        pn.border_radius = BorderRadius::all(Val::Px(UI_CORNER_RADIUS * 2.0));
+        bg.spawn((pn, BackgroundColor(rgb(DIALOG_PANEL_BG)),
         )).with_children(build_panel);
     });
 }

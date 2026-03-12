@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use bevy::prelude::*;
-use bevy::render::mesh::*;
+use bevy::mesh::*;
 use rand::Rng;
 use super::constants::*;
 use super::types::*;

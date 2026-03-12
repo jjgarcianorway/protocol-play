@@ -229,8 +229,8 @@ pub fn button_interaction(
     mut size_text: Query<&mut Text, With<BoardSizeText>>,
     play_mode: Res<PlayMode>,
     mut validated: ResMut<LevelValidated>,
-) {
-    if *play_mode != PlayMode::Editing { return; }
+) -> Result {
+    if *play_mode != PlayMode::Editing { return Ok(()); }
     for (interaction, button) in &interaction_query {
         if *interaction != Interaction::Pressed { continue; }
         let new_size = match button {
@@ -239,11 +239,12 @@ pub fn button_interaction(
         };
         if new_size == board_size.0 { continue; }
         board_size.0 = new_size; validated.0 = false;
-        for entity in &tiles { commands.entity(entity).despawn_recursive(); }
+        for entity in &tiles { commands.entity(entity).despawn(); }
         spawn_board(&mut commands, new_size, &assets);
-        let mut text = size_text.single_mut();
+        let mut text = size_text.single_mut()?;
         **text = format!("{}x{}", new_size, new_size);
     }
+    Ok(())
 }
 
 // === Camera ===
@@ -252,13 +253,13 @@ pub fn adapt_camera(
     mut cameras: Query<(&mut Transform, &Projection), With<Camera3d>>,
     board_size: Res<BoardSize>,
     expansion: Query<&Node, With<ExpansionContainer>>,
-) {
-    let window = windows.single();
-    let (mut transform, projection) = cameras.single_mut();
+) -> Result {
+    let window = windows.single()?;
+    let (mut transform, projection) = cameras.single_mut()?;
     let aspect = window.width() / window.height();
     let fov = match projection {
         Projection::Perspective(p) => p.fov,
-        _ => return,
+        _ => return Ok(()),
     };
     let radius = board_bounding_radius(board_size.0);
     let half_fov_v = fov / 2.0;
@@ -284,4 +285,5 @@ pub fn adapt_camera(
     let shift = shift_px / window.height() * distance * 2.0 * (fov / 2.0).tan();
     let look_at = Vec3::new(0.0, -shift, 0.0);
     *transform = Transform::from_translation(look_at + dir * distance).looking_at(look_at, Vec3::Y);
+    Ok(())
 }

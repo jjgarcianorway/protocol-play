@@ -85,7 +85,7 @@ pub fn setup_player(
     let mut stats = LevelStats::default();
 
     let p = progress.data[start_idx].clone();
-    for e in &tiles { commands.entity(e).despawn_recursive(); }
+    for e in &tiles { commands.entity(e).despawn(); }
     load_level(&mut commands, &assets, &mut board_size, &mut test_inv, &icons,
         &font.0, &mut play_mode, &player_levels, &p, &mut stats, true);
 
@@ -188,9 +188,9 @@ fn load_level(
 fn spawn_player_buttons(commands: &mut Commands, f: &Handle<Font>, levels: &PlayerLevels,
     progress: &LevelProgress, animate: bool,
 ) {
-    let (tf, tc, br) = (gf(LABEL_FONT, f), TextColor(Color::WHITE), BorderRadius::all(Val::Px(UI_CORNER_RADIUS)));
-    let btn = text_btn_node();
-    let nav = Node { padding: UiRect::axes(Val::Px(TEXT_BTN_PAD.0), Val::Px(TEXT_BTN_PAD.1)), ..default() };
+    let (tf, tc) = (gf(LABEL_FONT, f), TextColor(Color::WHITE));
+    let mut btn = text_btn_node(); btn.border_radius = BorderRadius::all(Val::Px(UI_CORNER_RADIUS));
+    let nav = Node { padding: UiRect::axes(Val::Px(TEXT_BTN_PAD.0), Val::Px(TEXT_BTN_PAD.1)), border_radius: BorderRadius::all(Val::Px(UI_CORNER_RADIUS)), ..default() };
     let level = &levels.levels[levels.current];
     let suffix = if progress.completed { " (completed)" }
         else if progress.board_state.is_some() { " (in progress)" } else { "" };
@@ -203,13 +203,13 @@ fn spawn_player_buttons(commands: &mut Commands, f: &Handle<Font>, levels: &Play
     if animate { ec.insert(UiTopAnim { target: TOP_SLIDE_SHOW, despawn_at_target: false }); }
     ec.with_children(|p| {
         if levels.levels.len() > 1 {
-            p.spawn((Button, PrevLevelButton, nav.clone(), BackgroundColor(btn_bg()), br))
+            p.spawn((Button, PrevLevelButton, nav.clone(), BackgroundColor(btn_bg())))
                 .with_child((Text::new("<"), gf(NAV_ARROW_FONT, f), tc));
         }
         p.spawn(Node { min_width: Val::Px(LEVEL_NAME_MIN_W), justify_content: JustifyContent::Center, ..default() })
             .with_child((Text::new(&label), gf(LEVEL_NAME_FONT, f), tc, LevelNameText));
         if levels.levels.len() > 1 {
-            p.spawn((Button, NextLevelButton, nav, BackgroundColor(btn_bg()), br))
+            p.spawn((Button, NextLevelButton, nav, BackgroundColor(btn_bg())))
                 .with_child((Text::new(">"), gf(NAV_ARROW_FONT, f), tc));
         }
         if progress.completed {
@@ -220,7 +220,7 @@ fn spawn_player_buttons(commands: &mut Commands, f: &Handle<Font>, levels: &Play
                 gf(LEVEL_NAME_FONT, f), TextColor(Color::srgba(1.0, 1.0, 1.0, 0.5))));
         } else {
             let mut rb = btn.clone(); rb.margin = UiRect::left(Val::Px(8.0));
-            p.spawn((Button, ResetTestButton, rb, BackgroundColor(btn_bg()), br))
+            p.spawn((Button, ResetTestButton, rb, BackgroundColor(btn_bg())))
                 .with_child((Text::new("Reset"), tf, tc));
         }
     });
@@ -271,8 +271,8 @@ pub fn player_nav_interaction(
         &levels.levels, &progress.data, levels.current, &live);
     let next = next_level(&progress.data, levels.current, d);
     levels.current = next;
-    for e in &cleanup { commands.entity(e).despawn_recursive(); }
-    for e in &tiles { commands.entity(e).despawn_recursive(); }
+    for e in &cleanup { commands.entity(e).despawn(); }
+    for e in &tiles { commands.entity(e).despawn(); }
     let p = progress.data[next].clone();
     load_level(&mut commands, &assets, &mut board_size, &mut test_inv, &icons,
         &font.0, &mut play_mode, &levels, &p, &mut stats, false);
@@ -361,8 +361,8 @@ pub fn handle_level_complete(
         &levels.levels[idx].name, &progress.data[idx].stats, creative);
     let next = first_unsolved(&progress.data).unwrap_or(idx);
     levels.current = next;
-    for e in &cleanup { commands.entity(e).despawn_recursive(); }
-    for (e, _, _) in &tile_q { commands.entity(e).despawn_recursive(); }
+    for e in &cleanup { commands.entity(e).despawn(); }
+    for (e, _, _) in &tile_q { commands.entity(e).despawn(); }
     let p = progress.data[next].clone();
     load_level(&mut commands, &assets, &mut board_size, &mut test_inv, &icons,
         &font.0, &mut play_mode, &levels, &p, &mut stats, false);

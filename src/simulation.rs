@@ -49,9 +49,9 @@ pub fn play_stop_interaction(
     overlay: Query<Entity, With<SimulationOverlay>>,
     mut validated: ResMut<LevelValidated>,
     merge_flashes: Query<Entity, With<MergeFlash>>,
-) {
+) -> Result {
     let button_pressed = interaction_query.iter().any(|i| *i == Interaction::Pressed);
-    if !button_pressed && !sim_result.stop_requested { return; }
+    if !button_pressed && !sim_result.stop_requested { return Ok(()); }
     let can_start = *play_mode == PlayMode::Editing || *play_mode == PlayMode::TestEditing;
     let can_stop = *play_mode == PlayMode::Playing || *play_mode == PlayMode::TestPlaying;
     if button_pressed && can_start {
@@ -61,7 +61,7 @@ pub fn play_stop_interaction(
         sim_result.stop_requested = false; sim_result.test_success_exit = false;
         sim_result.stats_lines.clear();
         commands.insert_resource(PlayTimer(Timer::from_seconds(BOT_START_DELAY, TimerMode::Once)));
-        let mut img = button_image.single_mut();
+        let mut img = button_image.single_mut()?;
         img.image = play_icons.stop.clone();
         door_states.0.clear();
         for (_, coord, kind, _) in &tiles {
@@ -94,10 +94,10 @@ pub fn play_stop_interaction(
         sim_result.stop_requested = false; sim_result.test_success_exit = false;
         sim_result.result = None; sim_result.overlay_spawned = false;
         door_toggle.0 = 0;
-        button_image.single_mut().image = play_icons.play.clone();
+        button_image.single_mut()?.image = play_icons.play.clone();
         for entity in &bots { commands.entity(entity).insert((TargetScale(Vec3::ZERO), DespawnAtZeroScale)); }
-        for e in &overlay { commands.entity(e).despawn_recursive(); }
-        for e in &merge_flashes { commands.entity(e).despawn_recursive(); }
+        for e in &overlay { commands.entity(e).despawn(); }
+        for e in &merge_flashes { commands.entity(e).despawn(); }
         commands.remove_resource::<PlayTimer>();
         for (e, _, kind, _) in tiles.iter() { if matches!(*kind, TileKind::Empty) { commands.entity(e).insert(TargetScale(Vec3::ONE)); } }
         for (col, row, was_open) in door_states.0.drain(..) {
@@ -108,7 +108,7 @@ pub fn play_stop_interaction(
                         let mat = if was_open { assets.door_open_material.clone() }
                             else { assets.door_closed_material.clone() };
                         if let Some(children) = children {
-                            for &child in children.iter() {
+                            for child in children.iter() {
                                 if let Ok(mut m) = mat_q.get_mut(child) { m.0 = mat.clone(); }
                             }
                         }
@@ -117,6 +117,7 @@ pub fn play_stop_interaction(
             }
         }
     }
+    Ok(())
 }
 
 pub fn move_bots(
@@ -129,7 +130,7 @@ pub fn move_bots(
     mut door_toggle: ResMut<DoorToggleCount>,
 ) {
     if *play_mode != PlayMode::Playing && *play_mode != PlayMode::TestPlaying { return; }
-    if let Some(ref mut timer) = play_timer { timer.0.tick(time.delta()); if !timer.0.finished() { return; } }
+    if let Some(ref mut timer) = play_timer { timer.0.tick(time.delta()); if !timer.0.is_finished() { return; } }
     let dt = time.delta_secs();
     let half = (board_size.0 as f32 - 1.0) / 2.0;
     let bot_y = FLOOR_TOP_Y + BOT_SIZE / 2.0;
@@ -271,7 +272,7 @@ pub fn toggle_doors(
         *open = !*open;
         if !*open { closed_doors.push((coord.col, coord.row)); }
         let mat = if *open { assets.door_open_material.clone() } else { assets.door_closed_material.clone() };
-        for &child in children.iter() { if let Ok(mut m) = mat_q.get_mut(child) { m.0 = mat.clone(); } }
+        for child in children.iter() { if let Ok(mut m) = mat_q.get_mut(child) { m.0 = mat.clone(); } }
     }}
     for (col, row) in closed_doors { for mut mov in &mut bots {
         if mov.col == col as i32 && mov.row == row as i32

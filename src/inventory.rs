@@ -16,7 +16,7 @@ fn refresh_l3_icons(
     for (entity, slot) in l3_slots {
         if let Some(ni) = get_icon(slot) {
             if let Ok(ch) = children_q.get(entity) {
-                for &c in ch.iter() { if let Ok(mut img) = image_q.get_mut(c) { img.image = ni.clone(); } }
+                for c in ch.iter() { if let Ok(mut img) = image_q.get_mut(c) { img.image = ni.clone(); } }
             }
         }
     }
@@ -37,14 +37,14 @@ pub fn inventory_interaction(
     children_q: Query<&Children>,
     mut image_q: Query<&mut ImageNode>,
     font: Res<GameFont>,
-) {
-    if *play_mode != PlayMode::Editing { return; }
+) -> Result {
+    if *play_mode != PlayMode::Editing { return Ok(()); }
     let mut clicked = None;
     for (interaction, slot) in &slots {
         if *interaction == Interaction::Pressed { clicked = Some(*slot); }
     }
-    let Some(clicked) = clicked else { return };
-    let expansion = expansion_q.single();
+    let Some(clicked) = clicked else { return Ok(()) };
+    let expansion = expansion_q.single()?;
 
     match clicked {
         InventorySlot::Floor | InventorySlot::Delete => {
@@ -255,6 +255,7 @@ pub fn inventory_interaction(
             };
         }
     }
+    Ok(())
 }
 
 // === Inventory visuals ===
@@ -296,11 +297,11 @@ pub fn update_inventory_visuals(
             | InventorySlot::PainterColor(ci) | InventorySlot::ArrowColor(ci) | InventorySlot::ArrowButColor(ci) => inv_state.color_index == Some(*ci),
         };
         if matches!(*interaction, Interaction::Hovered | Interaction::Pressed) {
-            border.0 = border_hovered(); commands.entity(entity).remove::<BorderFade>();
+            *border = BorderColor::all(border_hovered()); commands.entity(entity).remove::<BorderFade>();
         } else if selected {
-            border.0 = border_sel(); commands.entity(entity).remove::<BorderFade>();
+            *border = BorderColor::all(border_sel()); commands.entity(entity).remove::<BorderFade>();
         } else {
-            let c = border.0.to_srgba(); let t = BORDER_UNSELECTED;
+            let c = border.top.to_srgba(); let t = BORDER_UNSELECTED;
             if (c.red - t.0).abs() > 0.02 || (c.alpha - t.3).abs() > 0.02 {
                 commands.entity(entity).insert(BorderFade { target: [t.0, t.1, t.2, t.3], speed: HOVER_FADE_SPEED });
             }
@@ -372,7 +373,7 @@ pub fn update_status_bar(
     mut text_q: Query<(&mut Text, &mut TextColor), With<StatusBarText>>,
     time: Res<Time>,
 ) {
-    let Ok((mut text, mut color)) = text_q.get_single_mut() else { return };
+    let Ok((mut text, mut color)) = text_q.single_mut() else { return };
     let desc = slots.iter()
         .find(|(i, _)| matches!(i, Interaction::Hovered | Interaction::Pressed))
         .map(|(_, s)| slot_description(s))

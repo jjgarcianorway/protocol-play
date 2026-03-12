@@ -24,7 +24,7 @@ pub fn spawn_hud(commands: &mut Commands, font: Handle<Font>) {
     });
 }
 
-fn hud_row<C: Component>(parent: &mut ChildBuilder, label: &str, initial: &str, tf: &TextFont, label_color: Color, value_color: Color, marker: Option<C>) {
+fn hud_row<C: Component>(parent: &mut ChildSpawnerCommands, label: &str, initial: &str, tf: &TextFont, label_color: Color, value_color: Color, marker: Option<C>) {
     parent.spawn(Node { flex_direction: FlexDirection::Row, column_gap: Val::Px(6.0), ..default() })
         .with_children(|row| {
             row.spawn((Text::new(label), tf.clone(), TextColor(label_color)));
@@ -38,19 +38,19 @@ pub fn update_hud(
     mut dist_q: Query<&mut Text, (With<DistanceText>, Without<TimeText>, Without<CrystalText>)>,
     mut time_q: Query<&mut Text, (With<TimeText>, Without<DistanceText>, Without<CrystalText>)>,
     mut crystal_q: Query<&mut Text, (With<CrystalText>, Without<DistanceText>, Without<TimeText>)>,
-) {
-    let mut dist_text = dist_q.single_mut();
+) -> Result {
+    let mut dist_text = dist_q.single_mut()?;
     let au = state.distance * 0.01;
     if au < 1.0 {
         **dist_text = format!("{:.2} AU", au);
     } else {
         **dist_text = format!("{:.1} AU", au);
     }
-    let mut time_text = time_q.single_mut();
+    let mut time_text = time_q.single_mut()?;
     let days = (state.elapsed_time * 0.1) as u32;
     **time_text = format!("{}d", days);
 
-    let mut crys_text = crystal_q.single_mut();
+    let mut crys_text = crystal_q.single_mut()?;
     if state.crystals >= 1_000_000 {
         **crys_text = format!("{:.1}M", state.crystals as f64 / 1_000_000.0);
     } else if state.crystals >= 1_000 {
@@ -58,6 +58,7 @@ pub fn update_hud(
     } else {
         **crys_text = format!("{}", state.crystals);
     }
+    Ok(())
 }
 
 pub fn update_game_time(mut state: ResMut<ShipState>, time: Res<Time>) {

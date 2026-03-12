@@ -33,12 +33,13 @@ pub fn update_fade(
     mut fade: ResMut<FadeTimer>,
     time: Res<Time>,
     mut fade_q: Query<&mut BackgroundColor, With<FadeOverlay>>,
-) {
-    if !fade.triggered { return; }
+) -> Result {
+    if !fade.triggered { return Ok(()); }
     fade.timer = (fade.timer + time.delta_secs()).min(FADE_DURATION + 0.1);
     let alpha = (fade.timer / FADE_DURATION).clamp(0.0, 1.0);
-    let mut bg = fade_q.single_mut();
+    let mut bg = fade_q.single_mut()?;
     bg.0 = Color::srgba(0.0, 0.0, 0.0, alpha);
+    Ok(())
 }
 
 #[derive(Component)]
@@ -93,9 +94,9 @@ pub fn spawn_game_over_screen(
             align_items: AlignItems::Center,
             padding: UiRect::all(Val::Px(STATS_CARD_PAD)),
             row_gap: Val::Px(STATS_CARD_GAP),
+            border_radius: BorderRadius::all(Val::Px(12.0)),
             ..default()
         }, BackgroundColor(Color::srgb(STATS_CARD_BG.0, STATS_CARD_BG.1, STATS_CARD_BG.2)),
-           BorderRadius::all(Val::Px(12.0)),
         )).with_children(|card| {
             card.spawn((Text::new("Ship Stopped for Repairs"), title_font.clone(),
                 TextColor(value_color)));
@@ -112,16 +113,16 @@ pub fn spawn_game_over_screen(
                     padding: UiRect::axes(Val::Px(24.0), Val::Px(10.0)),
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
+                    border_radius: BorderRadius::all(Val::Px(6.0)),
                     ..default()
                 },
                 BackgroundColor(Color::srgb(0.2, 0.2, 0.3)),
-                BorderRadius::all(Val::Px(6.0)),
             )).with_child((Text::new("Try Again"), stat_font.clone(), TextColor(Color::WHITE)));
         });
     });
 }
 
-fn stat_row(parent: &mut ChildBuilder, label: &str, value: &str, font: &TextFont, label_color: Color, value_color: Color) {
+fn stat_row(parent: &mut ChildSpawnerCommands, label: &str, value: &str, font: &TextFont, label_color: Color, value_color: Color) {
     parent.spawn(Node {
         flex_direction: FlexDirection::Row,
         column_gap: Val::Px(16.0),
@@ -154,9 +155,9 @@ pub fn try_again_interaction(
         *fade = FadeTimer::default();
         *difficulty = Difficulty::default();
         next_state.set(GatheringState::Running);
-        for entity in game_over_q.iter() { commands.entity(entity).despawn_recursive(); }
+        for entity in game_over_q.iter() { commands.entity(entity).despawn(); }
         for entity in fade_q.iter() {
-            if let Some(mut bg) = commands.get_entity(entity) {
+            if let Ok(mut bg) = commands.get_entity(entity) {
                 bg.insert(BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.0)));
             }
         }
@@ -164,4 +165,3 @@ pub fn try_again_interaction(
         for entity in crystal_q.iter() { commands.entity(entity).despawn(); }
     }
 }
-

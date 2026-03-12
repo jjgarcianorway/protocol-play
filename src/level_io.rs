@@ -75,9 +75,9 @@ fn spawn_load_dialog(commands: &mut Commands, f: &Handle<Font>) {
                         )).with_child((Text::new(name.clone()), tf.clone(), tc));
                         row.spawn((Button, DeleteLevelButton(name.clone()),
                             Node { width: Val::Px(28.0), height: Val::Px(28.0),
-                                justify_content: JustifyContent::Center, align_items: AlignItems::Center, ..default() },
+                                justify_content: JustifyContent::Center, align_items: AlignItems::Center,
+                                border_radius: BorderRadius::all(Val::Px(4.0)), ..default() },
                             BackgroundColor(rgb(DELETE_BTN_COLOR)),
-                            BorderRadius::all(Val::Px(4.0)),
                         )).with_child((Text::new("×"), gf(DIALOG_BODY_FONT, f), tc));
                     });
                 }
@@ -89,9 +89,9 @@ fn spawn_load_dialog(commands: &mut Commands, f: &Handle<Font>) {
                     BackgroundColor(rgba(SCROLLBAR_TRACK_COLOR)), Interaction::default(),
                 )).with_children(|track| {
                     track.spawn((Node { width: Val::Px(SCROLLBAR_WIDTH), height: Val::Px(SCROLLBAR_MIN_H),
-                        position_type: PositionType::Absolute, top: Val::Px(0.0), ..default() },
-                        BackgroundColor(rgba(SCROLLBAR_COLOR)),
-                        BorderRadius::all(Val::Px(SCROLLBAR_WIDTH / 2.0)), ScrollbarThumb,
+                        position_type: PositionType::Absolute, top: Val::Px(0.0),
+                        border_radius: BorderRadius::all(Val::Px(SCROLLBAR_WIDTH / 2.0)), ..default() },
+                        BackgroundColor(rgba(SCROLLBAR_COLOR)), ScrollbarThumb,
                     ));
                 });
             }
@@ -132,7 +132,7 @@ pub fn load_dialog_buttons(
 
     loaded_name.0 = Some(level.name.clone());
 
-    for entity in &tiles { commands.entity(entity).despawn_recursive(); }
+    for entity in &tiles { commands.entity(entity).despawn(); }
     board_size.0 = level.board_size.clamp(MIN_BOARD_SIZE, MAX_BOARD_SIZE);
 
     let mut grid = std::collections::HashSet::new();
@@ -157,10 +157,10 @@ pub fn load_dialog_buttons(
     *inv_state = InventoryState::default(); inv_state.level = 1;
     selected_tool.0 = Tool::Floor;
     suppress_ghost(&hovered, &mut ghost_cell);
-    if let Ok((_, children)) = expansion.get_single() {
-        for &child in children.iter() { commands.entity(child).despawn_recursive(); }
+    if let Ok((_, children)) = expansion.single() {
+        for child in children.iter() { commands.entity(child).despawn(); }
     }
-    if let Ok(mut text) = size_text_q.get_single_mut() {
+    if let Ok(mut text) = size_text_q.single_mut() {
         text.0 = format!("{}x{}", board_size.0, board_size.0);
     }
     fade_out(&mut commands, &dialog);
@@ -172,17 +172,17 @@ pub fn update_load_scrollbar(
     mut thumb_q: Query<&mut Node, With<ScrollbarThumb>>,
     child_cn: Query<&ComputedNode, Without<LoadDialogList>>,
 ) {
-    let Ok((cn, scroll, children)) = list_q.get_single() else { return };
-    let Ok(mut thumb) = thumb_q.get_single_mut() else { return };
+    let Ok((cn, scroll, children)) = list_q.single() else { return };
+    let Ok(mut thumb) = thumb_q.single_mut() else { return };
     let visible_h = cn.size().y;
     if visible_h < 1.0 { return; }
     let total_h: f32 = children.iter()
-        .filter_map(|&c| child_cn.get(c).ok()).map(|c| c.size().y).sum::<f32>();
+        .filter_map(|c| child_cn.get(c).ok()).map(|c| c.size().y).sum::<f32>();
     if total_h <= visible_h { thumb.height = Val::Px(0.0); return; }
     let ratio = (visible_h / total_h).clamp(0.05, 1.0);
     let thumb_h = (visible_h * ratio).max(SCROLLBAR_MIN_H);
     let max_scroll = total_h - visible_h;
-    let scroll_ratio = (scroll.offset_y / max_scroll).clamp(0.0, 1.0);
+    let scroll_ratio = (scroll.y / max_scroll).clamp(0.0, 1.0);
     let track_space = visible_h - thumb_h;
     thumb.height = Val::Px(thumb_h);
     thumb.top = Val::Px(scroll_ratio * track_space);
@@ -196,23 +196,23 @@ pub fn scrollbar_drag(
     mut list_q: Query<(&ComputedNode, &mut ScrollPosition, &Children), With<LoadDialogList>>,
     child_cn: Query<&ComputedNode, Without<LoadDialogList>>,
     dialog: Query<(), With<LoadDialog>>,
-) {
-    if dialog.is_empty() { drag.0 = None; return; }
-    let window = windows.single();
-    let Some(cursor) = window.cursor_position() else { drag.0 = None; return; };
-    if mouse.just_released(MouseButton::Left) { drag.0 = None; return; }
+) -> Result {
+    if dialog.is_empty() { drag.0 = None; return Ok(()); }
+    let window = windows.single()?;
+    let Some(cursor) = window.cursor_position() else { drag.0 = None; return Ok(()); };
+    if mouse.just_released(MouseButton::Left) { drag.0 = None; return Ok(()); }
 
-    let Ok((thumb_gt, thumb_cn)) = thumb_q.get_single() else { return };
-    let Ok((list_cn, mut scroll, children)) = list_q.get_single_mut() else { return };
+    let Ok((thumb_gt, thumb_cn)) = thumb_q.single() else { return Ok(()); };
+    let Ok((list_cn, mut scroll, children)) = list_q.single_mut() else { return Ok(()); };
 
     let visible_h = list_cn.size().y;
     let total_h: f32 = children.iter()
-        .filter_map(|&c| child_cn.get(c).ok()).map(|c| c.size().y).sum::<f32>();
-    if total_h <= visible_h { return; }
+        .filter_map(|c| child_cn.get(c).ok()).map(|c| c.size().y).sum::<f32>();
+    if total_h <= visible_h { return Ok(()); }
     let max_scroll = total_h - visible_h;
     let thumb_h = thumb_cn.size().y;
     let track_space = visible_h - thumb_h;
-    if track_space < 1.0 { return; }
+    if track_space < 1.0 { return Ok(()); }
 
     // Start drag when clicking on thumb
     if mouse.just_pressed(MouseButton::Left) {
@@ -229,10 +229,11 @@ pub fn scrollbar_drag(
     if let Some(offset) = drag.0 {
         // Track starts at list top
         let list_top = thumb_gt.translation().y - thumb_h / 2.0
-            - (scroll.offset_y / max_scroll).clamp(0.0, 1.0) * track_space;
+            - (scroll.y / max_scroll).clamp(0.0, 1.0) * track_space;
         let rel = ((cursor.y - offset - list_top) / track_space).clamp(0.0, 1.0);
-        scroll.offset_y = rel * max_scroll;
+        scroll.y = rel * max_scroll;
     }
+    Ok(())
 }
 
 // === Delete level ===
@@ -273,7 +274,7 @@ pub fn delete_level_dialog_buttons(
     confirm_q: Query<(&Interaction, &DeleteLevelConfirm), Changed<Interaction>>,
     cancel_q: Query<&Interaction, (With<DeleteLevelCancel>, Changed<Interaction>)>,
     dialog: Query<Entity, With<DeleteLevelDialog>>,
-    entries: Query<(&LoadDialogEntry, &Parent)>,
+    entries: Query<(&LoadDialogEntry, &ChildOf)>,
     keys: Res<ButtonInput<KeyCode>>,
     hovered: Res<HoveredCell>, mut ghost_cell: ResMut<GhostCell>,
 ) {
@@ -292,8 +293,8 @@ pub fn delete_level_dialog_buttons(
     let Some(name) = to_delete else { return };
     let path = levels_dir().join(format!("{name}.json"));
     let _ = fs::remove_file(&path);
-    for (entry, parent) in &entries {
-        if entry.0 == name { commands.entity(parent.get()).despawn_recursive(); break; }
+    for (entry, child_of) in &entries {
+        if entry.0 == name { commands.entity(child_of.0).despawn(); break; }
     }
     suppress_ghost(&hovered, &mut ghost_cell);
     fade_out(&mut commands, &dialog);

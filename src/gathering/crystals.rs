@@ -55,9 +55,9 @@ pub fn absorb_crystals(
     mut crystal_q: Query<(&mut CrystalCloud, &Transform)>,
     mut state: ResMut<ShipState>,
     time: Res<Time>,
-) {
-    if !state.alive { return; }
-    let ship_tf = ship_q.single();
+) -> Result {
+    if !state.alive { return Ok(()); }
+    let ship_tf = ship_q.single()?;
     let ship_pos = ship_tf.translation.truncate();
     let dt = time.delta_secs();
 
@@ -72,4 +72,5 @@ pub fn absorb_crystals(
             state.crystals += crystals_gained;
         }
     }
+    Ok(())
 }

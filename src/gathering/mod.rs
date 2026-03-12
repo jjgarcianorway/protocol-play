@@ -13,16 +13,17 @@ mod hud;
 mod game_over;
 
 use bevy::prelude::*;
-use bevy::core_pipeline::bloom::Bloom;
+use bevy::post_process::bloom::Bloom;
 use constants::*;
 use types::*;
 use game_over::*;
 
 pub fn build_app(app: &mut App) {
     app.insert_resource(ClearColor(Color::srgb(CLEAR_COLOR_G.0, CLEAR_COLOR_G.1, CLEAR_COLOR_G.2)))
-        .insert_resource(AmbientLight {
+        .insert_resource(GlobalAmbientLight {
             color: Color::srgb(AMBIENT_COLOR_G.0, AMBIENT_COLOR_G.1, AMBIENT_COLOR_G.2),
             brightness: AMBIENT_BRIGHTNESS_G,
+            ..default()
         })
         .insert_resource(ShipState::default())
         .insert_resource(ScreenShake::default())
@@ -65,7 +66,6 @@ fn setup_gathering(
 ) {
     commands.spawn((
         Camera3d::default(),
-        Camera { hdr: true, ..default() },
         Bloom { intensity: 0.15, low_frequency_boost: 0.5,
             low_frequency_boost_curvature: 0.7, high_pass_frequency: 1.0, ..default() },
         Transform::from_xyz(0.0, 0.0, CAMERA_Z).looking_at(Vec3::ZERO, Vec3::Y),

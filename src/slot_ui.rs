@@ -15,8 +15,7 @@ pub fn spawn_base_slot(
     if (is_l3 && !available) || grow { node.width = Val::Vw(0.0); }
     let bg = slot_bg();
     let alpha = if grow { 0.0 } else { 1.0 };
-    let mut ec = commands.spawn((Button, node, BackgroundColor(bg.with_alpha(alpha)), bc, slot,
-        BorderRadius::all(Val::Px(UI_CORNER_RADIUS))));
+    let mut ec = commands.spawn((Button, node, BackgroundColor(bg.with_alpha(alpha)), bc, slot));
     if is_l3 { ec.insert(Level3Slot); }
     if grow { ec.insert(NodeWidthAnim { target: SLOT_VW, despawn_at_zero: false }); }
     let child = ec.with_children(|p| {
@@ -105,8 +104,8 @@ pub fn collapse_expansion(
     dividers: &Query<Entity, With<L2L3Divider>>,
     expansion: Entity,
 ) {
-    for e in l2.iter() { commands.entity(e).despawn_recursive(); }
-    for (e, _) in l3.iter() { commands.entity(e).despawn_recursive(); }
+    for e in l2.iter() { commands.entity(e).despawn(); }
+    for (e, _) in l3.iter() { commands.entity(e).despawn(); }
     for e in dividers.iter() { commands.entity(e).despawn(); }
     collapse_container(commands, expansion);
 }

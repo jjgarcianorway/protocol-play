@@ -13,9 +13,9 @@ pub fn check_collisions(
     mut state: ResMut<ShipState>,
     mut shake: ResMut<ScreenShake>,
     mut commands: Commands,
-) {
-    if !state.alive { return; }
-    let ship_tf = ship_q.single();
+) -> Result {
+    if !state.alive { return Ok(()); }
+    let ship_tf = ship_q.single()?;
     let ship_pos = ship_tf.translation.truncate();
 
     for (entity, ast_tf, asteroid) in asteroid_q.iter() {
@@ -49,6 +49,7 @@ pub fn check_collisions(
             }
         }
     }
+    Ok(())
 }
 
 pub fn tick_hit_cooldowns(

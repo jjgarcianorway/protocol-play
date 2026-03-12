@@ -93,7 +93,7 @@ fn spawn_save_dialog(commands: &mut Commands, f: &Handle<Font>, prefill: Option<
             Node { width: Val::Px(DIALOG_INPUT_WIDTH), height: Val::Px(DIALOG_INPUT_HEIGHT), padding: UiRect::all(Val::Px(DIALOG_INPUT_PAD)),
                 justify_content: JustifyContent::FlexStart, align_items: AlignItems::Center,
                 border: UiRect::all(Val::Px(DIALOG_INPUT_BORDER_PX)), ..default() },
-            BackgroundColor(rgb(DIALOG_INPUT_BG)), BorderColor(rgb(DIALOG_INPUT_BORDER)), SaveDialogInput,
+            BackgroundColor(rgb(DIALOG_INPUT_BG)), BorderColor::all(rgb(DIALOG_INPUT_BORDER)), SaveDialogInput,
         )).with_children(|row| {
             row.spawn((Text::new(prefill.unwrap_or("")), gf(DIALOG_BODY_FONT, f), itc));
             row.spawn((Text::new("|"), gf(DIALOG_BODY_FONT, f), itc, SaveDialogCursor));
@@ -157,8 +157,8 @@ pub fn save_dialog_input(
 ) {
     if dialog.is_empty() { return; }
     if dialog.iter().any(|(_, f)| f.is_some_and(|f| f.target < 0.01)) { return; }
-    let Ok(children) = input_q.get_single_mut() else { return };
-    let Some(&child) = children.iter().next() else { return };
+    let Ok(children) = input_q.single_mut() else { return };
+    let Some(child) = children.iter().next() else { return };
     let Ok(mut text) = text_writer.get_mut(child) else { return };
     if keys.just_pressed(KeyCode::Backspace) { text.0.pop(); timer.0 = 0.0; return; }
     for key in keys.get_just_pressed() {
@@ -207,8 +207,8 @@ pub fn save_dialog_buttons(
     let confirm = confirm_q.iter().any(|i| *i == Interaction::Pressed) || keys.just_pressed(KeyCode::Enter);
     if cancel { suppress_ghost(&hovered, &mut ghost_cell); fade_out(&mut commands, &dialog); return; }
     if !confirm { return; }
-    let Ok(children) = input_q.get_single() else { return };
-    let Some(&child) = children.iter().next() else { return };
+    let Ok(children) = input_q.single() else { return };
+    let Some(child) = children.iter().next() else { return };
     let Ok(text) = text_q.get(child) else { return };
     let raw_name = sanitize_filename(&text.0);
     if raw_name.is_empty() { return; }

@@ -8,7 +8,7 @@ mod bot_formation; mod mat_helpers; mod test_mode; mod level_io; mod save_dialog
 #[cfg(feature = "gathering")] mod gathering;
 
 use bevy::prelude::*;
-use bevy::core_pipeline::bloom::Bloom;
+use bevy::post_process::bloom::Bloom;
 use constants::*;
 use types::*;
 use textures::*;
@@ -42,7 +42,7 @@ fn main() {
             primary_window: Some(Window { title: title.into(), ..default() }), ..default()
         }))
         .insert_resource(ClearColor(Color::srgb(CLEAR_COLOR.0, CLEAR_COLOR.1, CLEAR_COLOR.2)))
-        .insert_resource(AmbientLight { color: Color::srgb(AMBIENT_COLOR.0, AMBIENT_COLOR.1, AMBIENT_COLOR.2), brightness: AMBIENT_BRIGHTNESS })
+        .insert_resource(GlobalAmbientLight { color: Color::srgb(AMBIENT_COLOR.0, AMBIENT_COLOR.1, AMBIENT_COLOR.2), brightness: AMBIENT_BRIGHTNESS, ..default() })
         .insert_resource(BoardSize(3))
         .insert_resource(SelectedTool::default()).insert_resource(HoveredCell::default()).insert_resource(HiddenTileEntity::default())
         .insert_resource(GhostCell::default())
@@ -223,7 +223,7 @@ fn setup_scene(
         DirectionalLight { illuminance: LIGHT_ILLUMINANCE, shadows_enabled: true, ..default() },
         Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, LIGHT_ELEVATION, LIGHT_AZIMUTH, 0.0)),
     ));
-    commands.spawn((Camera3d::default(), Camera { hdr: true, ..default() },
+    commands.spawn((Camera3d::default(),
         Bloom { intensity: BLOOM_INTENSITY, low_frequency_boost: BLOOM_LF_BOOST,
             low_frequency_boost_curvature: 0.7, high_pass_frequency: 1.0, ..default() },
         Transform::from_translation(camera_direction() * 5.0).looking_at(Vec3::ZERO, Vec3::Y)));
@@ -328,26 +328,26 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
     let bc = btn_bg();
     let btn = Node { width: Val::Px(TOP_BTN_SIZE), height: Val::Px(TOP_BTN_SIZE),
         justify_content: JustifyContent::Center, align_items: AlignItems::Center,
-        margin: UiRect::all(Val::Px(BTN_MARGIN)), ..default() };
+        margin: UiRect::all(Val::Px(BTN_MARGIN)), border_radius: BorderRadius::all(Val::Px(UI_CORNER_RADIUS)), ..default() };
     let ts = gf(TOP_BTN_FONT, &f);
     let mut tbtn = text_btn_node();
     tbtn.margin = UiRect::left(Val::Px(TEXT_BTN_LEFT_MARGIN));
+    tbtn.border_radius = BorderRadius::all(Val::Px(UI_CORNER_RADIUS));
     let tfs = gf(LABEL_FONT, &f);
     commands.spawn((Node { position_type: PositionType::Absolute, left: Val::Px(10.0), top: Val::Px(-50.0),
         flex_direction: FlexDirection::Row, align_items: AlignItems::Center, column_gap: Val::Px(4.0), ..default()
     }, UiTopAnim { target: TOP_SLIDE_SHOW, despawn_at_target: false }, TopControlsBar)).with_children(|p| {
-        let br = BorderRadius::all(Val::Px(UI_CORNER_RADIUS));
-        p.spawn((Button, btn.clone(), BackgroundColor(bc), BoardButton::Decrease, br))
+        p.spawn((Button, btn.clone(), BackgroundColor(bc), BoardButton::Decrease))
             .with_child((Text::new("-"), ts.clone(), TextColor(Color::WHITE)));
         p.spawn(Node { width: Val::Px(70.0), justify_content: JustifyContent::Center, ..default() })
             .with_child((Text::new("3x3"), ts.clone(), TextColor(Color::WHITE), BoardSizeText));
-        p.spawn((Button, btn, BackgroundColor(bc), BoardButton::Increase, br))
+        p.spawn((Button, btn, BackgroundColor(bc), BoardButton::Increase))
             .with_child((Text::new("+"), ts, TextColor(Color::WHITE)));
-        p.spawn((Button, tbtn.clone(), BackgroundColor(bc), BorderColor(border_unsel()), MarkButton, MarkButtonImage, br))
+        p.spawn((Button, tbtn.clone(), BackgroundColor(bc), BorderColor::all(border_unsel()), MarkButton, MarkButtonImage))
             .with_child((Text::new("Mark"), tfs.clone(), TextColor(Color::WHITE)));
-        p.spawn((Button, tbtn.clone(), BackgroundColor(bc), TestButton, br))
+        p.spawn((Button, tbtn.clone(), BackgroundColor(bc), TestButton))
             .with_child((Text::new("Test"), tfs.clone(), TextColor(Color::WHITE)));
-        p.spawn((Button, tbtn, BackgroundColor(bc), LoadButton, br))
+        p.spawn((Button, tbtn, BackgroundColor(bc), LoadButton))
             .with_child((Text::new("Load"), tfs, TextColor(Color::WHITE)));
     });
     }
@@ -359,9 +359,9 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
     commands.spawn((Node { position_type: PositionType::Absolute, right: Val::Px(10.0), top: Val::Px(-60.0), ..default()
     }, UiTopAnim { target: TOP_SLIDE_SHOW, despawn_at_target: false })).with_child((
         Button, Node { width: Val::Px(PLAY_BTN_SIZE), height: Val::Px(PLAY_BTN_SIZE), justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center, border: UiRect::all(Val::Px(PLAY_BTN_BORDER)), ..default() },
-        BackgroundColor(slot_bg()), BorderColor(border_unsel()),
-        BorderRadius::all(Val::Px(UI_CORNER_RADIUS)),
+            align_items: AlignItems::Center, border: UiRect::all(Val::Px(PLAY_BTN_BORDER)),
+            border_radius: BorderRadius::all(Val::Px(UI_CORNER_RADIUS)), ..default() },
+        BackgroundColor(slot_bg()), BorderColor::all(border_unsel()),
         PlayStopButton, ImageNode::new(play_icon), PlayButtonImage,
     ));
 
@@ -389,21 +389,21 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
         outer.spawn((Node { flex_direction: FlexDirection::Row, padding: UiRect::axes(Val::Vw(INVENTORY_PAD_VW), Val::ZERO),
             column_gap: Val::Vw(INVENTORY_GAP_VW), height: Val::Vw(0.0),
             align_items: AlignItems::Center, justify_content: JustifyContent::Center,
-            overflow: Overflow::clip(), ..default() },
-            BackgroundColor(rgba(INVENTORY_EXP_BG)), BorderRadius::all(Val::Px(UI_CORNER_RADIUS)),
+            overflow: Overflow::clip(), border_radius: BorderRadius::all(Val::Px(UI_CORNER_RADIUS)), ..default() },
+            BackgroundColor(rgba(INVENTORY_EXP_BG)),
             ExpansionContainer));
         outer.spawn(Node { width: Val::Percent(100.0), justify_content: JustifyContent::Center, ..default() })
             .with_children(|row| {
                 row.spawn((Node { flex_direction: FlexDirection::Row, padding: UiRect::all(Val::Vw(INVENTORY_PAD_VW)),
-                    column_gap: Val::Vw(INVENTORY_GAP_VW), align_items: AlignItems::Center, ..default() },
-                    BackgroundColor(rgba(INVENTORY_L1_BG)), BorderRadius::all(Val::Px(UI_CORNER_RADIUS)),
+                    column_gap: Val::Vw(INVENTORY_GAP_VW), align_items: AlignItems::Center,
+                    border_radius: BorderRadius::all(Val::Px(UI_CORNER_RADIUS)), ..default() },
+                    BackgroundColor(rgba(INVENTORY_L1_BG)),
                 )).with_children(|c| {
-                    let br = BorderRadius::all(Val::Px(UI_CORNER_RADIUS));
                     for (i, (slot_type, icon_handle)) in l1.iter().enumerate() {
-                        c.spawn((Button, sn.clone(), BackgroundColor(slot_bg()), border_for(i == 0), *slot_type, br))
+                        c.spawn((Button, sn.clone(), BackgroundColor(slot_bg()), border_for(i == 0), *slot_type))
                             .with_child((icon_node(), ImageNode::new(icon_handle.clone())));
                     }
-                    c.spawn((Button, sn.clone(), BackgroundColor(Color::NONE), BorderColor(Color::NONE), InventorySlot::Delete, br))
+                    c.spawn((Button, sn.clone(), BackgroundColor(Color::NONE), BorderColor::all(Color::NONE), InventorySlot::Delete))
                         .with_child((icon_node(), ImageNode::new(delete_icon)));
                 });
             });

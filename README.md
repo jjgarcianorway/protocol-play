@@ -1,10 +1,10 @@
 # protocol: play
 
-A game built with [Bevy](https://bevyengine.org/) (Rust).
+A game built with [Bevy 0.18](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.16.0** - Bot puzzle game (6 levels) + The Gathering space runner minigame.
+**v0.17.0** - Upgraded to Bevy 0.18. Bot puzzle game (6 levels) + The Gathering space runner minigame.
 
 ### Bot Game (Editor + Player)
 - Resizable board (3x3 to 12x12) with smooth scale animations
