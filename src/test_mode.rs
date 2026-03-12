@@ -61,7 +61,8 @@ fn tilekind_to_icon(kind: &TileKind, i: &InventoryIcons) -> Option<Handle<Image>
         TileKind::Goal(ci) => Some(i.goal_color(*ci)),
         TileKind::Turn(ci, d) => Some(i.turn_color_dir(*ci, *d)),
         TileKind::TurnBut(ci, d) => Some(i.turnbut_color_dir(*ci, *d)),
-        TileKind::Teleport(n) => Some(i.teleport_num(*n)),
+        TileKind::Teleport(ci, _) => Some(i.teleport_color(*ci)),
+        TileKind::TeleportBut(ci, _) => Some(i.teleportbut_color(*ci)),
         TileKind::Bounce(ci) => Some(i.bounce_color(*ci)),
         TileKind::BounceBut(ci) => Some(i.bouncebot_color(*ci)),
         TileKind::Door(o) => Some(if *o { i.door_open.clone() } else { i.door_closed.clone() }),
@@ -79,13 +80,14 @@ fn tile_sort_key(k: &TileKind) -> (u8, usize, u8) {
     match k {
         TileKind::Floor => (0, 0, 0), TileKind::Source(c, d) => (1, *c, d.index() as u8),
         TileKind::Goal(c) => (2, *c, 0), TileKind::Turn(c, d) => (3, *c, d.index() as u8),
-        TileKind::TurnBut(c, d) => (4, *c, d.index() as u8), TileKind::Teleport(n) => (5, *n, 0),
-        TileKind::Bounce(c) => (6, *c, 0), TileKind::BounceBut(c) => (7, *c, 0),
-        TileKind::Door(o) => (8, if *o { 0 } else { 1 }, 0),
-        TileKind::Switch => (9, 0, 0), TileKind::ColorSwitch(c) => (10, *c, 0),
-        TileKind::ColorSwitchBut(c) => (11, *c, 0), TileKind::Painter(c) => (12, *c, 0),
-        TileKind::Arrow(c, d) => (13, *c, d.index() as u8), TileKind::ArrowBut(c, d) => (14, *c, d.index() as u8),
-        TileKind::Empty => (15, 0, 0),
+        TileKind::TurnBut(c, d) => (4, *c, d.index() as u8),
+        TileKind::Teleport(c, n) => (5, c * 10 + *n, 0), TileKind::TeleportBut(c, n) => (6, c * 10 + *n, 0),
+        TileKind::Bounce(c) => (7, *c, 0), TileKind::BounceBut(c) => (8, *c, 0),
+        TileKind::Door(o) => (9, if *o { 0 } else { 1 }, 0),
+        TileKind::Switch => (10, 0, 0), TileKind::ColorSwitch(c) => (11, *c, 0),
+        TileKind::ColorSwitchBut(c) => (12, *c, 0), TileKind::Painter(c) => (13, *c, 0),
+        TileKind::Arrow(c, d) => (14, *c, d.index() as u8), TileKind::ArrowBut(c, d) => (15, *c, d.index() as u8),
+        TileKind::Empty => (16, 0, 0),
     }
 }
 
@@ -105,7 +107,8 @@ fn set_tool_from_kind(k: TileKind, tool: &mut ResMut<SelectedTool>, inv: &mut Re
         TileKind::Goal(c) => (Tool::Goal, None, Some(c)),
         TileKind::Turn(c, d) => (Tool::Turn, Some(d), Some(c)),
         TileKind::TurnBut(c, d) => (Tool::TurnBut, Some(d), Some(c)),
-        TileKind::Teleport(n) => (Tool::Teleport, None, Some(n)),
+        TileKind::Teleport(c, _) => (Tool::Teleport, None, Some(c)),
+        TileKind::TeleportBut(c, _) => (Tool::TeleportBut, None, Some(c)),
         TileKind::Bounce(c) => (Tool::Bounce, None, Some(c)), TileKind::BounceBut(c) => (Tool::BounceBut, None, Some(c)),
         TileKind::Door(o) => (Tool::Door, None, Some(if o { 0 } else { 1 })), TileKind::Switch => (Tool::Switch, None, None),
         TileKind::ColorSwitch(c) => (Tool::ColorSwitch, None, Some(c)), TileKind::ColorSwitchBut(c) => (Tool::ColorSwitchBut, None, Some(c)),
@@ -136,7 +139,6 @@ pub fn test_button_interaction(
     mut saved_board: ResMut<SavedBoardState>,
     mut saved_test: ResMut<SavedTestState>,
     mut test_inv: ResMut<TestInventory>,
-    placed_teleports: Res<PlacedTeleports>,
     inv_state: Res<InventoryState>,
     selected_tool: Res<SelectedTool>,
     icons: Res<InventoryIcons>,
@@ -149,7 +151,7 @@ pub fn test_button_interaction(
 
         saved_board.tiles.clear();
         for (_, c, k, m) in &tiles { saved_board.tiles.push((c.col, c.row, *k, m.is_some())); }
-        saved_board.placed_teleports = placed_teleports.0; saved_board.inv_state = inv_state.clone(); saved_board.selected_tool = selected_tool.0;
+        saved_board.inv_state = inv_state.clone(); saved_board.selected_tool = selected_tool.0;
         let marked = tiles.iter().filter(|(_, _, _, m)| m.is_some()).map(|(_, _, k, _)| *k);
         test_inv.items = group_tiles(marked);
         test_inv.selected = None; test_inv.remove_mode = false;
@@ -234,7 +236,6 @@ pub fn stop_test_interaction(
     assets: Res<GameAssets>,
     board_size: Res<BoardSize>,
     saved_board: Res<SavedBoardState>,
-    mut placed_teleports: ResMut<PlacedTeleports>,
     mut inv_state: ResMut<InventoryState>,
     mut selected_tool: ResMut<SelectedTool>,
     inv_container: Query<Entity, With<InventoryContainer>>,
@@ -253,7 +254,6 @@ pub fn stop_test_interaction(
         let e = spawn_tile(&mut commands, col, row, board_size.0, kind, &assets);
         if marked { add_marker(&mut commands, e, &assets); }
     }
-    placed_teleports.0 = saved_board.placed_teleports;
     *inv_state = saved_board.inv_state.clone();
     selected_tool.0 = saved_board.selected_tool;
     if let Ok(c) = inv_container.get_single() { commands.entity(c).insert(UiBottomAnim { target: INV_SLIDE_SHOW, despawn_at_target: false }); }

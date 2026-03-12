@@ -160,6 +160,35 @@ fn generate_teleport_textures(size: u32, dir: &Path) {
     }
 }
 
+fn generate_teleportbut_textures(size: u32, dir: &Path) {
+    let c = size as f32 / 2.0;
+    for num in 0..NUM_TELEPORTS {
+        let mut base = RgbaImage::new(size, size);
+        let mut mask = RgbaImage::new(size, size);
+        for py in 0..size {
+            for px in 0..size {
+                let (nx, ny) = ((px as f32 - c) / c, (py as f32 - c) / c);
+                if in_forbidden_line(nx, ny) {
+                    base.put_pixel(px, py, Rgba(SYMBOL_STROKE));
+                    mask.put_pixel(px, py, Rgba([0, 0, 0, 255]));
+                } else if in_turn_center(nx, ny) {
+                    base.put_pixel(px, py, Rgba([0, 0, 0, 255]));
+                    let b = (TURN_CENTER_BRIGHTNESS * 255.0) as u8;
+                    mask.put_pixel(px, py, Rgba([b, b, b, 255]));
+                } else if in_teleport_shape(nx, ny, 0.0, num) {
+                    base.put_pixel(px, py, Rgba([0, 0, 0, 255]));
+                    mask.put_pixel(px, py, Rgba([255, 255, 255, 255]));
+                } else if in_ring(nx, ny, STROKE_EXPAND) {
+                    base.put_pixel(px, py, Rgba(SYMBOL_STROKE));
+                    mask.put_pixel(px, py, Rgba([0, 0, 0, 255]));
+                }
+            }
+        }
+        base.save(dir.join(format!("teleportbut_{num}_base.png"))).expect("save teleportbut base");
+        mask.save(dir.join(format!("teleportbut_{num}_mask.png"))).expect("save teleportbut mask");
+    }
+}
+
 fn generate_floor_texture(size: u32, border: u32, dir: &Path) {
     let mut img = RgbaImage::new(size, size);
     for y in 0..size { for x in 0..size {
@@ -178,6 +207,7 @@ pub fn ensure_textures() {
         "colorswitch", "colorswitchbut"];
     let all_exist = names.iter().all(|n| dir.join(format!("{n}_base.png")).exists() && dir.join(format!("{n}_mask.png")).exists())
         && (0..NUM_TELEPORTS).all(|n| dir.join(format!("teleport_{n}_base.png")).exists() && dir.join(format!("teleport_{n}_mask.png")).exists())
+        && (0..NUM_TELEPORTS).all(|n| dir.join(format!("teleportbut_{n}_base.png")).exists() && dir.join(format!("teleportbut_{n}_mask.png")).exists())
         && dir.join("floor.png").exists();
     if all_exist { return; }
     std::fs::create_dir_all(dir).expect("Failed to create textures directory");
@@ -196,5 +226,6 @@ pub fn ensure_textures() {
     generate_symbol_textures(TILE_TEX_SIZE, dir, "colorswitch", in_switch_s, Some(in_turn_center), TURN_CENTER_BRIGHTNESS, None);
     generate_symbol_textures(TILE_TEX_SIZE, dir, "colorswitchbut", in_switch_s, Some(in_turn_center), TURN_CENTER_BRIGHTNESS, Some(in_forbidden_line));
     generate_teleport_textures(TILE_TEX_SIZE, dir);
+    generate_teleportbut_textures(TILE_TEX_SIZE, dir);
     generate_floor_texture(TILE_TEX_SIZE, TILE_TEX_BORDER, dir);
 }

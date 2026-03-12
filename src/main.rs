@@ -34,7 +34,6 @@ fn main() {
         .insert_resource(SelectedTool::default())
         .insert_resource(HoveredCell::default()).insert_resource(HiddenTileEntity::default()).insert_resource(GhostCell::default())
         .insert_resource(InventoryState { level: 1, direction: None, color_index: None, last_placed_color: None })
-        .insert_resource(PlacedTeleports::default())
         .insert_resource(PlayMode::default()).insert_resource(DoorToggleCount::default()).insert_resource(OriginalDoorStates::default())
         .insert_resource(SimulationResult::default()).insert_resource(PrevTileCounts::default())
         .insert_resource(SavedBoardState::default()).insert_resource(SavedTestState::default())
@@ -122,15 +121,18 @@ fn setup_scene(
     add_grey_mat(&mut materials, &mut bounce_symbol_materials, &mut ghost_bounce_materials, &bb, &bm);
     let (bouncebot_symbol_materials, ghost_bouncebot_materials, _, _) = load_tile_mats(&mut materials, &mut images, "bouncebut");
 
-    let load_grey = |mats: &mut Assets<StandardMaterial>, imgs: &mut Assets<Image>, name: &str| {
-        let b = load_png_texture(imgs, &format!("assets/textures/{name}_base.png"), true);
-        let m = load_png_texture(imgs, &format!("assets/textures/{name}_mask.png"), false);
-        make_grey_mat(mats, b, m)
-    };
+    let load_grey = |mats: &mut Assets<StandardMaterial>, imgs: &mut Assets<Image>, name: &str|
+        { let b = load_png_texture(imgs, &format!("assets/textures/{name}_base.png"), true);
+          let m = load_png_texture(imgs, &format!("assets/textures/{name}_mask.png"), false);
+          make_grey_mat(mats, b, m) };
     let (mut teleport_symbol_materials, mut ghost_teleport_materials) = (Vec::new(), Vec::new());
+    let (mut teleportbut_symbol_materials, mut ghost_teleportbut_materials) = (Vec::new(), Vec::new());
     for num in 0..NUM_TELEPORTS {
-        let (m, g) = load_grey(&mut materials, &mut images, &format!("teleport_{num}"));
-        teleport_symbol_materials.push(m); ghost_teleport_materials.push(g);
+        let (mut ms, mut gs, b, m) = load_tile_mats(&mut materials, &mut images, &format!("teleport_{num}"));
+        add_grey_mat(&mut materials, &mut ms, &mut gs, &b, &m);
+        teleport_symbol_materials.extend(ms); ghost_teleport_materials.extend(gs);
+        let (ms2, gs2, _, _) = load_tile_mats(&mut materials, &mut images, &format!("teleportbut_{num}"));
+        teleportbut_symbol_materials.extend(ms2); ghost_teleportbut_materials.extend(gs2);
     }
     let (door_open_material, ghost_door_open_material) = load_grey(&mut materials, &mut images, "door_open");
     let (door_closed_material, ghost_door_closed_material) = load_grey(&mut materials, &mut images, "door_closed");
@@ -169,6 +171,7 @@ fn setup_scene(
         turnbut_symbol_mesh: sym_mesh.clone(), turnbut_symbol_materials,
         ghost_turnbut_materials: ghost_turnbut_materials.clone(),
         teleport_symbol_materials, ghost_teleport_materials: ghost_teleport_materials.clone(),
+        teleportbut_symbol_materials, ghost_teleportbut_materials: ghost_teleportbut_materials.clone(),
         bounce_symbol_materials, ghost_bounce_materials: ghost_bounce_materials.clone(),
         bouncebot_symbol_materials, ghost_bouncebot_materials: ghost_bouncebot_materials.clone(),
         door_open_material, door_closed_material,
@@ -263,10 +266,12 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
     for d in Direction::all() { arrow_color_icons.push(icon(&mut images, &cp(&arr_b, &arr_m, -d.rotation(), grey_fill))); }
     let arrowbut_color_icons = color_dir_icons(&mut images, &abut_b, &abut_m);
 
-    let tp_pngs: Vec<_> = (0..NUM_TELEPORTS).map(|n| load_png_pair(&format!("teleport_{n}"))).collect();
-    let teleport_icon = icon(&mut images, &cp(&tp_pngs[0].0, &tp_pngs[0].1, 0.0, white));
-    let teleport_num_icons: Vec<_> = (0..NUM_TELEPORTS).map(|n|
-        icon(&mut images, &cp(&tp_pngs[n].0, &tp_pngs[n].1, 0.0, grey_fill))).collect();
+    let (tp_b, tp_m, _) = p("teleport_0"); let (tpb_b, tpb_m, _) = p("teleportbut_0");
+    let teleport_icon = icon(&mut images, &cp(&tp_b, &tp_m, 0.0, white));
+    let teleportbut_icon = icon(&mut images, &cp(&tpb_b, &tpb_m, 0.0, white));
+    let mut teleport_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci| icon(&mut images, &cp(&tp_b, &tp_m, 0.0, cfill(ci)))).collect();
+    teleport_color_icons.push(icon(&mut images, &cp(&tp_b, &tp_m, 0.0, grey_fill)));
+    let teleportbut_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci| icon(&mut images, &cp(&tpb_b, &tpb_m, 0.0, cfill(ci)))).collect();
     let goal_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci| icon(&mut images, &cp(&goal_b, &goal_m, 0.0, cfill(ci)))).collect();
 
     let bounce_icon = icon(&mut images, &cp(&bnc_b, &bnc_m, 0.0, white));
@@ -294,7 +299,8 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
         source_dir_icons, source_color_icons, goal_color_icons,
         turn_dir_icons, turn_color_icons,
         turnbut: turnbut_icon.clone(), turnbut_dir_icons, turnbut_color_icons,
-        teleport: teleport_icon.clone(), teleport_num_icons,
+        teleport: teleport_icon.clone(), teleport_color_icons,
+        teleportbut: teleportbut_icon.clone(), teleportbut_color_icons,
         bounce: bounce_icon.clone(), bounce_color_icons,
         bouncebot: bouncebot_icon.clone(), bouncebot_color_icons,
         door: door_icon.clone(), door_open: door_open_icon, door_closed: door_closed_icon,
@@ -351,13 +357,12 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
     if !cfg!(feature = "player") {
     let sn = slot_node();
     use InventorySlot::*;
-    let l1_slots: Vec<(InventorySlot, Handle<Image>, bool)> = vec![
-        (Floor, floor_icon, true), (Source, source_icon, false), (Goal, goal_icon, false),
-        (Turn, turn_icon, false), (TurnBut, turnbut_icon, false), (Teleport, teleport_icon, false),
-        (Bounce, bounce_icon, false), (BounceBut, bouncebot_icon, false), (Door, door_icon, false),
-        (Switch, switch_icon, false), (SwitchBut, switchbut_icon, false), (Painter, painter_icon, false),
-        (Arrow, arrow_icon, false), (ArrowBut, arrowbut_icon, false),
-    ];
+    let l1: Vec<(InventorySlot, Handle<Image>)> = vec![
+        (Floor, floor_icon), (Source, source_icon), (Goal, goal_icon), (Turn, turn_icon),
+        (TurnBut, turnbut_icon), (Teleport, teleport_icon), (TeleportBut, teleportbut_icon),
+        (Bounce, bounce_icon), (BounceBut, bouncebot_icon), (Door, door_icon),
+        (Switch, switch_icon), (SwitchBut, switchbut_icon), (Painter, painter_icon),
+        (Arrow, arrow_icon), (ArrowBut, arrowbut_icon) ];
 
     commands.spawn((Node {
         position_type: PositionType::Absolute, bottom: Val::Px(INV_SLIDE_HIDE),
@@ -376,14 +381,14 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
             BackgroundColor(rgba(INVENTORY_EXP_BG)), BorderRadius::all(Val::Px(UI_CORNER_RADIUS)),
             ExpansionContainer));
         outer.spawn(Node { width: Val::Percent(100.0), justify_content: JustifyContent::Center, ..default() })
-            .with_children(|l1| {
-                l1.spawn((Node { flex_direction: FlexDirection::Row, padding: UiRect::all(Val::Vw(INVENTORY_PAD_VW)),
+            .with_children(|row| {
+                row.spawn((Node { flex_direction: FlexDirection::Row, padding: UiRect::all(Val::Vw(INVENTORY_PAD_VW)),
                     column_gap: Val::Vw(INVENTORY_GAP_VW), align_items: AlignItems::Center, ..default() },
                     BackgroundColor(rgba(INVENTORY_L1_BG)), BorderRadius::all(Val::Px(UI_CORNER_RADIUS)),
                 )).with_children(|c| {
                     let br = BorderRadius::all(Val::Px(UI_CORNER_RADIUS));
-                    for (slot_type, icon_handle, selected) in &l1_slots {
-                        c.spawn((Button, sn.clone(), BackgroundColor(slot_bg()), border_for(*selected), *slot_type, br))
+                    for (i, (slot_type, icon_handle)) in l1.iter().enumerate() {
+                        c.spawn((Button, sn.clone(), BackgroundColor(slot_bg()), border_for(i == 0), *slot_type, br))
                             .with_child((icon_node(), ImageNode::new(icon_handle.clone())));
                     }
                     c.spawn((Button, sn.clone(), BackgroundColor(Color::NONE), BorderColor(Color::NONE), InventorySlot::Delete, br))

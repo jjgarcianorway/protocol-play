@@ -20,7 +20,6 @@ pub fn setup_player(
     icons: Res<InventoryIcons>,
     font: Res<GameFont>,
     mut play_mode: ResMut<PlayMode>,
-    mut placed_teleports: ResMut<PlacedTeleports>,
 ) {
     // Look for level.json next to the executable, then fall back to current directory
     let exe_dir = std::env::current_exe().ok()
@@ -47,14 +46,12 @@ pub fn setup_player(
     // Separate marked (inventory) vs unmarked (board) tiles
     let mut board_tiles = Vec::new();
     let mut marked_kinds = Vec::new();
-    placed_teleports.0 = [0; 10];
     for &(col, row, kind, is_marked) in &level.tiles {
         if col >= board_size.0 || row >= board_size.0 { continue; }
         if is_marked {
             marked_kinds.push(kind);
             board_tiles.push((col, row, TileKind::Empty));
         } else {
-            if let TileKind::Teleport(n) = kind { placed_teleports.0[n] += 1; }
             board_tiles.push((col, row, kind));
         }
     }

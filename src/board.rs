@@ -4,6 +4,23 @@ use bevy::prelude::*;
 use crate::constants::*;
 use crate::types::*;
 
+/// Auto-assign next teleport number for a given (type, color).
+/// Finds first unpaired number (count==1), then first unused (count==0).
+pub fn next_teleport_number(
+    tiles: impl Iterator<Item = TileKind>, is_but: bool, color: usize,
+) -> Option<usize> {
+    let mut counts = [0u8; NUM_TELEPORTS];
+    for kind in tiles {
+        match (is_but, kind) {
+            (false, TileKind::Teleport(c, n)) if c == color => { counts[n] += 1; }
+            (true, TileKind::TeleportBut(c, n)) if c == color => { counts[n] += 1; }
+            _ => {}
+        }
+    }
+    if let Some(n) = counts.iter().position(|&c| c == 1) { return Some(n); }
+    counts.iter().position(|&c| c == 0)
+}
+
 // === Helpers ===
 pub fn camera_direction() -> Vec3 {
     let elev = CAMERA_ELEVATION.to_radians();
@@ -21,7 +38,8 @@ pub fn tile_world_pos(col: u32, row: u32, board_size: u32, kind: &TileKind) -> V
     let y = match kind {
         TileKind::Empty => EMPTY_MARKER_Y,
         TileKind::Floor | TileKind::Source(_, _) | TileKind::Goal(_)
-        | TileKind::Turn(_, _) | TileKind::TurnBut(_, _) | TileKind::Teleport(_)
+        | TileKind::Turn(_, _) | TileKind::TurnBut(_, _)
+        | TileKind::Teleport(_, _) | TileKind::TeleportBut(_, _)
         | TileKind::Bounce(_) | TileKind::BounceBut(_)
         | TileKind::Door(_) | TileKind::Switch
         | TileKind::ColorSwitch(_) | TileKind::ColorSwitchBut(_)
@@ -74,15 +92,32 @@ pub fn spawn_tile_at_scale(
                 ));
             }).id()
         }
-        TileKind::Goal(ci) | TileKind::Teleport(ci) | TileKind::Bounce(ci) | TileKind::BounceBut(ci)
+        TileKind::Goal(ci) | TileKind::Bounce(ci) | TileKind::BounceBut(ci)
         | TileKind::Painter(ci) => {
             let mat = match kind {
                 TileKind::Goal(_) => assets.goal_symbol_materials[ci].clone(),
-                TileKind::Teleport(_) => assets.teleport_symbol_materials[ci].clone(),
                 TileKind::Bounce(_) => assets.bounce_symbol_materials[ci].clone(),
                 TileKind::Painter(_) => assets.painter_symbol_materials[ci].clone(),
                 _ => assets.bouncebot_symbol_materials[ci].clone(),
             };
+            commands.spawn((
+                Mesh3d(assets.floor_mesh.clone()), MeshMaterial3d(assets.floor_material.clone()),
+                Transform::from_translation(pos).with_scale(initial_scale),
+                TargetScale(Vec3::ONE), Tile, TileCoord { col, row }, kind,
+            )).with_children(|parent| {
+                parent.spawn((
+                    Mesh3d(assets.goal_symbol_mesh.clone()), MeshMaterial3d(mat),
+                    Transform::from_translation(Vec3::new(0.0, FLOOR_TOP_Y + SYMBOL_OVERLAY_OFFSET, 0.0)),
+                ));
+            }).id()
+        }
+        TileKind::Teleport(ci, num) | TileKind::TeleportBut(ci, num) => {
+            let idx = if matches!(kind, TileKind::Teleport(_, _)) {
+                num * NUM_TELEPORT_COLORS + ci
+            } else { num * NUM_COLORS + ci };
+            let mat = if matches!(kind, TileKind::Teleport(_, _)) {
+                assets.teleport_symbol_materials[idx].clone()
+            } else { assets.teleportbut_symbol_materials[idx].clone() };
             commands.spawn((
                 Mesh3d(assets.floor_mesh.clone()), MeshMaterial3d(assets.floor_material.clone()),
                 Transform::from_translation(pos).with_scale(initial_scale),
@@ -192,7 +227,6 @@ pub fn button_interaction(
     tiles: Query<Entity, With<Tile>>,
     assets: Res<GameAssets>,
     mut size_text: Query<&mut Text, With<BoardSizeText>>,
-    mut placed_teleports: ResMut<PlacedTeleports>,
     play_mode: Res<PlayMode>,
     mut validated: ResMut<LevelValidated>,
 ) {
@@ -205,7 +239,6 @@ pub fn button_interaction(
         };
         if new_size == board_size.0 { continue; }
         board_size.0 = new_size; validated.0 = false;
-        placed_teleports.0 = [0; 10];
         for entity in &tiles { commands.entity(entity).despawn_recursive(); }
         spawn_board(&mut commands, new_size, &assets);
         let mut text = size_text.single_mut();

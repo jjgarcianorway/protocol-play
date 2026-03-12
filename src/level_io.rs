@@ -23,9 +23,28 @@ fn sanitize_filename(name: &str) -> String {
 }
 
 // === Validation ===
+fn check_unpaired_teleports(tiles: impl Iterator<Item = TileKind>) -> Vec<String> {
+    let mut tp_counts: std::collections::HashMap<(u8, usize, usize), u8> = std::collections::HashMap::new();
+    for kind in tiles {
+        match kind {
+            TileKind::Teleport(c, n) => *tp_counts.entry((0, c, n)).or_default() += 1,
+            TileKind::TeleportBut(c, n) => *tp_counts.entry((1, c, n)).or_default() += 1,
+            _ => {}
+        }
+    }
+    let mut errors = Vec::new();
+    for ((t, _c, n), count) in &tp_counts {
+        if *count == 1 {
+            let name = if *t == 0 { "Teleport" } else { "TeleportBut" };
+            errors.push(format!("{name} {} needs a pair", n + 1));
+        }
+    }
+    errors
+}
+
 fn validate_level(
     tiles: &Query<(&TileCoord, &TileKind, Option<&InventoryMarker>), (With<Tile>, Without<DespawnAtZeroScale>)>,
-    placed_teleports: &PlacedTeleports, validated: &LevelValidated,
+    validated: &LevelValidated,
 ) -> Vec<String> {
     let mut errors = Vec::new();
     let mut sources: HashSet<usize> = HashSet::new();
@@ -46,11 +65,7 @@ fn validate_level(
             errors.push(format!("{} goal has no matching source or painter", COLOR_NAMES[ci]));
         }
     }
-    for i in 0..NUM_TELEPORTS {
-        if placed_teleports.0[i] == 1 {
-            errors.push(format!("Teleport {} needs a pair", i + 1));
-        }
-    }
+    errors.extend(check_unpaired_teleports(tiles.iter().map(|(_, k, _)| *k)));
     if !validated.0 { errors.push("Level has not been tested successfully".into()); }
     errors
 }
@@ -59,13 +74,11 @@ fn validate_level(
 fn validate_saved(saved: &SavedBoardState, validated: &LevelValidated) -> Vec<String> {
     let mut errors = Vec::new();
     let (mut sources, mut goals, mut painters) = (HashSet::new(), HashSet::new(), HashSet::new());
-    let mut tp = [0u8; 10];
     for (_, _, kind, _) in &saved.tiles {
         match kind {
             TileKind::Source(ci, _) => { sources.insert(*ci); }
             TileKind::Goal(ci) => { goals.insert(*ci); }
             TileKind::Painter(ci) => { painters.insert(*ci); }
-            TileKind::Teleport(n) => { tp[*n] += 1; }
             _ => {}
         }
     }
@@ -76,7 +89,7 @@ fn validate_saved(saved: &SavedBoardState, validated: &LevelValidated) -> Vec<St
             errors.push(format!("{} goal has no matching source or painter", COLOR_NAMES[ci]));
         }
     }
-    for i in 0..NUM_TELEPORTS { if tp[i] == 1 { errors.push(format!("Teleport {} needs a pair", i + 1)); } }
+    errors.extend(check_unpaired_teleports(saved.tiles.iter().map(|(_, _, k, _)| *k)));
     if !validated.0 { errors.push("Level has not been tested successfully".into()); }
     errors
 }
@@ -87,7 +100,6 @@ pub fn save_button_interaction(
     mut commands: Commands,
     existing_dialog: Query<Entity, Or<(With<SaveDialog>, With<LoadDialog>, With<ValidationErrorDialog>)>>,
     tiles: Query<(&TileCoord, &TileKind, Option<&InventoryMarker>), (With<Tile>, Without<DespawnAtZeroScale>)>,
-    placed_teleports: Res<PlacedTeleports>,
     validated: Res<LevelValidated>,
     saved_board: Res<SavedBoardState>,
     font: Res<GameFont>,
@@ -100,7 +112,7 @@ pub fn save_button_interaction(
         let errors = if in_test {
             validate_saved(&saved_board, &validated)
         } else {
-            validate_level(&tiles, &placed_teleports, &validated)
+            validate_level(&tiles, &validated)
         };
         if errors.is_empty() {
             spawn_save_dialog(&mut commands, &font.0);
@@ -304,7 +316,6 @@ pub fn load_dialog_buttons(
     tiles: Query<Entity, With<Tile>>,
     assets: Res<GameAssets>,
     mut board_size: ResMut<BoardSize>,
-    mut placed_teleports: ResMut<PlacedTeleports>,
     mut inv_state: ResMut<InventoryState>,
     mut selected_tool: ResMut<SelectedTool>,
     keys: Res<ButtonInput<KeyCode>>,
@@ -339,8 +350,6 @@ pub fn load_dialog_buttons(
         }
     }
 
-    // Rebuild tracking state
-    placed_teleports.0 = [0; 10];
     for &(col, row, kind, is_marked) in &level.tiles {
         if col >= board_size.0 || row >= board_size.0 { continue; }
         let entity = spawn_tile(&mut commands, col, row, board_size.0, kind, &assets);
@@ -354,7 +363,6 @@ pub fn load_dialog_buttons(
                 ));
             });
         }
-        if let TileKind::Teleport(n) = kind { placed_teleports.0[n] += 1; }
     }
     validated.0 = false;
     *inv_state = InventoryState::default();

@@ -153,11 +153,17 @@ pub fn move_bots(
                         mov.phase = BotPhase::Rotating { entry_dir: mov.direction, exit_dir, progress: 0.0 };
                     }
                     BotPhase::Decelerating(None) => {
-                        let tp = if let Some(TileKind::Teleport(num)) = tile_at(mov.col, mov.row) {
-                            tiles.iter().find(|(c, k)| matches!(k, TileKind::Teleport(n) if *n == num)
-                                && (c.col as i32 != mov.col || c.row as i32 != mov.row))
-                                .map(|(c, _)| (c.col as i32, c.row as i32))
-                        } else { None };
+                        let tp = match tile_at(mov.col, mov.row) {
+                            Some(TileKind::Teleport(co, num)) => tiles.iter()
+                                .find(|(c, k)| matches!(k, TileKind::Teleport(co2, n) if *co2 == co && *n == num)
+                                    && (c.col as i32 != mov.col || c.row as i32 != mov.row))
+                                .map(|(c, _)| (c.col as i32, c.row as i32)),
+                            Some(TileKind::TeleportBut(co, num)) => tiles.iter()
+                                .find(|(c, k)| matches!(k, TileKind::TeleportBut(co2, n) if *co2 == co && *n == num)
+                                    && (c.col as i32 != mov.col || c.row as i32 != mov.row))
+                                .map(|(c, _)| (c.col as i32, c.row as i32)),
+                            _ => None,
+                        };
                         if let Some((tc, tr)) = tp {
                             target_scale.0 = Vec3::ZERO;
                             mov.phase = BotPhase::TeleportShrink { target_col: tc, target_row: tr };
@@ -224,7 +230,13 @@ pub fn move_bots(
                         advance!(); mov.phase = BotPhase::Decelerating(Some(exit_dir));
                     } else { advance!(); }
                 }
-                Some(TileKind::Teleport(_)) => { advance!(); mov.phase = BotPhase::Decelerating(None); }
+                Some(TileKind::Teleport(co, _)) => {
+                    let affects = co == NUM_COLORS || co == mov.color_index;
+                    advance!(); if affects { mov.phase = BotPhase::Decelerating(None); }
+                }
+                Some(TileKind::TeleportBut(co, _)) => {
+                    advance!(); if co != mov.color_index { mov.phase = BotPhase::Decelerating(None); }
+                }
                 Some(TileKind::ArrowBut(aci, _)) if aci == mov.color_index => { advance!(); }
                 Some(TileKind::Arrow(_, adir)) | Some(TileKind::ArrowBut(_, adir)) => {
                     advance!(); if adir != mov.direction { mov.phase = BotPhase::Decelerating(Some(adir)); }

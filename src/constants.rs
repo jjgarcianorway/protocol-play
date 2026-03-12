@@ -95,6 +95,7 @@ pub const NUM_COLORS: usize = 10;
 pub const GREY_COLOR: (f32, f32, f32) = (0.7, 0.7, 0.7);
 pub const NUM_TURN_COLORS: usize = NUM_COLORS + 1;
 pub const NUM_TELEPORTS: usize = 10;
+pub const NUM_TELEPORT_COLORS: usize = NUM_COLORS + 1;
 pub const NUM_BOUNCE_COLORS: usize = NUM_COLORS + 1;
 pub const NUM_SWITCH_COLORS: usize = NUM_COLORS + 1;
 pub const NUM_ARROW_COLORS: usize = NUM_COLORS + 1;

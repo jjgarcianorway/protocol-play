@@ -4,7 +4,7 @@ A game built with [Bevy](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.13.1** - Ghost fade trails, exact-match suppression, player/editor UI consistency.
+**v0.14.0** - Colored teleports with auto-numbering, TeleportBut tiles.
 
 ### Features
 - Resizable board (3x3 to 12x12) with smooth scale animations
@@ -14,7 +14,8 @@ A game built with [Bevy](https://bevyengine.org/) (Rust).
 - **Goal tiles** with star symbol, 10 colors, unlimited per color
 - **Turn tiles** with L-shaped corner piece, 11 colors (10 + grey for all bots), directional, unlimited
 - **TurnBut tiles** with L-shape + forbidden symbol, affects all bots except matching color, 10 colors
-- **Teleport tiles** with ring + 7-segment number, max 2 per number (10 pairs), bot shrinks/grows between paired teleports
+- **Teleport tiles** with ring + 7-segment number, 11 colors (10 + grey for all bots), auto-paired numbering, bot shrinks/grows between paired teleports
+- **TeleportBut tiles** with ring + number + forbidden symbol, teleports all bots except matching color, 10 colors, auto-paired numbering
 - **Bouncer tiles** with diamond shape, reverses bot direction 180°, 11 colors (10 + grey), unlimited
 - **BounceBut tiles** with diamond + forbidden symbol, reverses all except matching color, 10 colors
 - **Door tiles** (open/closed) with switch tile interaction
@@ -25,7 +26,7 @@ A game built with [Bevy](https://bevyengine.org/) (Rust).
 - **Editable file-based textures** (`assets/textures/`): base and mask PNGs auto-generated on first run, editable afterwards
 - **Color memory**: switching tools remembers last placed color instead of auto-cycling
 - **Multi-level accordion inventory** with auto-selection:
-  - L1: Floor, Source, Goal, Turn, TurnBut, Teleport, Bounce, BounceBut, Door, Switch, Painter, Arrow, ArrowBut, Delete
+  - L1: Floor, Source, Goal, Turn, TurnBut, Teleport, TeleportBut, Bounce, BounceBut, Door, Switch, Painter, Arrow, ArrowBut, Delete
   - L2: 4 directional variants (N/E/S/W) for Source, Turn, TurnBut, Arrow, ArrowBut; Open/Closed for Door
   - L3: Color/number selection with count indicators and availability tracking
 - **Test mode**: mark tiles for inventory, flat sorted test inventory, remove tool, reset
@@ -58,7 +59,7 @@ Each package includes the executable and a sample `level.json`. Extract and run.
 
 ### Editor (for creating levels)
 
-Download from [v0.13.1 release](https://github.com/jjgarcianorway/protocol-play/releases/tag/v0.13.1):
+Download from [v0.14.0 release](https://github.com/jjgarcianorway/protocol-play/releases/tag/v0.14.0):
 - **Linux**: `protocol-play-editor`
 
 ## Building

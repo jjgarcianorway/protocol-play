@@ -8,7 +8,7 @@ use std::f32::consts::{FRAC_PI_2, PI};
 // === Enums ===
 #[derive(Default, PartialEq, Clone, Copy)]
 pub enum Tool {
-    #[default] Floor, Source, Goal, Turn, TurnBut, Teleport, Bounce, BounceBut,
+    #[default] Floor, Source, Goal, Turn, TurnBut, Teleport, TeleportBut, Bounce, BounceBut,
     Door, Switch, ColorSwitch, ColorSwitchBut, Painter, Arrow, ArrowBut, Delete,
 }
 
@@ -104,9 +104,6 @@ pub struct InventoryState {
     pub last_placed_color: Option<usize>,
 }
 
-#[derive(Resource, Default)]
-pub struct PlacedTeleports(pub [u8; 10]);
-
 #[derive(Resource, Default, PartialEq, Clone, Copy)]
 pub enum PlayMode {
     #[default]
@@ -143,7 +140,9 @@ pub struct InventoryIcons {
     pub turnbut_dir_icons: [Handle<Image>; 4],
     pub turnbut_color_icons: Vec<Handle<Image>>,
     pub teleport: Handle<Image>,
-    pub teleport_num_icons: Vec<Handle<Image>>,
+    pub teleport_color_icons: Vec<Handle<Image>>,
+    pub teleportbut: Handle<Image>,
+    pub teleportbut_color_icons: Vec<Handle<Image>>,
     pub bounce: Handle<Image>,
     pub bounce_color_icons: Vec<Handle<Image>>,
     pub bouncebot: Handle<Image>,
@@ -167,7 +166,8 @@ impl InventoryIcons {
     pub fn turn_color_dir(&self, ci: usize, dir: Direction) -> Handle<Image> { self.turn_color_icons[ci * 4 + dir.index()].clone() }
     pub fn turnbut_dir(&self, dir: Direction) -> Handle<Image> { self.turnbut_dir_icons[dir.index()].clone() }
     pub fn turnbut_color_dir(&self, ci: usize, dir: Direction) -> Handle<Image> { self.turnbut_color_icons[ci * 4 + dir.index()].clone() }
-    pub fn teleport_num(&self, num: usize) -> Handle<Image> { self.teleport_num_icons[num].clone() }
+    pub fn teleport_color(&self, ci: usize) -> Handle<Image> { self.teleport_color_icons[ci].clone() }
+    pub fn teleportbut_color(&self, ci: usize) -> Handle<Image> { self.teleportbut_color_icons[ci].clone() }
     pub fn bounce_color(&self, ci: usize) -> Handle<Image> { self.bounce_color_icons[ci].clone() }
     pub fn bouncebot_color(&self, ci: usize) -> Handle<Image> { self.bouncebot_color_icons[ci].clone() }
     pub fn switch_color(&self, ci: usize) -> Handle<Image> { self.switch_color_icons[ci].clone() }
@@ -203,8 +203,10 @@ pub struct GameAssets {
     pub turnbut_symbol_mesh: Handle<Mesh>,
     pub turnbut_symbol_materials: Vec<Handle<StandardMaterial>>,
     pub ghost_turnbut_materials: Vec<Handle<StandardMaterial>>,
-    pub teleport_symbol_materials: Vec<Handle<StandardMaterial>>,
+    pub teleport_symbol_materials: Vec<Handle<StandardMaterial>>,  // [num * NUM_TELEPORT_COLORS + color]
     pub ghost_teleport_materials: Vec<Handle<StandardMaterial>>,
+    pub teleportbut_symbol_materials: Vec<Handle<StandardMaterial>>, // [num * NUM_COLORS + color]
+    pub ghost_teleportbut_materials: Vec<Handle<StandardMaterial>>,
     pub bounce_symbol_materials: Vec<Handle<StandardMaterial>>,
     pub ghost_bounce_materials: Vec<Handle<StandardMaterial>>,
     pub bouncebot_symbol_materials: Vec<Handle<StandardMaterial>>,
@@ -254,7 +256,8 @@ pub enum TileKind {
     Goal(usize),
     Turn(usize, Direction),
     TurnBut(usize, Direction),
-    Teleport(usize),
+    Teleport(usize, usize),
+    TeleportBut(usize, usize),
     Bounce(usize),
     BounceBut(usize),
     Door(bool),  // true = open, false = closed
@@ -286,7 +289,7 @@ pub enum InventorySlot {
     GoalColor(usize),
     TurnDir(Direction), TurnColor(usize),
     TurnButDir(Direction), TurnButColor(usize),
-    Teleport, TeleportNum(usize),
+    Teleport, TeleportBut, TeleportColor(usize), TeleportButColor(usize),
     Bounce, BounceBut, BounceColor(usize), BounceButColor(usize),
     Door, Switch, SwitchBut, SwitchColor(usize), SwitchButColor(usize),
     Painter, PainterColor(usize),
@@ -325,7 +328,6 @@ pub enum InventorySlot {
 #[derive(Resource, Default)]
 pub struct SavedBoardState {
     pub tiles: Vec<(u32, u32, TileKind, bool)>,
-    pub placed_teleports: [u8; 10],
     pub inv_state: InventoryState,
     pub selected_tool: Tool,
 }

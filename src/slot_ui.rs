@@ -88,7 +88,8 @@ pub fn rebuild_l3_colors(
         let ci = match slot {
             InventorySlot::SourceColor(c) | InventorySlot::GoalColor(c)
             | InventorySlot::TurnColor(c) | InventorySlot::TurnButColor(c)
-            | InventorySlot::TeleportNum(c) | InventorySlot::PainterColor(c)
+            | InventorySlot::TeleportColor(c) | InventorySlot::TeleportButColor(c)
+            | InventorySlot::PainterColor(c)
             | InventorySlot::BounceColor(c) | InventorySlot::BounceButColor(c)
             | InventorySlot::SwitchColor(c) | InventorySlot::SwitchButColor(c)
             | InventorySlot::ArrowColor(c) | InventorySlot::ArrowButColor(c) => c,
@@ -99,31 +100,12 @@ pub fn rebuild_l3_colors(
 }
 
 pub fn update_l3_availability(
-    mut commands: Commands,
-    placed_teleports: Res<PlacedTeleports>,
-    inv_state: Res<InventoryState>,
-    l3_slots: Query<(Entity, &InventorySlot, &Node, &Children), With<Level3Slot>>,
-    children_q: Query<&Children>,
-    mut text_q: Query<&mut Text>,
+    _commands: Commands, _inv_state: Res<InventoryState>,
+    _l3_slots: Query<(Entity, &InventorySlot, &Node, &Children), With<Level3Slot>>,
+    _children_q: Query<&Children>, _text_q: Query<&mut Text>,
 ) {
-    if inv_state.level != 3 { return; }
-    if !placed_teleports.is_changed() { return; }
-    for (entity, slot, node, children) in &l3_slots {
-        if let InventorySlot::TeleportNum(num) = slot {
-            let remaining = 2u8.saturating_sub(placed_teleports.0[*num]);
-            let show = remaining > 0;
-            let target = if show { SLOT_VW } else { 0.0 };
-            let current = match node.width { Val::Vw(w) => w, _ => target };
-            if (current - target).abs() > 0.1 {
-                commands.entity(entity).insert(NodeWidthAnim { target, despawn_at_zero: false });
-            }
-            for &child in children.iter() {
-                if let Ok(gc) = children_q.get(child) {
-                    for &g in gc.iter() { if let Ok(mut t) = text_q.get_mut(g) { **t = remaining.to_string(); } }
-                }
-            }
-        }
-    }
+    // Teleport colors now use auto-numbering with up to 10 pairs per color.
+    // No dynamic availability tracking needed (all colors always available).
 }
 
 pub fn collapse_expansion(
