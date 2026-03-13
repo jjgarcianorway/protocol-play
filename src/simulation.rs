@@ -311,16 +311,20 @@ pub fn spawn_simulation_overlay(
     mut commands: Commands, mut sim_result: ResMut<SimulationResult>,
     existing: Query<Entity, With<SimulationOverlay>>, font: Res<GameFont>,
     play_mode: Res<PlayMode>, test_inv: Res<TestInventory>,
+    bots: Query<&Bot>,
 ) {
     if sim_result.result.is_none() || sim_result.overlay_spawned || !existing.is_empty() { return; }
     sim_result.overlay_spawned = true;
     let in_test = matches!(*play_mode, PlayMode::TestPlaying);
     let pieces_left = test_inv.items.iter().map(|(_, c)| *c as usize).sum::<usize>();
-    let (msg, color, btn_text) = match &sim_result.result {
-        Some(SimResult::Error(s)) => (*s, rgb(SIM_ERROR_COLOR), "Stop"),
+    let bot_count = bots.iter().count();
+    let (msg, color, btn_text): (String, Color, &str) = match &sim_result.result {
+        Some(SimResult::Error(s)) => (s.to_string(), rgb(SIM_ERROR_COLOR), "Stop"),
         Some(SimResult::Success) if in_test && pieces_left > 0 =>
-            ("Solved with pieces to spare!", rgb(SIM_SUCCESS_COLOR), "Continue"),
-        Some(SimResult::Success) => ("All bots reached their goals!", rgb(SIM_SUCCESS_COLOR), "Continue"),
+            ("Solved with pieces to spare!".into(), rgb(SIM_SUCCESS_COLOR), "Continue"),
+        Some(SimResult::Success) if bot_count == 1 =>
+            ("Bot reached its goal!".into(), rgb(SIM_SUCCESS_COLOR), "Continue"),
+        Some(SimResult::Success) => ("All bots reached their goals!".into(), rgb(SIM_SUCCESS_COLOR), "Continue"),
         None => return,
     };
     let stats = sim_result.stats_lines.clone();
@@ -334,7 +338,7 @@ pub fn spawn_simulation_overlay(
                 align_items: AlignItems::Center, row_gap: Val::Px(SIM_CARD_GAP), ..default() },
             BackgroundColor(rgb(SIM_CARD_BG)),
         )).with_children(|card| {
-            card.spawn((Text::new(msg), gf(SIM_MSG_FONT, &font.0), TextColor(color)));
+            card.spawn((Text::new(&msg), gf(SIM_MSG_FONT, &font.0), TextColor(color)));
             for line in &stats {
                 card.spawn((Text::new(line), gf(DIALOG_BODY_FONT, &font.0), TextColor(Color::WHITE)));
             }

@@ -419,7 +419,9 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
                     BackgroundColor(rgba(INVENTORY_L1_BG)),
                 )).with_children(|c| {
                     for (i, (slot_type, icon_handle)) in l1.iter().enumerate() {
-                        c.spawn((Button, sn.clone(), BackgroundColor(slot_bg()), border_for(i == 0), *slot_type))
+                        let glow = BoxShadow::new(rgba(SLOT_GLOW_COLOR), Val::ZERO, Val::ZERO,
+                            Val::Px(SLOT_GLOW_SPREAD), Val::Px(SLOT_GLOW_BLUR));
+                        c.spawn((Button, sn.clone(), BackgroundColor(slot_bg()), border_for(i == 0), *slot_type, glow))
                             .with_child((icon_node(), ImageNode::new(icon_handle.clone())));
                     }
                     c.spawn((Button, sn.clone(), BackgroundColor(Color::NONE), BorderColor::all(Color::NONE), InventorySlot::Delete))

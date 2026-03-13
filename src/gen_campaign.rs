@@ -128,9 +128,10 @@ fn ch_w(ch: usize, pos: usize) -> [u32; GEN_NUM_WEIGHTS] {
 fn make_level(ch: usize, pos: usize, name: &str, board: u32, bots: u32, diff: u32) -> Level {
     let mut c = cfg(board, bots, diff, ch_w(ch, pos));
     if ch >= 2 { c.path_sharing = true; }
-    c.confusion_tiles = ch >= 2 && (pos > 0 || ch >= 13);
+    c.confusion_tiles = ch >= 3 && (pos >= 3 || ch >= 13);
     if ch >= 10 { c.door_chains = match pos { 0..=2=>1, 3..=5=>2, 6..=8=>3, _=>4 }; }
-    let pct = 15 + pos as u32 * 2;
+    let hole_base = if ch <= 2 { 5 } else if ch <= 6 { 10 } else { 15 };
+    let pct = hole_base + pos as u32;
     match pos % 3 {
         0 => { c.hole_placement = HolePlacement::Edges; c.hole_percent = pct; }
         1 => { c.hole_placement = HolePlacement::Middle; c.hole_percent = pct; }
@@ -331,12 +332,12 @@ fn campaign_chapters() -> Vec<Chapter> {
             ("Chaos Theory",      11, 8, 95),
             ("The Architect",     12, 9, 97),
             ("Event Horizon",     12, 9, 100),
-            ("Singularity",       12, 10, 100),
-            ("FINAL BOSS I — The Protocol",    12, 10, 100),
-            ("FINAL BOSS II — The Machine",    12, 10, 100),
-            ("FINAL BOSS III — Transcendence", 12, 10, 100),
-            ("SECRET — The Impossible",        12, 10, 100),
-            ("SECRET — Protocol Complete",     12, 10, 100),
+            ("Singularity",       12, 9, 100),
+            ("FINAL BOSS I — The Protocol",    12, 9, 100),
+            ("FINAL BOSS II — The Machine",    12, 9, 100),
+            ("FINAL BOSS III — Transcendence", 12, 9, 100),
+            ("SECRET — The Impossible",        12, 9, 100),
+            ("SECRET — Protocol Complete",     12, 9, 100),
         ]),
     ]
 }

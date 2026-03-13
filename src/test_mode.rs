@@ -211,8 +211,10 @@ pub fn spawn_test_inventory(commands: &mut Commands, test_inv: &TestInventory, i
             for (i, (kind, count)) in test_inv.items.iter().enumerate() {
                 let Some(icon) = tilekind_to_icon(kind, icons) else { continue };
                 let sel = !test_inv.remove_mode && test_inv.selected == Some(i);
+                let glow = BoxShadow::new(rgba(SLOT_GLOW_COLOR), Val::ZERO, Val::ZERO,
+                    Val::Px(SLOT_GLOW_SPREAD), Val::Px(SLOT_GLOW_BLUR));
                 c.spawn((Button, TestInventorySlot(i), border_for(sel), sn.clone(),
-                    BackgroundColor(slot_bg()))).with_children(|w| {
+                    BackgroundColor(slot_bg()), glow)).with_children(|w| {
                     w.spawn((icon_node(), ImageNode::new(icon)));
                     let cc = if *count > 0 { rgb(COUNT_AVAIL_COLOR) } else { rgb(COUNT_EMPTY_COLOR) };
                     w.spawn(Node { width: Val::Percent(100.0), justify_content: JustifyContent::Center,

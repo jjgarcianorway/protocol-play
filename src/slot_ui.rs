@@ -15,7 +15,9 @@ pub fn spawn_base_slot(
     if (is_l3 && !available) || grow { node.width = Val::Vw(0.0); }
     let bg = slot_bg();
     let alpha = if grow { 0.0 } else { 1.0 };
-    let mut ec = commands.spawn((Button, node, BackgroundColor(bg.with_alpha(alpha)), bc, slot));
+    let glow = BoxShadow::new(rgba(SLOT_GLOW_COLOR), Val::ZERO, Val::ZERO,
+        Val::Px(SLOT_GLOW_SPREAD), Val::Px(SLOT_GLOW_BLUR));
+    let mut ec = commands.spawn((Button, node, BackgroundColor(bg.with_alpha(alpha)), bc, slot, glow));
     if is_l3 { ec.insert(Level3Slot); }
     if grow { ec.insert(NodeWidthAnim { target: SLOT_VW, despawn_at_zero: false }); }
     let child = ec.with_children(|p| {

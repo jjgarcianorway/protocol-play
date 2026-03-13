@@ -91,7 +91,7 @@ pub const LIGHT_AZIMUTH: f32 = 0.4;
 pub const DIALOG_FADE_TARGET: f32 = 0.85;
 
 // === Colors ===
-pub const NUM_COLORS: usize = 10;
+pub const NUM_COLORS: usize = 9;
 pub const GREY_COLOR: (f32, f32, f32) = (0.7, 0.7, 0.7);
 pub const NUM_TURN_COLORS: usize = NUM_COLORS + 1;
 pub const NUM_TELEPORTS: usize = 10;
@@ -101,21 +101,20 @@ pub const NUM_SWITCH_COLORS: usize = NUM_COLORS + 1;
 pub const NUM_ARROW_COLORS: usize = NUM_COLORS + 1;
 
 pub const COLOR_NAMES: [&str; NUM_COLORS] = [
-    "Red", "Orange", "Yellow", "Light Green", "Dark Green",
-    "Light Blue", "Dark Blue", "Pink", "Purple", "Brown",
+    "Red", "Orange", "Gold", "Yellow-Green",
+    "Green", "Cyan", "Blue", "Purple", "Pink",
 ];
 
 pub const SOURCE_COLORS: [(f32, f32, f32); NUM_COLORS] = [
-    (0.95, 0.1, 0.1),   // Red
-    (1.0, 0.5, 0.0),    // Orange
-    (1.0, 0.88, 0.0),   // Yellow
-    (0.35, 0.85, 0.2),  // Light Green
-    (0.0, 0.45, 0.12),  // Dark Green
-    (0.3, 0.7, 1.0),    // Light Blue
-    (0.1, 0.15, 0.75),  // Dark Blue
-    (1.0, 0.35, 0.55),  // Pink
-    (0.6, 0.15, 0.85),  // Purple
-    (0.55, 0.3, 0.08),  // Brown
+    (0.827, 0.271, 0.271),  // Red       (211, 69, 69)
+    (0.827, 0.506, 0.271),  // Orange    (211, 129, 69)
+    (0.827, 0.651, 0.271),  // Gold      (211, 166, 69)
+    (0.718, 0.827, 0.271),  // Yellow-Green (183, 211, 69)
+    (0.271, 0.827, 0.584),  // Green     (69, 211, 149)
+    (0.271, 0.757, 0.827),  // Cyan      (69, 193, 211)
+    (0.271, 0.478, 0.827),  // Blue      (69, 122, 211)
+    (0.506, 0.271, 0.827),  // Purple    (129, 69, 211)
+    (0.827, 0.271, 0.557),  // Pink      (211, 69, 142)
 ];
 
 // UI colors
@@ -135,6 +134,9 @@ pub const TEST_BANNER_BG: (f32, f32, f32, f32) = (0.85, 0.55, 0.0, 0.9);
 pub const TEST_BANNER_TEXT: (f32, f32, f32) = (0.1, 0.05, 0.0);
 pub const COUNT_AVAIL_COLOR: (f32, f32, f32) = (0.4, 0.4, 0.4);
 pub const COUNT_EMPTY_COLOR: (f32, f32, f32) = (0.4, 0.4, 0.4);
+pub const SLOT_GLOW_COLOR: (f32, f32, f32, f32) = (1.0, 1.0, 1.0, 0.5);
+pub const SLOT_GLOW_BLUR: f32 = 6.0;
+pub const SLOT_GLOW_SPREAD: f32 = 2.0;
 
 // Dialog colors
 pub const DIALOG_PANEL_BG: (f32, f32, f32) = (0.15, 0.15, 0.18);
@@ -174,16 +176,16 @@ pub const SIM_BTN_BG: (f32, f32, f32) = (0.3, 0.3, 0.3);
 pub const SIM_BTN_PAD: (f32, f32) = (30.0, 12.0);
 pub const SIM_BTN_FONT: f32 = 20.0;
 
-// Texture colors (dark navy/slate blue — matches Unity reference)
-pub const TILE_GRAY: [u8; 4] = [52, 58, 72, 255];
-pub const TILE_DARK: [u8; 4] = [28, 32, 45, 255];
-pub const SYMBOL_STROKE: [u8; 4] = [38, 42, 55, 255];
+// Texture colors (brighter for better inventory visibility)
+pub const TILE_GRAY: [u8; 4] = [72, 78, 95, 255];
+pub const TILE_DARK: [u8; 4] = [45, 50, 65, 255];
+pub const SYMBOL_STROKE: [u8; 4] = [55, 60, 75, 255];
 pub const STROKE_EXPAND: f32 = 0.025;
-pub const TURN_CENTER_BRIGHTNESS: f32 = 0.35;
-pub const ICON_WHITE: [u8; 4] = [100, 100, 100, 255];
-pub const ICON_DARK_BG: [u8; 4] = [22, 26, 38, 255];
-pub const ISO_SIDE_COLOR: [u8; 4] = [35, 40, 55, 255];
-pub const ISO_BOTTOM_COLOR: [u8; 4] = [20, 24, 36, 255];
+pub const TURN_CENTER_BRIGHTNESS: f32 = 0.45;
+pub const ICON_WHITE: [u8; 4] = [150, 150, 150, 255];
+pub const ICON_DARK_BG: [u8; 4] = [35, 40, 55, 255];
+pub const ISO_SIDE_COLOR: [u8; 4] = [55, 60, 75, 255];
+pub const ISO_BOTTOM_COLOR: [u8; 4] = [35, 40, 55, 255];
 pub const ISO_MARGIN: f32 = 0.08;
 pub const DELETE_ICON_COLOR: [u8; 4] = [220, 60, 60, 255];
 pub const PLAY_ICON_COLOR: [u8; 4] = [80, 200, 80, 255];
