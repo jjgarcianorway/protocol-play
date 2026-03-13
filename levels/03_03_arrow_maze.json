@@ -3,10 +3,28 @@
   "board_size": 4,
   "tiles": [
     [
+      1,
       2,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      3,
       0,
       {
-        "Arrow": [
+        "Turn": [
           0,
           "South"
         ]
@@ -14,20 +32,49 @@
       true
     ],
     [
+      3,
+      1,
+      {
+        "Arrow": [
+          0,
+          "West"
+        ]
+      },
+      true
+    ],
+    [
+      0,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      3,
+      "Floor",
+      false
+    ],
+    [
       0,
       2,
       "Floor",
       false
     ],
     [
-      1,
-      1,
+      2,
+      2,
       "Floor",
       false
     ],
     [
-      1,
       3,
+      2,
       "Floor",
       false
     ],
@@ -38,19 +85,27 @@
       false
     ],
     [
+      2,
       3,
+      "Floor",
+      false
+    ],
+    [
       1,
-      "Floor",
+      1,
+      {
+        "Goal": 0
+      },
       false
     ],
     [
+      1,
       3,
-      0,
       "Floor",
       false
     ],
     [
-      0,
+      2,
       0,
       {
         "Source": [
@@ -59,70 +114,30 @@
         ]
       },
       false
-    ],
-    [
-      0,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      2,
-      {
-        "Goal": 0
-      },
-      false
     ]
   ],
   "solution": [
     [
-      2,
+      3,
       0,
       {
-        "Arrow": [
+        "Turn": [
           0,
           "South"
         ]
       }
+    ],
+    [
+      3,
+      1,
+      {
+        "Arrow": [
+          0,
+          "West"
+        ]
+      }
     ]
   ],
-  "seed": 7652562069800354265,
-  "difficulty": 15
+  "seed": 13020232881455175389,
+  "difficulty": 31
 }

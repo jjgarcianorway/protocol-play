@@ -1,136 +1,38 @@
 {
   "name": "Turn Puzzle",
-  "board_size": 5,
+  "board_size": 4,
   "tiles": [
     [
-      3,
-      4,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      4,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      4,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      4,
-      1,
-      {
-        "Goal": 0
-      },
-      false
-    ],
-    [
       2,
       2,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      4,
-      0,
       {
         "TurnBut": [
           1,
-          "South"
+          "West"
         ]
       },
       true
     ],
     [
-      2,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      4,
-      3,
+      0,
+      0,
       "Floor",
       false
     ],
     [
       1,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      2,
       0,
       {
         "Source": [
@@ -141,42 +43,131 @@
       false
     ],
     [
+      3,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      3,
       1,
-      4,
+      {
+        "TurnBut": [
+          1,
+          "West"
+        ]
+      },
+      true
+    ],
+    [
+      1,
+      1,
       "Floor",
       false
     ],
     [
       2,
-      4,
+      3,
       "Floor",
       false
     ],
     [
-      4,
-      4,
+      3,
+      3,
       "Floor",
       false
     ],
     [
       3,
       0,
+      {
+        "Turn": [
+          0,
+          "South"
+        ]
+      },
+      true
+    ],
+    [
+      0,
+      2,
+      {
+        "Goal": 0
+      },
+      false
+    ],
+    [
+      0,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      1,
+      {
+        "Turn": [
+          0,
+          "East"
+        ]
+      },
+      true
+    ],
+    [
+      1,
+      2,
       "Floor",
       false
     ]
   ],
   "solution": [
     [
-      4,
-      0,
+      2,
+      2,
       {
         "TurnBut": [
           1,
+          "West"
+        ]
+      }
+    ],
+    [
+      3,
+      1,
+      {
+        "TurnBut": [
+          1,
+          "West"
+        ]
+      }
+    ],
+    [
+      3,
+      0,
+      {
+        "Turn": [
+          0,
           "South"
+        ]
+      }
+    ],
+    [
+      2,
+      1,
+      {
+        "Turn": [
+          0,
+          "East"
         ]
       }
     ]
   ],
-  "seed": 6608062138472149854,
-  "difficulty": 20
+  "seed": 12979017200464662056,
+  "difficulty": 44
 }

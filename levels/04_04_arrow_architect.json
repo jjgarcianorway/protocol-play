@@ -1,90 +1,39 @@
 {
   "name": "Arrow Architect",
-  "board_size": 5,
+  "board_size": 4,
   "tiles": [
     [
-      2,
-      4,
-      "Floor",
-      false
-    ],
-    [
-      3,
+      0,
       0,
       "Floor",
       false
     ],
     [
       3,
-      4,
-      "Floor",
-      false
-    ],
-    [
-      4,
-      4,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      4,
-      "Floor",
-      false
-    ],
-    [
-      4,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      1,
+      3,
       {
-        "Goal": 0
+        "ArrowBut": [
+          1,
+          "West"
+        ]
       },
-      false
+      true
     ],
     [
+      0,
       1,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      4,
       "Floor",
       false
     ],
     [
       0,
-      0,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      2,
       {
         "ArrowBut": [
           1,
@@ -94,72 +43,79 @@
       true
     ],
     [
-      4,
+      1,
+      1,
+      {
+        "Goal": 0
+      },
+      false
+    ],
+    [
+      2,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      3,
       1,
       "Floor",
       false
     ],
     [
       2,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      3,
       0,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      3,
+      {
+        "ArrowBut": [
+          1,
+          "North"
+        ]
+      },
+      true
+    ],
+    [
+      1,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      2,
       {
         "Source": [
           0,
-          "West"
+          "East"
         ]
       },
       false
     ],
     [
-      4,
       0,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      4,
       3,
       "Floor",
       false
@@ -167,16 +123,36 @@
   ],
   "solution": [
     [
-      0,
-      0,
+      3,
+      3,
+      {
+        "ArrowBut": [
+          1,
+          "West"
+        ]
+      }
+    ],
+    [
+      3,
+      2,
       {
         "ArrowBut": [
           1,
           "South"
         ]
       }
+    ],
+    [
+      1,
+      3,
+      {
+        "ArrowBut": [
+          1,
+          "North"
+        ]
+      }
     ]
   ],
-  "seed": 16126319918972727895,
-  "difficulty": 20
+  "seed": 8901961598294915637,
+  "difficulty": 42
 }

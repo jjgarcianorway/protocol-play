@@ -1,149 +1,36 @@
 {
   "name": "Linked Portals",
-  "board_size": 5,
+  "board_size": 4,
   "tiles": [
     [
-      4,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      4,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      4,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      0,
-      {
-        "Source": [
-          0,
-          "South"
-        ]
-      },
-      false
-    ],
-    [
-      0,
-      4,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      2,
-      "Floor",
-      false
-    ],
-    [
       3,
       3,
       "Floor",
       false
     ],
     [
-      4,
-      4,
-      "Floor",
-      false
-    ],
-    [
       0,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      1,
       2,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      4,
-      "Floor",
-      false
-    ],
-    [
-      4,
-      1,
       {
         "Goal": 0
       },
       false
     ],
     [
-      2,
       1,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      2,
       3,
       "Floor",
       false
     ],
     [
-      1,
-      1,
+      0,
+      0,
       "Floor",
       false
     ],
     [
-      1,
-      4,
+      0,
+      3,
       {
         "TeleportBut": [
           1,
@@ -154,12 +41,47 @@
     ],
     [
       1,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      2,
       3,
       "Floor",
       false
     ],
     [
-      4,
+      2,
+      1,
+      {
+        "Turn": [
+          0,
+          "West"
+        ]
+      },
+      true
+    ],
+    [
+      1,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      2,
       0,
       {
         "TeleportBut": [
@@ -168,12 +90,41 @@
         ]
       },
       true
+    ],
+    [
+      3,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      1,
+      {
+        "Source": [
+          0,
+          "East"
+        ]
+      },
+      false
+    ],
+    [
+      3,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      2,
+      "Floor",
+      false
     ]
   ],
   "solution": [
     [
-      1,
-      4,
+      0,
+      3,
       {
         "TeleportBut": [
           1,
@@ -182,7 +133,17 @@
       }
     ],
     [
-      4,
+      2,
+      1,
+      {
+        "Turn": [
+          0,
+          "West"
+        ]
+      }
+    ],
+    [
+      2,
       0,
       {
         "TeleportBut": [
@@ -192,6 +153,6 @@
       }
     ]
   ],
-  "seed": 2800121832037275658,
-  "difficulty": 42
+  "seed": 109797234946455632,
+  "difficulty": 49
 }

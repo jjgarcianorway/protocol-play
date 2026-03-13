@@ -1,109 +1,44 @@
 {
   "name": "Place Your Bounce",
-  "board_size": 4,
+  "board_size": 3,
   "tiles": [
     [
       1,
       0,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      3,
       {
-        "Turn": [
+        "Source": [
           0,
           "West"
         ]
       },
-      true
-    ],
-    [
-      0,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      0,
-      "Floor",
       false
     ],
     [
       0,
       1,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      2,
-      {
-        "Source": [
-          0,
-          "East"
-        ]
-      },
-      false
-    ],
-    [
-      3,
-      2,
       {
         "Turn": [
           0,
-          "South"
+          "North"
         ]
       },
       true
     ],
     [
-      3,
-      1,
+      2,
+      2,
       "Floor",
       false
     ],
     [
+      2,
       0,
-      3,
       "Floor",
       false
     ],
     [
+      2,
       1,
-      3,
       {
         "Goal": 0
       },
@@ -114,30 +49,53 @@
       2,
       "Floor",
       false
+    ],
+    [
+      0,
+      0,
+      {
+        "Turn": [
+          0,
+          "East"
+        ]
+      },
+      true
+    ],
+    [
+      0,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      1,
+      "Floor",
+      false
     ]
   ],
   "solution": [
     [
-      3,
-      3,
+      0,
+      1,
       {
         "Turn": [
           0,
-          "West"
+          "North"
         ]
       }
     ],
     [
-      3,
-      2,
+      0,
+      0,
       {
         "Turn": [
           0,
-          "South"
+          "East"
         ]
       }
     ]
   ],
-  "seed": 11057535702998434449,
-  "difficulty": 26
+  "seed": 6431702127705611788,
+  "difficulty": 33
 }

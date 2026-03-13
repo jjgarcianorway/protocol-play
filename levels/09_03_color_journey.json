@@ -1,33 +1,61 @@
 {
   "name": "Color Journey",
-  "board_size": 5,
+  "board_size": 4,
   "tiles": [
     [
-      4,
+      3,
+      0,
+      "Floor",
+      false
+    ],
+    [
       1,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      3,
       {
-        "Turn": [
-          0,
-          "West"
-        ]
+        "Painter": 8
       },
       true
     ],
     [
       3,
-      4,
-      "Floor",
-      false
+      2,
+      {
+        "Turn": [
+          0,
+          "South"
+        ]
+      },
+      true
     ],
     [
-      1,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      3,
       0,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      3,
+      {
+        "Goal": 8
+      },
+      false
+    ],
+    [
+      0,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      2,
       {
         "Source": [
           0,
@@ -37,46 +65,8 @@
       false
     ],
     [
-      0,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      4,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      2,
-      "Floor",
-      false
-    ],
-    [
       2,
       1,
-      {
-        "Goal": 0
-      },
-      false
-    ],
-    [
-      0,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      4,
-      3,
       "Floor",
       false
     ],
@@ -87,111 +77,76 @@
       false
     ],
     [
-      0,
       3,
-      "Floor",
-      false
-    ],
-    [
-      4,
-      4,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      2,
-      "Floor",
-      false
-    ],
-    [
       1,
-      0,
       "Floor",
       false
     ],
     [
-      2,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      4,
-      0,
+      3,
+      3,
       {
         "Turn": [
           0,
-          "South"
+          "West"
         ]
       },
       true
     ],
     [
-      3,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      1,
-      "Floor",
-      false
-    ],
-    [
       2,
       3,
       "Floor",
       false
     ],
     [
-      3,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      4,
-      "Floor",
-      false
-    ],
-    [
       1,
-      4,
+      1,
       "Floor",
       false
     ],
     [
       2,
-      4,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      2,
       "Floor",
       false
     ]
   ],
   "solution": [
     [
-      4,
       1,
+      3,
       {
-        "Turn": [
-          0,
-          "West"
-        ]
+        "Painter": 8
       }
     ],
     [
-      4,
-      0,
+      3,
+      2,
       {
         "Turn": [
           0,
           "South"
         ]
       }
+    ],
+    [
+      3,
+      3,
+      {
+        "Turn": [
+          0,
+          "West"
+        ]
+      }
     ]
   ],
-  "seed": 5237758562824813201,
-  "difficulty": 20
+  "seed": 15218042582789581465,
+  "difficulty": 40
 }

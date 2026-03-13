@@ -1,52 +1,40 @@
 {
   "name": "Double Warp",
-  "board_size": 5,
+  "board_size": 4,
   "tiles": [
     [
-      4,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      2,
-      "Floor",
-      false
-    ],
-    [
       2,
       0,
       "Floor",
       false
     ],
     [
-      4,
-      1,
+      0,
+      2,
       "Floor",
       false
     ],
     [
       2,
-      4,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      2,
       {
         "Source": [
           0,
@@ -57,18 +45,29 @@
     ],
     [
       2,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      4,
-      0,
+      3,
       "Floor",
       false
     ],
     [
       3,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      1,
+      {
+        "Teleport": [
+          0,
+          0
+        ]
+      },
+      true
+    ],
+    [
+      2,
       1,
       {
         "Goal": 0
@@ -82,32 +81,8 @@
       false
     ],
     [
-      4,
       3,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      4,
-      "Floor",
-      false
-    ],
-    [
-      0,
       2,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      1,
       {
         "Teleport": [
           0,
@@ -117,25 +92,14 @@
       true
     ],
     [
-      4,
-      4,
-      {
-        "Teleport": [
-          0,
-          0
-        ]
-      },
-      true
-    ],
-    [
-      1,
-      4,
+      3,
+      0,
       "Floor",
       false
     ],
     [
+      0,
       3,
-      4,
       "Floor",
       false
     ],
@@ -147,24 +111,6 @@
     ],
     [
       3,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      0,
       1,
       "Floor",
       false
@@ -172,7 +118,7 @@
   ],
   "solution": [
     [
-      1,
+      0,
       1,
       {
         "Teleport": [
@@ -182,8 +128,8 @@
       }
     ],
     [
-      4,
-      4,
+      3,
+      2,
       {
         "Teleport": [
           0,
@@ -192,6 +138,6 @@
       }
     ]
   ],
-  "seed": 6932639035044369732,
-  "difficulty": 34
+  "seed": 12197844377755684653,
+  "difficulty": 35
 }

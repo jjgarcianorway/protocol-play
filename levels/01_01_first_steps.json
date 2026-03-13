@@ -4,83 +4,83 @@
   "tiles": [
     [
       1,
-      1,
-      "Floor",
+      0,
+      {
+        "Source": [
+          0,
+          "East"
+        ]
+      },
       false
     ],
     [
-      0,
+      1,
       2,
       "Floor",
       false
     ],
     [
+      2,
       1,
+      "Floor",
+      false
+    ],
+    [
+      2,
       0,
       {
         "Turn": [
           0,
-          "East"
+          "South"
         ]
       },
       true
     ],
     [
-      2,
+      1,
+      1,
+      "Floor",
+      false
+    ],
+    [
       0,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      2,
       {
         "Goal": 0
       },
       false
     ],
     [
-      1,
-      2,
-      {
-        "Source": [
-          0,
-          "North"
-        ]
-      },
-      false
-    ],
-    [
       0,
       1,
       "Floor",
       false
     ],
     [
-      2,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      2,
-      "Floor",
-      false
-    ],
-    [
       0,
-      0,
+      2,
       "Floor",
       false
     ]
   ],
   "solution": [
     [
-      1,
+      2,
       0,
       {
         "Turn": [
           0,
-          "East"
+          "South"
         ]
       }
     ]
   ],
-  "seed": 4180072356399594268,
+  "seed": 13788128662839737228,
   "difficulty": 23
 }

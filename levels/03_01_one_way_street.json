@@ -4,7 +4,59 @@
   "tiles": [
     [
       0,
+      0,
+      {
+        "Arrow": [
+          0,
+          "East"
+        ]
+      },
+      true
+    ],
+    [
+      0,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      1,
       2,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      2,
+      {
+        "Source": [
+          0,
+          "North"
+        ]
+      },
+      false
+    ],
+    [
+      2,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      0,
       {
         "Goal": 0
       },
@@ -12,60 +64,8 @@
     ],
     [
       1,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      0,
-      {
-        "Arrow": [
-          0,
-          "South"
-        ]
-      },
-      true
-    ],
-    [
-      2,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      1,
       0,
       "Floor",
-      false
-    ],
-    [
-      2,
-      0,
-      {
-        "Source": [
-          0,
-          "West"
-        ]
-      },
       false
     ]
   ],
@@ -76,11 +76,11 @@
       {
         "Arrow": [
           0,
-          "South"
+          "East"
         ]
       }
     ]
   ],
-  "seed": 6410403235953378020,
+  "seed": 7814218081540735867,
   "difficulty": 23
 }
