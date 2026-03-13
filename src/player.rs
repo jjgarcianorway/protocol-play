@@ -28,6 +28,12 @@ pub struct LevelStats {
     pub last_stats_write: f32,
 }
 
+fn chapter_bg(level_idx: usize) -> Color {
+    let ch = if level_idx < 132 { level_idx / 11 } else { 12 };
+    let c = CHAPTER_COLORS[ch.min(12)];
+    Color::srgb(c.0, c.1, c.2)
+}
+
 pub fn setup_player(
     mut commands: Commands,
     tiles: Query<Entity, With<Tile>>,
@@ -37,6 +43,7 @@ pub fn setup_player(
     icons: Res<InventoryIcons>,
     font: Res<GameFont>,
     mut play_mode: ResMut<PlayMode>,
+    mut clear_color: ResMut<ClearColor>,
 ) {
     let exe_dir = std::env::current_exe().ok()
         .and_then(|p| p.parent().map(|d| d.to_path_buf()));
@@ -92,6 +99,7 @@ pub fn setup_player(
     for e in &tiles { commands.entity(e).despawn(); }
     load_level(&mut commands, &assets, &mut board_size, &mut test_inv, &icons,
         &font.0, &mut play_mode, &player_levels, &p, &mut stats, true);
+    clear_color.0 = chapter_bg(start_idx);
 
     if first_unsolved(&progress.data).is_none() { spawn_congrats(&mut commands, &font.0, &progress); }
     commands.insert_resource(player_levels);
@@ -231,11 +239,8 @@ fn spawn_player_buttons(commands: &mut Commands, f: &Handle<Font>, levels: &Play
 }
 
 fn spawn_congrats(commands: &mut Commands, f: &Handle<Font>, progress: &PlayerProgress) {
-    let (tt, ta, tr): (f32, u32, u32) = progress.data.iter()
-        .fold((0.0, 0, 0), |(t, a, r), p| (t + p.stats.editing_time, a + p.stats.play_count, r + p.stats.reset_count));
-    let secs = tt as u64;
-    let tc = TextColor(Color::WHITE);
-    let bf = gf(DIALOG_BODY_FONT, f);
+    let (tt, ta, tr) = progress.data.iter().fold((0.0f32, 0u32, 0u32), |(t, a, r), p| (t + p.stats.editing_time, a + p.stats.play_count, r + p.stats.reset_count));
+    let (secs, tc, bf) = (tt as u64, TextColor(Color::WHITE), gf(DIALOG_BODY_FONT, f));
     commands.spawn((Node { position_type: PositionType::Absolute, width: Val::Percent(100.0), height: Val::Percent(100.0),
         justify_content: JustifyContent::Center, align_items: AlignItems::Center, ..default() },
         BackgroundColor(rgba(SIM_OVERLAY_BG)), GlobalZIndex(150), CongratsScreen, Interaction::default(),
@@ -262,24 +267,21 @@ pub fn player_nav_interaction(
     icons: Res<InventoryIcons>, font: Res<GameFont>, mut play_mode: ResMut<PlayMode>,
     cleanup: Query<Entity, Or<(With<TestInventoryContainer>, With<TestTopButtons>, With<Bot>, With<CongratsScreen>)>>,
     mut stats: ResMut<LevelStats>, progress: Res<PlayerProgress>,
+    mut clear_color: ResMut<ClearColor>,
 ) {
     if levels.levels.is_empty() { return; }
-    let mut dir: Option<i32> = None;
-    for i in &prev_q { if *i == Interaction::Pressed { dir = Some(-1); } }
-    for i in &next_q { if *i == Interaction::Pressed { dir = Some(1); } }
-    let Some(d) = dir else { return };
+    let d = if prev_q.iter().any(|i| *i == Interaction::Pressed) { -1 }
+        else if next_q.iter().any(|i| *i == Interaction::Pressed) { 1 } else { return };
     if !matches!(*play_mode, PlayMode::TestEditing | PlayMode::Playing) { return; }
-    let live = ProgressStats { editing_time: stats.editing_time,
-        play_count: stats.play_count, reset_count: stats.reset_count };
-    save_stats_summary(&progress.save_dir, &progress.filenames,
-        &levels.levels, &progress.data, levels.current, &live);
+    let live = ProgressStats { editing_time: stats.editing_time, play_count: stats.play_count, reset_count: stats.reset_count };
+    save_stats_summary(&progress.save_dir, &progress.filenames, &levels.levels, &progress.data, levels.current, &live);
     let next = next_level(&progress.data, levels.current, d);
     levels.current = next;
     for e in &cleanup { commands.entity(e).despawn(); }
     for e in &tiles { commands.entity(e).despawn(); }
-    let p = progress.data[next].clone();
     load_level(&mut commands, &assets, &mut board_size, &mut test_inv, &icons,
-        &font.0, &mut play_mode, &levels, &p, &mut stats, false);
+        &font.0, &mut play_mode, &levels, &progress.data[next].clone(), &mut stats, false);
+    clear_color.0 = chapter_bg(next);
 }
 
 pub fn update_player_stats(
@@ -341,7 +343,7 @@ pub fn handle_level_complete(
     mut test_inv: ResMut<TestInventory>, icons: Res<InventoryIcons>,
     font: Res<GameFont>, mut play_mode: ResMut<PlayMode>,
     cleanup: Query<Entity, Or<(With<TestInventoryContainer>, With<TestTopButtons>)>>,
-    saved_test: Res<SavedTestState>,
+    saved_test: Res<SavedTestState>, mut clear_color: ResMut<ClearColor>,
 ) {
     if levels.levels.is_empty() { return; }
     if !validated.is_changed() || !validated.0 { return; }
@@ -354,25 +356,19 @@ pub fn handle_level_complete(
         .filter(|(_, c, k)| !matches!(k, TileKind::Empty) && !saved_set.contains(&(c.col, c.row)))
         .map(|(_, c, k)| (c.col, c.row, *k)).collect();
     let creative = is_creative_solution(&levels.levels[idx].solution, &placed);
-    progress.data[idx].completed = true;
-    progress.data[idx].creative_solution = creative;
+    progress.data[idx].completed = true; progress.data[idx].creative_solution = creative;
     progress.data[idx].inventory_state = None;
-    progress.data[idx].stats = ProgressStats {
-        editing_time: stats.editing_time, play_count: stats.play_count, reset_count: stats.reset_count,
-    };
+    progress.data[idx].stats = ProgressStats { editing_time: stats.editing_time, play_count: stats.play_count, reset_count: stats.reset_count };
     save_one(&progress, idx);
-    append_stats_log(&progress.save_dir, &progress.filenames[idx],
-        &levels.levels[idx].name, &progress.data[idx].stats, creative);
+    append_stats_log(&progress.save_dir, &progress.filenames[idx], &levels.levels[idx].name, &progress.data[idx].stats, creative);
     let next = first_unsolved(&progress.data).unwrap_or(idx);
     levels.current = next;
     for e in &cleanup { commands.entity(e).despawn(); }
     for (e, _, _) in &tile_q { commands.entity(e).despawn(); }
     let p = progress.data[next].clone();
-    load_level(&mut commands, &assets, &mut board_size, &mut test_inv, &icons,
-        &font.0, &mut play_mode, &levels, &p, &mut stats, false);
-    if first_unsolved(&progress.data).is_none() {
-        spawn_congrats(&mut commands, &font.0, &progress);
-    }
+    load_level(&mut commands, &assets, &mut board_size, &mut test_inv, &icons, &font.0, &mut play_mode, &levels, &p, &mut stats, false);
+    clear_color.0 = chapter_bg(next);
+    if first_unsolved(&progress.data).is_none() { spawn_congrats(&mut commands, &font.0, &progress); }
 }
 
 pub fn populate_stats(

@@ -1,86 +1,174 @@
 {
   "name": "Color Shift",
-  "board_size": 3,
+  "board_size": 4,
   "tiles": [
     [
-      2,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      2,
+      3,
       0,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      0,
-      {
-        "Goal": 0
-      },
-      false
-    ],
-    [
-      1,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      1,
-      {
-        "Source": [
-          0,
-          "West"
-        ]
-      },
-      false
-    ],
-    [
-      0,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      1,
       {
         "Turn": [
-          0,
-          "North"
+          4,
+          "South"
         ]
       },
       true
     ],
     [
       1,
-      0,
+      3,
       "Floor",
+      false
+    ],
+    [
+      3,
+      1,
+      {
+        "Goal": 4
+      },
+      false
+    ],
+    [
+      2,
+      0,
+      {
+        "Turn": [
+          4,
+          "East"
+        ]
+      },
+      true
+    ],
+    [
+      2,
+      1,
+      {
+        "Source": [
+          4,
+          "North"
+        ]
+      },
+      false
+    ],
+    [
+      0,
+      0,
+      {
+        "Arrow": [
+          3,
+          "South"
+        ]
+      },
+      true
+    ],
+    [
+      3,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      0,
+      {
+        "Source": [
+          3,
+          "West"
+        ]
+      },
+      false
+    ],
+    [
+      1,
+      1,
+      "Empty",
+      false
+    ],
+    [
+      2,
+      3,
+      "Empty",
+      false
+    ],
+    [
+      0,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      3,
+      {
+        "Goal": 2
+      },
+      false
+    ],
+    [
+      1,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      1,
+      {
+        "Painter": 2
+      },
+      true
+    ],
+    [
+      3,
+      2,
+      "Empty",
       false
     ]
   ],
   "solution": [
     [
+      3,
+      0,
+      {
+        "Turn": [
+          4,
+          "South"
+        ]
+      }
+    ],
+    [
+      2,
+      0,
+      {
+        "Turn": [
+          4,
+          "East"
+        ]
+      }
+    ],
+    [
+      0,
+      0,
+      {
+        "Arrow": [
+          3,
+          "South"
+        ]
+      }
+    ],
+    [
       0,
       1,
       {
-        "Turn": [
-          0,
-          "North"
-        ]
+        "Painter": 2
       }
     ]
   ],
-  "seed": 2930716862749165944,
-  "difficulty": 23
+  "seed": 13503615390170753232,
+  "difficulty": 55
 }

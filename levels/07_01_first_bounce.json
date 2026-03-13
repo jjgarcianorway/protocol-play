@@ -1,51 +1,43 @@
 {
   "name": "First Bounce",
-  "board_size": 3,
+  "board_size": 4,
   "tiles": [
     [
       1,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      1,
-      "Floor",
-      false
-    ],
-    [
       2,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      0,
       {
         "Turn": [
-          0,
-          "East"
+          6,
+          "West"
         ]
       },
       true
     ],
     [
-      2,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      0,
-      "Floor",
-      false
-    ],
-    [
       1,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      0,
+      {
+        "Bounce": 7
+      },
+      true
+    ],
+    [
       2,
+      1,
+      {
+        "Goal": 7
+      },
+      false
+    ],
+    [
+      0,
+      0,
       "Floor",
       false
     ],
@@ -53,8 +45,60 @@
       0,
       2,
       {
-        "Goal": 0
+        "Goal": 6
       },
+      false
+    ],
+    [
+      3,
+      1,
+      {
+        "Turn": [
+          7,
+          "West"
+        ]
+      },
+      true
+    ],
+    [
+      3,
+      2,
+      {
+        "Source": [
+          7,
+          "North"
+        ]
+      },
+      false
+    ],
+    [
+      0,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      3,
+      "Empty",
+      false
+    ],
+    [
+      3,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      0,
+      "Floor",
       false
     ],
     [
@@ -62,25 +106,54 @@
       0,
       {
         "Source": [
-          0,
-          "West"
+          6,
+          "South"
         ]
       },
+      false
+    ],
+    [
+      2,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      3,
+      "Empty",
       false
     ]
   ],
   "solution": [
     [
-      0,
-      0,
+      1,
+      2,
       {
         "Turn": [
-          0,
-          "East"
+          6,
+          "West"
+        ]
+      }
+    ],
+    [
+      3,
+      0,
+      {
+        "Bounce": 7
+      }
+    ],
+    [
+      3,
+      1,
+      {
+        "Turn": [
+          7,
+          "West"
         ]
       }
     ]
   ],
-  "seed": 8621504872782336908,
-  "difficulty": 23
+  "seed": 3997780477057839500,
+  "difficulty": 48
 }

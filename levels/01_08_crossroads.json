@@ -5,100 +5,61 @@
     [
       2,
       0,
-      "Floor",
-      false
+      {
+        "Turn": [
+          7,
+          "East"
+        ]
+      },
+      true
     ],
     [
-      4,
       3,
+      4,
       "Floor",
       false
     ],
     [
-      1,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      1,
       3,
-      "Floor",
-      false
-    ],
-    [
       2,
-      4,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      2,
       "Floor",
       false
     ],
     [
       4,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      1,
       0,
       {
         "Turn": [
-          0,
+          7,
           "South"
         ]
       },
       true
     ],
     [
+      4,
       0,
-      1,
       "Floor",
       false
     ],
     [
       2,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      4,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      4,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      4,
-      4,
-      {
-        "Goal": 0
-      },
-      false
-    ],
-    [
-      2,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      4,
       1,
       {
         "Turn": [
-          0,
+          7,
           "West"
         ]
       },
@@ -106,18 +67,35 @@
     ],
     [
       0,
-      2,
+      3,
       "Floor",
       false
+    ],
+    [
+      0,
+      0,
+      {
+        "Turn": [
+          7,
+          "East"
+        ]
+      },
+      true
     ],
     [
       1,
-      0,
+      3,
       "Floor",
       false
     ],
     [
-      0,
+      2,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      4,
       3,
       "Floor",
       false
@@ -125,15 +103,27 @@
     [
       1,
       4,
+      "Empty",
+      false
+    ],
+    [
+      0,
+      4,
       "Floor",
       false
     ],
     [
-      3,
       2,
+      4,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      1,
       {
         "Turn": [
-          0,
+          7,
           "North"
         ]
       },
@@ -141,102 +131,127 @@
     ],
     [
       3,
-      1,
-      {
-        "Turn": [
-          0,
-          "East"
-        ]
-      },
-      true
-    ],
-    [
       3,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      0,
-      {
-        "Source": [
-          0,
-          "East"
-        ]
-      },
-      false
-    ],
-    [
-      0,
-      0,
       "Floor",
       false
     ],
     [
       4,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      0,
       2,
       {
+        "Goal": 7
+      },
+      false
+    ],
+    [
+      3,
+      1,
+      {
+        "Source": [
+          7,
+          "North"
+        ]
+      },
+      false
+    ],
+    [
+      0,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      0,
+      {
         "Turn": [
-          0,
+          7,
           "South"
         ]
       },
       true
+    ],
+    [
+      4,
+      4,
+      "Empty",
+      false
+    ],
+    [
+      2,
+      2,
+      "Floor",
+      false
     ]
   ],
   "solution": [
     [
-      4,
+      2,
       0,
       {
         "Turn": [
-          0,
+          7,
+          "East"
+        ]
+      }
+    ],
+    [
+      1,
+      0,
+      {
+        "Turn": [
+          7,
           "South"
         ]
       }
     ],
     [
-      4,
+      2,
       1,
       {
         "Turn": [
-          0,
+          7,
           "West"
         ]
       }
     ],
     [
-      3,
-      2,
+      0,
+      0,
       {
         "Turn": [
-          0,
+          7,
+          "East"
+        ]
+      }
+    ],
+    [
+      1,
+      1,
+      {
+        "Turn": [
+          7,
           "North"
         ]
       }
     ],
     [
       3,
-      1,
+      0,
       {
         "Turn": [
-          0,
-          "East"
-        ]
-      }
-    ],
-    [
-      4,
-      2,
-      {
-        "Turn": [
-          0,
+          7,
           "South"
         ]
       }
     ]
   ],
-  "seed": 18412311038021172029,
-  "difficulty": 37
+  "seed": 4633488154564796466,
+  "difficulty": 39
 }

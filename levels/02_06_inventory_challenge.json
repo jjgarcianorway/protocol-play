@@ -1,242 +1,195 @@
 {
   "name": "Inventory Challenge",
-  "board_size": 5,
+  "board_size": 4,
   "tiles": [
     [
-      1,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      2,
-      "Floor",
-      false
-    ],
-    [
       3,
-      2,
+      1,
       {
-        "TurnBut": [
-          1,
+        "Goal": 3
+      },
+      false
+    ],
+    [
+      2,
+      0,
+      {
+        "Turn": [
+          3,
+          "South"
+        ]
+      },
+      false
+    ],
+    [
+      2,
+      1,
+      {
+        "Turn": [
+          3,
           "North"
         ]
       },
       true
     ],
     [
-      4,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      1,
-      "Floor",
-      false
-    ],
-    [
       0,
-      3,
+      0,
       "Floor",
       false
     ],
     [
-      2,
       1,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      1,
+      0,
       {
-        "Turn": [
-          0,
+        "TurnBut": [
+          4,
           "East"
         ]
       },
       true
     ],
     [
-      4,
-      2,
-      {
-        "TurnBut": [
-          1,
-          "South"
-        ]
-      },
-      true
-    ],
-    [
-      0,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      4,
       1,
+      3,
       {
         "TurnBut": [
-          1,
+          5,
           "West"
         ]
       },
       true
     ],
     [
-      4,
       0,
+      3,
+      {
+        "Turn": [
+          4,
+          "North"
+        ]
+      },
+      false
+    ],
+    [
+      2,
+      2,
       {
         "TurnBut": [
-          1,
+          5,
           "South"
         ]
       },
       true
     ],
     [
-      0,
-      4,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      0,
+      1,
+      2,
       {
-        "Source": [
-          0,
+        "TurnBut": [
+          5,
           "East"
         ]
       },
       false
     ],
     [
-      2,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      2,
       0,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      4,
-      "Floor",
-      false
-    ],
-    [
       2,
-      4,
-      "Floor",
-      false
-    ],
-    [
-      4,
-      4,
       {
-        "Goal": 0
+        "Source": [
+          4,
+          "South"
+        ]
       },
       false
     ],
     [
+      3,
       0,
+      "Empty",
+      false
+    ],
+    [
       1,
-      "Floor",
+      1,
+      {
+        "Source": [
+          3,
+          "North"
+        ]
+      },
       false
     ],
     [
       3,
-      4,
+      3,
       "Floor",
+      false
+    ],
+    [
+      0,
+      1,
+      "Empty",
+      false
+    ],
+    [
+      3,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      3,
+      {
+        "Goal": 4
+      },
       false
     ]
   ],
   "solution": [
     [
-      3,
       2,
+      1,
       {
-        "TurnBut": [
-          1,
+        "Turn": [
+          3,
           "North"
         ]
       }
     ],
     [
-      3,
       1,
+      0,
       {
-        "Turn": [
-          0,
+        "TurnBut": [
+          4,
           "East"
         ]
       }
     ],
     [
-      4,
-      2,
-      {
-        "TurnBut": [
-          1,
-          "South"
-        ]
-      }
-    ],
-    [
-      4,
       1,
+      3,
       {
         "TurnBut": [
-          1,
+          5,
           "West"
         ]
       }
     ],
     [
-      4,
-      0,
+      2,
+      2,
       {
         "TurnBut": [
-          1,
+          5,
           "South"
         ]
       }
     ]
   ],
-  "seed": 9914720394381477856,
-  "difficulty": 45
+  "seed": 5260716111750674078,
+  "difficulty": 55
 }

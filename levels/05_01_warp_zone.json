@@ -1,28 +1,22 @@
 {
   "name": "Warp Zone",
-  "board_size": 3,
+  "board_size": 4,
   "tiles": [
     [
       2,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      3,
       0,
       "Floor",
       false
     ],
     [
+      3,
       2,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      0,
       {
         "Turn": [
           0,
@@ -32,30 +26,12 @@
       true
     ],
     [
-      1,
-      1,
-      "Floor",
-      false
-    ],
-    [
       2,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      1,
       2,
       {
         "Source": [
           0,
-          "North"
+          "East"
         ]
       },
       false
@@ -63,24 +39,127 @@
     [
       0,
       0,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      1,
+      {
+        "Source": [
+          9,
+          "West"
+        ]
+      },
+      false
+    ],
+    [
+      1,
+      1,
+      {
+        "Goal": 9
+      },
+      false
+    ],
+    [
+      1,
+      3,
       {
         "Goal": 0
       },
+      false
+    ],
+    [
+      2,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      0,
+      "Empty",
+      false
+    ],
+    [
+      0,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      1,
+      {
+        "Arrow": [
+          9,
+          "North"
+        ]
+      },
+      true
+    ],
+    [
+      3,
+      3,
+      {
+        "Turn": [
+          0,
+          "West"
+        ]
+      },
+      true
+    ],
+    [
+      2,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      2,
+      "Floor",
       false
     ]
   ],
   "solution": [
     [
-      1,
-      0,
+      3,
+      2,
       {
         "Turn": [
           0,
           "South"
         ]
       }
+    ],
+    [
+      0,
+      1,
+      {
+        "Arrow": [
+          9,
+          "North"
+        ]
+      }
+    ],
+    [
+      3,
+      3,
+      {
+        "Turn": [
+          0,
+          "West"
+        ]
+      }
     ]
   ],
-  "seed": 17692200570218674493,
-  "difficulty": 23
+  "seed": 17006846676993284208,
+  "difficulty": 47
 }

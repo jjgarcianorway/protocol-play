@@ -199,9 +199,9 @@ pub const BOT_EYE_Y_OFFSET: f32 = 0.04;
 
 // Bot movement
 pub const BOT_START_DELAY: f32 = 0.5;
-pub const BOT_CRUISE_SPEED: f32 = 1.0;   // tiles per second
-pub const BOT_ACCEL: f32 = 1.0;           // tiles/s²
-pub const BOT_TURN_DURATION: f32 = 0.3;  // seconds for 90° rotation
+pub const BOT_CRUISE_SPEED: f32 = 0.65;  // tiles per second
+pub const BOT_ACCEL: f32 = 0.8;           // tiles/s²
+pub const BOT_TURN_DURATION: f32 = 0.4;  // seconds for 90° rotation
 pub const BOT_BOUNCE_SPEED: f32 = 8.0;   // bounce cycles per second at goal
 pub const BOT_BOUNCE_HEIGHT: f32 = 0.15; // max bounce height
 pub const FALL_PAUSE: f32 = 0.2;         // seconds before falling
@@ -241,6 +241,21 @@ pub const STATS_WRITE_INTERVAL: f32 = 10.0;
 
 // Visual quality
 pub const CLEAR_COLOR: (f32, f32, f32) = (0.78, 0.90, 0.86);
+pub const CHAPTER_COLORS: [(f32, f32, f32); 13] = [
+    (0.78, 0.90, 0.86), // Ch1: Light teal (default)
+    (0.85, 0.82, 0.92), // Ch2: Lavender
+    (0.90, 0.85, 0.78), // Ch3: Warm sand
+    (0.80, 0.88, 0.80), // Ch4: Sage green
+    (0.82, 0.85, 0.95), // Ch5: Soft blue
+    (0.92, 0.82, 0.85), // Ch6: Rose
+    (0.88, 0.90, 0.78), // Ch7: Pale lime
+    (0.85, 0.80, 0.90), // Ch8: Mauve
+    (0.95, 0.88, 0.78), // Ch9: Peach
+    (0.78, 0.88, 0.92), // Ch10: Sky blue
+    (0.88, 0.78, 0.88), // Ch11: Orchid
+    (0.82, 0.92, 0.88), // Ch12: Mint
+    (0.80, 0.80, 0.85), // Ch13: Steel grey
+];
 pub const AMBIENT_COLOR: (f32, f32, f32) = (0.75, 0.82, 0.90);
 pub const AMBIENT_BRIGHTNESS: f32 = 250.0;
 pub const BLOOM_INTENSITY: f32 = 0.15;

@@ -69,8 +69,9 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
     let mut bot_floor_paths: Vec<Vec<(u32, u32)>> = Vec::new();
     let total_cells = (size * size) as usize;
 
+    let color_offset: usize = rng.gen_range(0..NUM_COLORS);
     for bot_idx in 0..config.num_bots {
-        let ci = bot_idx as usize % NUM_COLORS;
+        let ci = (bot_idx as usize + color_offset) % NUM_COLORS;
         let (sc, sr, sd) = pick_start(size, rng, &grid)?;
         grid.insert((sc, sr), TileKind::Source(ci, sd));
 

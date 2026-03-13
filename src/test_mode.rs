@@ -54,7 +54,6 @@ pub fn handle_mark_click(
     } else { add_marker(&mut commands, entity, &assets); }
 }
 
-// === Test mode helpers ===
 fn tilekind_to_icon(kind: &TileKind, i: &InventoryIcons) -> Option<Handle<Image>> {
     match kind {
         TileKind::Source(ci, d) => Some(i.source_color_dir(*ci, *d)),
@@ -128,7 +127,6 @@ fn add_marker(commands: &mut Commands, entity: Entity, assets: &GameAssets) {
     });
 }
 
-// === Test mode enter/exit ===
 pub fn test_button_interaction(
     mut commands: Commands,
     mut play_mode: ResMut<PlayMode>,
@@ -302,7 +300,6 @@ pub fn sync_editor_buttons_visibility(
     for mut bg in &mut buttons { bg.0.set_alpha(alpha); }
 }
 
-// === Test mode tile placement ===
 pub fn test_inventory_interaction(
     mut test_inv: ResMut<TestInventory>,
     slots: Query<(&Interaction, &TestInventorySlot), Changed<Interaction>>,
@@ -366,7 +363,8 @@ pub fn handle_test_tile_click(
     let mut changed = false;
     if test_inv.remove_mode {
         if matches!(kind, TileKind::Empty | TileKind::Floor) { return; }
-        if !saved_test.tiles.iter().any(|&(c, r, k)| c == col && r == row && matches!(k, TileKind::Empty)) { return; }
+        let was_empty = saved_test.tiles.iter().any(|&(c, r, k)| c == col && r == row && matches!(k, TileKind::Empty));
+        if !was_empty { return; }
         if let Some(e) = test_inv.items.iter_mut().find(|(k, _)| *k == *kind) { e.1 += 1; }
         else { test_inv.items.push((*kind, 1)); test_inv.items.sort_by(|(a, _), (b, _)| tile_sort_key(a).cmp(&tile_sort_key(b))); }
         commands.entity(entity).despawn();
@@ -375,26 +373,28 @@ pub fn handle_test_tile_click(
     } else if let Some(idx) = test_inv.selected {
         if idx >= test_inv.items.len() { return; }
         let (tile_kind, count) = test_inv.items[idx];
-        if count == 0 || !matches!(kind, TileKind::Empty) { return; }
+        if count == 0 { return; }
+        let is_empty = matches!(kind, TileKind::Empty);
+        let replaceable = !is_empty && saved_test.tiles.iter().any(|&(c, r, k)| c == col && r == row && matches!(k, TileKind::Empty));
+        if !is_empty && !replaceable { return; }
+        if replaceable { // return replaced tile to inventory
+            if let Some(e) = test_inv.items.iter_mut().find(|(k, _)| *k == *kind) { e.1 += 1; }
+            else { test_inv.items.push((*kind, 1)); test_inv.items.sort_by(|(a, _), (b, _)| tile_sort_key(a).cmp(&tile_sort_key(b))); }
+        }
         commands.entity(entity).despawn();
         crate::board::spawn_tile_at_scale(&mut commands, col, row, board_size.0, tile_kind, &assets, Vec3::ZERO);
         test_inv.items[idx].1 -= 1;
         if test_inv.items[idx].1 == 0 {
             test_inv.items.remove(idx);
-            if test_inv.items.is_empty() {
-                test_inv.selected = None; test_inv.remove_mode = true;
-                selected_tool.0 = Tool::Delete;
-            } else {
-                let new_idx = idx.min(test_inv.items.len() - 1);
-                test_inv.selected = Some(new_idx);
-                set_tool_from_kind(test_inv.items[new_idx].0, &mut selected_tool, &mut inv_state);
+            if test_inv.items.is_empty() { test_inv.selected = None; test_inv.remove_mode = true; selected_tool.0 = Tool::Delete; }
+            else {
+                let ni = idx.min(test_inv.items.len() - 1);
+                test_inv.selected = Some(ni); set_tool_from_kind(test_inv.items[ni].0, &mut selected_tool, &mut inv_state);
             }
         }
         changed = true;
     }
-    if changed {
-        ghost_cell.last_placed = Some((col, row));
+    if changed { ghost_cell.last_placed = Some((col, row));
         for e in &test_container { commands.entity(e).despawn(); }
-        spawn_test_inventory(&mut commands, &test_inv, &icons, false, &font.0);
-    }
+        spawn_test_inventory(&mut commands, &test_inv, &icons, false, &font.0); }
 }

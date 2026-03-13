@@ -4,11 +4,13 @@ A game built with [Bevy 0.18](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.18.1** — 149-level campaign (rebalanced: tighter boards, higher difficulty), level generator with presets, animated UI, The Gathering space runner.
+**v0.19.0** — 149-level campaign rebalanced based on playtester feedback: holes in boards, randomized bot colors, chapter-specific backgrounds, slower simulation, tile replacement, multi-bot from Ch2, confusion tiles, denser boards.
 
 ### Bot Game (Editor + Player)
 - **149 campaign levels** across 13 chapters, each introducing a new mechanic
-- Gradual difficulty progression from simple turns to multi-bot, multi-mechanic boss levels
+- Gradual difficulty progression with multi-bot from Chapter 2, confusion tiles, and board holes
+- Unique background color per chapter for visual variety
+- Replaceable tiles: fix mistakes by placing over your own tiles
 - Resizable board (3x3 to 12x12) with smooth scale animations
 - Adaptive camera (30° isometric view, resolution-independent)
 - 14 tile types: Floor, Source, Goal, Turn, TurnBut, Teleport, TeleportBut, Bounce, BounceBut, Door, Switch, Painter, Arrow, ArrowBut, ColorSwitch, ColorSwitchBut

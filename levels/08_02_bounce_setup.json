@@ -3,43 +3,76 @@
   "board_size": 4,
   "tiles": [
     [
-      1,
       2,
-      "Floor",
-      false
+      0,
+      {
+        "Arrow": [
+          7,
+          "East"
+        ]
+      },
+      true
     ],
     [
       1,
-      1,
+      0,
       {
-        "Goal": 0
+        "Goal": 6
       },
       false
     ],
     [
-      0,
+      2,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      1,
       2,
       "Floor",
       false
     ],
     [
       0,
-      1,
+      0,
       "Floor",
       false
     ],
     [
       3,
-      0,
+      2,
       "Floor",
       false
     ],
     [
-      2,
+      0,
       2,
       {
         "Source": [
-          0,
+          6,
+          "South"
+        ]
+      },
+      false
+    ],
+    [
+      0,
+      3,
+      {
+        "Arrow": [
+          6,
+          "East"
+        ]
+      },
+      true
+    ],
+    [
+      2,
+      3,
+      {
+        "Arrow": [
+          7,
           "North"
         ]
       },
@@ -47,69 +80,56 @@
     ],
     [
       1,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      3,
       1,
       "Floor",
       false
     ],
     [
       2,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      3,
       0,
       {
-        "BounceBut": 1
+        "Goal": 7
       },
-      true
+      false
     ],
     [
       0,
+      1,
+      "Floor",
+      false
+    ],
+    [
       3,
+      1,
       "Floor",
       false
     ],
     [
       1,
       3,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      1,
       {
         "Turn": [
-          0,
+          6,
           "West"
         ]
       },
       true
     ],
     [
-      0,
-      0,
-      "Floor",
-      false
-    ],
-    [
       3,
-      2,
-      "Floor",
+      3,
+      {
+        "Source": [
+          7,
+          "West"
+        ]
+      },
       false
     ]
   ],
@@ -118,20 +138,33 @@
       2,
       0,
       {
-        "BounceBut": 1
+        "Arrow": [
+          7,
+          "East"
+        ]
       }
     ],
     [
-      2,
+      0,
+      3,
+      {
+        "Arrow": [
+          6,
+          "East"
+        ]
+      }
+    ],
+    [
       1,
+      3,
       {
         "Turn": [
-          0,
+          6,
           "West"
         ]
       }
     ]
   ],
-  "seed": 10472071139795956551,
-  "difficulty": 47
+  "seed": 6779329283207044073,
+  "difficulty": 48
 }
