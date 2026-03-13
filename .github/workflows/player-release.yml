@@ -23,10 +23,10 @@ jobs:
         run: cargo build --release --features player --target x86_64-pc-windows-msvc
       - name: Package
         run: |
-          mkdir bundle
-          copy target\x86_64-pc-windows-msvc\release\protocol-play.exe bundle\protocol-player-windows.exe
-          for %%f in (levels\*.json) do copy "%%f" "bundle\"
-          cd bundle && 7z a ../protocol-player-windows.zip *
+          mkdir protocol-player-windows
+          copy target\x86_64-pc-windows-msvc\release\protocol-play.exe protocol-player-windows\protocol-player.exe
+          for %%f in (levels\*.json) do copy "%%f" "protocol-player-windows\"
+          7z a protocol-player-windows.zip protocol-player-windows
         shell: cmd
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -45,11 +45,11 @@ jobs:
         run: cargo build --release --features player --target aarch64-apple-darwin
       - name: Package
         run: |
-          mkdir bundle
-          cp target/aarch64-apple-darwin/release/protocol-play bundle/protocol-player-macos
-          chmod +x bundle/protocol-player-macos
-          cp levels/*.json bundle/
-          tar czf protocol-player-macos.tar.gz -C bundle .
+          mkdir protocol-player-macos
+          cp target/aarch64-apple-darwin/release/protocol-play protocol-player-macos/protocol-player
+          chmod +x protocol-player-macos/protocol-player
+          cp levels/*.json protocol-player-macos/
+          tar czf protocol-player-macos.tar.gz protocol-player-macos
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -67,11 +67,11 @@ jobs:
         run: cargo build --release --features player
       - name: Package
         run: |
-          mkdir bundle
-          cp target/release/protocol-play bundle/protocol-player-linux
-          chmod +x bundle/protocol-player-linux
-          cp levels/*.json bundle/
-          tar czf protocol-player-linux.tar.gz -C bundle .
+          mkdir protocol-player-linux
+          cp target/release/protocol-play protocol-player-linux/protocol-player
+          chmod +x protocol-player-linux/protocol-player
+          cp levels/*.json protocol-player-linux/
+          tar czf protocol-player-linux.tar.gz protocol-player-linux
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -105,9 +105,9 @@ jobs:
           body: |
             Player build with 149 campaign levels across 13 chapters.
 
-            **Windows**: Extract the zip and run `protocol-player-windows.exe`.
-            **macOS**: Extract, then `chmod +x protocol-player-macos && ./protocol-player-macos`
-            **Linux**: Extract and run `chmod +x protocol-player-linux && ./protocol-player-linux`
+            **Windows**: Extract the zip, open the `protocol-player-windows` folder, run `protocol-player.exe`.
+            **macOS**: Extract, then: `cd protocol-player-macos && chmod +x protocol-player && ./protocol-player`
+            **Linux**: Extract, then: `cd protocol-player-linux && chmod +x protocol-player && ./protocol-player`
 
             Use `--reset-stats` to clear all progress and start fresh.
             Stats are logged to `stats.jsonl` next to the executable.
