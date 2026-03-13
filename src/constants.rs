@@ -199,9 +199,9 @@ pub const BOT_EYE_Y_OFFSET: f32 = 0.04;
 
 // Bot movement
 pub const BOT_START_DELAY: f32 = 0.5;
-pub const BOT_CRUISE_SPEED: f32 = 0.65;  // tiles per second
-pub const BOT_ACCEL: f32 = 0.8;           // tiles/s²
-pub const BOT_TURN_DURATION: f32 = 0.4;  // seconds for 90° rotation
+pub const BOT_CRUISE_SPEED: f32 = 1.0;   // tiles per second
+pub const BOT_ACCEL: f32 = 1.0;           // tiles/s²
+pub const BOT_TURN_DURATION: f32 = 0.3;  // seconds for 90° rotation
 pub const BOT_BOUNCE_SPEED: f32 = 8.0;   // bounce cycles per second at goal
 pub const BOT_BOUNCE_HEIGHT: f32 = 0.15; // max bounce height
 pub const FALL_PAUSE: f32 = 0.2;         // seconds before falling

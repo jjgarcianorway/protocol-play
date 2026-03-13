@@ -4,10 +4,11 @@ A game built with [Bevy 0.18](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.19.0** — 149-level campaign rebalanced based on playtester feedback: holes in boards, randomized bot colors, chapter-specific backgrounds, slower simulation, tile replacement, multi-bot from Ch2, confusion tiles, denser boards.
+**v0.19.1** — Improved level generator algorithm to support up to 10 bots per level. Campaign now scales from 1 to 10 bots across chapters, with smarter bot placement and auto path-sharing for dense boards.
 
 ### Bot Game (Editor + Player)
 - **149 campaign levels** across 13 chapters, each introducing a new mechanic
+- Up to 10 bots per level — progressive scaling from 1 bot (Ch1) to 10 bots (Ch13 finals)
 - Gradual difficulty progression with multi-bot from Chapter 2, confusion tiles, and board holes
 - Unique background color per chapter for visual variety
 - Replaceable tiles: fix mistakes by placing over your own tiles

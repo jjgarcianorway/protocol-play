@@ -1,25 +1,49 @@
 {
   "name": "Echo Chamber",
-  "board_size": 5,
+  "board_size": 8,
   "tiles": [
     [
       1,
-      2,
+      5,
       {
         "Turn": [
-          1,
-          "West"
+          5,
+          "East"
         ]
       },
       true
     ],
     [
+      6,
       4,
+      "Floor",
+      false
+    ],
+    [
+      6,
+      3,
+      "Empty",
+      false
+    ],
+    [
+      6,
+      5,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      5,
       3,
       {
-        "Teleport": [
-          2,
-          0
+        "Arrow": [
+          3,
+          "South"
         ]
       },
       true
@@ -28,7 +52,144 @@
       0,
       2,
       {
-        "Turn": [
+        "Source": [
+          1,
+          "North"
+        ]
+      },
+      false
+    ],
+    [
+      5,
+      4,
+      {
+        "Goal": 6
+      },
+      false
+    ],
+    [
+      3,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      4,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      4,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      6,
+      "Empty",
+      false
+    ],
+    [
+      4,
+      6,
+      {
+        "Goal": 3
+      },
+      false
+    ],
+    [
+      1,
+      7,
+      {
+        "Teleport": [
+          5,
+          0
+        ]
+      },
+      true
+    ],
+    [
+      7,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      2,
+      "Empty",
+      false
+    ],
+    [
+      1,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      4,
+      7,
+      {
+        "Arrow": [
+          3,
+          "North"
+        ]
+      },
+      true
+    ],
+    [
+      7,
+      4,
+      {
+        "Goal": 4
+      },
+      false
+    ],
+    [
+      3,
+      6,
+      "Floor",
+      false
+    ],
+    [
+      6,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      5,
+      {
+        "Goal": 5
+      },
+      false
+    ],
+    [
+      6,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      7,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      0,
+      {
+        "Arrow": [
           1,
           "East"
         ]
@@ -36,47 +197,272 @@
       true
     ],
     [
-      2,
-      0,
-      "Floor",
-      false
-    ],
-    [
       4,
-      1,
+      5,
       {
-        "Bounce": 2
+        "Arrow": [
+          4,
+          "North"
+        ]
       },
       true
     ],
     [
+      0,
+      7,
+      {
+        "Source": [
+          5,
+          "East"
+        ]
+      },
+      false
+    ],
+    [
+      0,
+      3,
+      "Empty",
+      false
+    ],
+    [
+      5,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      1,
       4,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      1,
+      {
+        "Source": [
+          6,
+          "East"
+        ]
+      },
+      false
+    ],
+    [
       4,
+      2,
       "Floor",
       false
     ],
     [
       2,
       1,
+      "Floor",
+      false
+    ],
+    [
+      6,
+      0,
+      {
+        "Source": [
+          3,
+          "East"
+        ]
+      },
+      false
+    ],
+    [
+      6,
+      6,
+      "Floor",
+      false
+    ],
+    [
+      7,
+      7,
+      {
+        "Source": [
+          2,
+          "West"
+        ]
+      },
+      false
+    ],
+    [
+      2,
+      7,
       {
         "Teleport": [
-          2,
+          3,
           0
         ]
       },
       true
     ],
     [
+      3,
+      2,
+      "Empty",
+      false
+    ],
+    [
       1,
-      0,
+      6,
       {
-        "Bounce": 1
+        "Arrow": [
+          5,
+          "North"
+        ]
       },
       true
     ],
     [
+      0,
+      5,
+      "Floor",
+      false
+    ],
+    [
+      4,
+      3,
+      "Empty",
+      false
+    ],
+    [
       2,
       2,
+      {
+        "Arrow": [
+          3,
+          "South"
+        ]
+      },
+      true
+    ],
+    [
+      7,
+      0,
+      {
+        "Teleport": [
+          3,
+          0
+        ]
+      },
+      true
+    ],
+    [
+      4,
+      4,
+      {
+        "Teleport": [
+          4,
+          0
+        ]
+      },
+      true
+    ],
+    [
+      4,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      4,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      0,
+      {
+        "Goal": 1
+      },
+      false
+    ],
+    [
+      4,
+      0,
+      {
+        "Teleport": [
+          5,
+          0
+        ]
+      },
+      true
+    ],
+    [
+      5,
+      6,
+      "Floor",
+      false
+    ],
+    [
+      6,
+      7,
+      {
+        "Arrow": [
+          1,
+          "West"
+        ]
+      },
+      true
+    ],
+    [
+      3,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      7,
+      6,
+      {
+        "Teleport": [
+          4,
+          0
+        ]
+      },
+      true
+    ],
+    [
+      7,
+      5,
+      "Floor",
+      false
+    ],
+    [
+      5,
+      0,
+      {
+        "Teleport": [
+          5,
+          1
+        ]
+      },
+      true
+    ],
+    [
+      7,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      7,
+      "Floor",
+      false
+    ],
+    [
+      5,
+      5,
       {
         "Goal": 2
       },
@@ -84,171 +470,101 @@
     ],
     [
       3,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      4,
+      5,
       {
         "Source": [
-          2,
-          "West"
-        ]
-      },
-      false
-    ],
-    [
-      0,
-      0,
-      {
-        "Turn": [
-          1,
-          "West"
-        ]
-      },
-      true
-    ],
-    [
-      4,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      1,
-      {
-        "Turn": [
-          1,
-          "North"
-        ]
-      },
-      true
-    ],
-    [
-      0,
-      1,
-      {
-        "Source": [
-          1,
-          "South"
-        ]
-      },
-      false
-    ],
-    [
-      2,
-      3,
-      {
-        "Turn": [
-          2,
-          "West"
-        ]
-      },
-      true
-    ],
-    [
-      3,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      4,
-      {
-        "Arrow": [
-          2,
-          "North"
-        ]
-      },
-      true
-    ],
-    [
-      0,
-      3,
-      {
-        "Bounce": 1
-      },
-      true
-    ],
-    [
-      4,
-      2,
-      {
-        "Turn": [
-          2,
-          "West"
-        ]
-      },
-      true
-    ],
-    [
-      3,
-      1,
-      {
-        "Goal": 1
-      },
-      false
-    ],
-    [
-      1,
-      3,
-      {
-        "Arrow": [
-          2,
+          4,
           "East"
         ]
       },
+      false
+    ],
+    [
+      5,
+      7,
+      {
+        "Turn": [
+          2,
+          "North"
+        ]
+      },
+      true
+    ],
+    [
+      2,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      5,
+      1,
+      {
+        "Turn": [
+          6,
+          "South"
+        ]
+      },
       true
     ],
     [
       0,
-      4,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      4,
-      "Floor",
-      false
+      6,
+      {
+        "Teleport": [
+          5,
+          1
+        ]
+      },
+      true
     ]
   ],
   "solution": [
     [
       1,
-      2,
+      5,
       {
         "Turn": [
-          1,
-          "West"
+          5,
+          "East"
         ]
       }
     ],
     [
-      4,
+      5,
       3,
       {
+        "Arrow": [
+          3,
+          "South"
+        ]
+      }
+    ],
+    [
+      1,
+      7,
+      {
         "Teleport": [
-          2,
+          5,
           0
         ]
       }
     ],
     [
-      0,
-      2,
+      4,
+      7,
       {
-        "Turn": [
+        "Arrow": [
+          3,
+          "North"
+        ]
+      }
+    ],
+    [
+      0,
+      0,
+      {
+        "Arrow": [
           1,
           "East"
         ]
@@ -256,96 +572,135 @@
     ],
     [
       4,
-      1,
+      5,
       {
-        "Bounce": 2
+        "Arrow": [
+          4,
+          "North"
+        ]
       }
     ],
     [
       2,
-      1,
+      7,
       {
         "Teleport": [
-          2,
+          3,
           0
         ]
       }
     ],
     [
       1,
-      0,
+      6,
       {
-        "Bounce": 1
-      }
-    ],
-    [
-      0,
-      0,
-      {
-        "Turn": [
-          1,
-          "West"
-        ]
-      }
-    ],
-    [
-      1,
-      1,
-      {
-        "Turn": [
-          1,
+        "Arrow": [
+          5,
           "North"
         ]
       }
     ],
     [
       2,
-      3,
+      2,
       {
-        "Turn": [
-          2,
+        "Arrow": [
+          3,
+          "South"
+        ]
+      }
+    ],
+    [
+      7,
+      0,
+      {
+        "Teleport": [
+          3,
+          0
+        ]
+      }
+    ],
+    [
+      4,
+      4,
+      {
+        "Teleport": [
+          4,
+          0
+        ]
+      }
+    ],
+    [
+      4,
+      0,
+      {
+        "Teleport": [
+          5,
+          0
+        ]
+      }
+    ],
+    [
+      6,
+      7,
+      {
+        "Arrow": [
+          1,
           "West"
         ]
       }
     ],
     [
-      1,
-      4,
+      7,
+      6,
       {
-        "Arrow": [
+        "Teleport": [
+          4,
+          0
+        ]
+      }
+    ],
+    [
+      5,
+      0,
+      {
+        "Teleport": [
+          5,
+          1
+        ]
+      }
+    ],
+    [
+      5,
+      7,
+      {
+        "Turn": [
           2,
           "North"
         ]
       }
     ],
     [
-      0,
-      3,
-      {
-        "Bounce": 1
-      }
-    ],
-    [
-      4,
-      2,
+      5,
+      1,
       {
         "Turn": [
-          2,
-          "West"
+          6,
+          "South"
         ]
       }
     ],
     [
-      1,
-      3,
+      0,
+      6,
       {
-        "Arrow": [
-          2,
-          "East"
+        "Teleport": [
+          5,
+          1
         ]
       }
     ]
   ],
-  "seed": 4789878793841172843,
-  "difficulty": 69
+  "seed": 2281928105932067641,
+  "difficulty": 77
 }

@@ -69,6 +69,12 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
     let mut bot_floor_paths: Vec<Vec<(u32, u32)>> = Vec::new();
     let total_cells = (size * size) as usize;
 
+    // For 3+ bots, auto-enable path sharing and scale paths shorter
+    let sharing = config.path_sharing || config.num_bots >= 3;
+    let bot_scale = if config.num_bots <= 2 { 1.0 }
+        else { (2.5 / config.num_bots as f32).max(0.35) };
+    let cell_budget = total_cells * 3 / (config.num_bots.max(2) as usize + 1);
+
     let color_offset: usize = rng.gen_range(0..NUM_COLORS);
     for bot_idx in 0..config.num_bots {
         let ci = (bot_idx as usize + color_offset) % NUM_COLORS;
@@ -79,8 +85,9 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
         let mut row = sr as i32;
         let mut dir = sd;
         let mut current_color = ci;
-        let min_len = GEN_MIN_PATH_LENGTH.max((size as f32 * (0.4 + diff * 1.2)) as usize);
-        let max_len = ((min_len as f32 * (1.3 + diff * 0.5)) as usize).min(total_cells * 3 / 5);
+        let base_min = GEN_MIN_PATH_LENGTH.max((size as f32 * (0.4 + diff * 1.2)) as usize);
+        let min_len = ((base_min as f32 * bot_scale) as usize).max(GEN_MIN_PATH_LENGTH);
+        let max_len = ((min_len as f32 * (1.3 + diff * 0.5)) as usize).min(cell_budget);
         let target = rng.gen_range(min_len..=max_len.max(min_len));
         let (mut steps, mut turns) = (0, 0);
         let mut straight_run = 0u32;
@@ -96,7 +103,7 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
             // Allow walking on existing Floor tiles (shared paths between bots)
             let next_tile = if in_bounds(nc, nr, size) { grid.get(&(nc as u32, nr as u32)).copied() } else { None };
             let can_advance = in_bounds(nc, nr, size)
-                && (next_tile.is_none() || (config.path_sharing && next_tile == Some(TileKind::Floor)));
+                && (next_tile.is_none() || (sharing && next_tile == Some(TileKind::Floor)));
 
             if !can_advance || steps >= target {
                 if steps >= min_len && turns > 0 {

@@ -1,37 +1,14 @@
 {
   "name": "Arrow Maze",
-  "board_size": 4,
+  "board_size": 5,
   "tiles": [
     [
       0,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      1,
+      4,
       {
-        "Source": [
+        "Arrow": [
           3,
-          "West"
-        ]
-      },
-      false
-    ],
-    [
-      3,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      2,
-      {
-        "Turn": [
-          4,
-          "South"
+          "East"
         ]
       },
       true
@@ -39,109 +16,183 @@
     [
       1,
       0,
-      "Floor",
+      "Empty",
       false
     ],
     [
+      4,
       0,
-      2,
       {
-        "Goal": 4
+        "Arrow": [
+          2,
+          "West"
+        ]
       },
-      false
+      true
     ],
     [
+      0,
       3,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      0,
       {
         "Goal": 3
       },
       false
     ],
     [
-      3,
+      4,
       1,
+      "Floor",
+      false
+    ],
+    [
+      4,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      0,
+      {
+        "Source": [
+          3,
+          "South"
+        ]
+      },
+      false
+    ],
+    [
+      2,
+      0,
       "Floor",
       false
     ],
     [
       2,
-      3,
+      1,
+      "Empty",
+      false
+    ],
+    [
+      0,
+      1,
       "Floor",
       false
     ],
     [
       3,
-      3,
-      "Empty",
+      1,
+      {
+        "Goal": 4
+      },
+      false
+    ],
+    [
+      0,
+      2,
+      "Floor",
       false
     ],
     [
       1,
+      2,
+      "Empty",
+      false
+    ],
+    [
+      4,
+      4,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      0,
+      {
+        "Goal": 2
+      },
+      false
+    ],
+    [
+      3,
+      4,
+      {
+        "Turn": [
+          4,
+          "West"
+        ]
+      },
+      true
+    ],
+    [
+      4,
       3,
       {
         "Source": [
-          4,
+          2,
           "North"
         ]
       },
       false
     ],
     [
-      2,
-      2,
-      "Empty",
+      1,
+      1,
+      "Floor",
       false
     ],
     [
-      0,
-      0,
+      2,
+      4,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      4,
       {
-        "Arrow": [
-          3,
+        "Source": [
+          4,
           "East"
         ]
       },
-      true
+      false
     ],
     [
-      0,
+      3,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      2,
+      "Floor",
+      false
+    ],
+    [
       1,
-      {
-        "Arrow": [
-          3,
-          "North"
-        ]
-      },
-      true
+      3,
+      "Floor",
+      false
     ]
   ],
   "solution": [
     [
-      1,
-      2,
-      {
-        "Turn": [
-          4,
-          "South"
-        ]
-      }
-    ],
-    [
       0,
-      0,
+      4,
       {
         "Arrow": [
           3,
@@ -150,16 +201,26 @@
       }
     ],
     [
+      4,
       0,
-      1,
       {
         "Arrow": [
-          3,
-          "North"
+          2,
+          "West"
+        ]
+      }
+    ],
+    [
+      3,
+      4,
+      {
+        "Turn": [
+          4,
+          "West"
         ]
       }
     ]
   ],
-  "seed": 7293376737906877422,
-  "difficulty": 47
+  "seed": 12072746575574579860,
+  "difficulty": 48
 }

@@ -29,14 +29,19 @@ pub fn possible_turns(bot_dir: Direction) -> Vec<(Direction, Direction)> {
     Direction::all().iter().filter_map(|&td| bot_dir.turn_exit(td).map(|exit| (td, exit))).collect()
 }
 
-// Source can be ANYWHERE. Pick any valid direction (at least 1 cell ahead is in-bounds + empty).
+// Source placement: pick empty cell with valid direction, preferring cells far from existing sources.
 pub fn pick_start(
     size: u32, rng: &mut impl Rng, grid: &HashMap<(u32, u32), TileKind>,
 ) -> Option<(u32, u32, Direction)> {
     let empty: Vec<_> = (0..size).flat_map(|r| (0..size).map(move |c| (c, r)))
         .filter(|p| !grid.contains_key(p)).collect();
     if empty.is_empty() { return None; }
-    for _ in 0..60 {
+    let sources: Vec<(u32, u32)> = grid.iter()
+        .filter(|(_, k)| matches!(k, TileKind::Source(..)))
+        .map(|(&p, _)| p).collect();
+    let max_tries = if sources.is_empty() { 60 } else { 300 };
+    let mut best: Option<(u32, u32, Direction, u32)> = None;
+    for _ in 0..max_tries {
         let (c, r) = empty[rng.gen_range(0..empty.len())];
         let mut dirs = Direction::all().to_vec();
         shuffle(&mut dirs, rng);
@@ -44,11 +49,19 @@ pub fn pick_start(
             let (dc, dr) = d.grid_delta();
             let (nc, nr) = (c as i32 + dc, r as i32 + dr);
             if in_bounds(nc, nr, size) && !grid.contains_key(&(nc as u32, nr as u32)) {
-                return Some((c, r, *d));
+                if sources.is_empty() { return Some((c, r, *d)); }
+                let min_dist = sources.iter()
+                    .map(|&(sc, sr)| (c as i32 - sc as i32).unsigned_abs()
+                        + (r as i32 - sr as i32).unsigned_abs())
+                    .min().unwrap_or(0);
+                if best.as_ref().map_or(true, |b| min_dist > b.3) {
+                    best = Some((c, r, *d, min_dist));
+                }
+                break;
             }
         }
     }
-    None
+    best.map(|(c, r, d, _)| (c, r, d))
 }
 
 // Goal placement with look-back: try current pos, then scan path history
