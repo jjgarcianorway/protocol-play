@@ -44,17 +44,21 @@ pub fn build_app(app: &mut App) {
             crystals::spawn_crystals,
             crystals::move_crystals,
             crystals::absorb_crystals.after(crystals::move_crystals),
+            crystals::move_particles,
             damage::update_shield_regen,
             damage::update_screen_shake.after(collision::check_collisions),
             damage::update_bars,
+        ))
+        .add_systems(Update, (
             difficulty::update_difficulty,
             background::scroll_stars,
             hud::update_hud,
             hud::update_game_time,
             check_game_over.after(collision::check_collisions),
             update_fade,
-            spawn_game_over_screen.after(check_game_over),
             try_again_interaction,
+            spawn_game_over_screen.after(check_game_over).after(try_again_interaction),
+            ship::restore_cursor.run_if(|s: Res<State<GatheringState>>| *s.get() == GatheringState::GameOver),
         ));
 }
 
@@ -66,8 +70,8 @@ fn setup_gathering(
 ) {
     commands.spawn((
         Camera3d::default(),
-        Bloom { intensity: 0.15, low_frequency_boost: 0.5,
-            low_frequency_boost_curvature: 0.7, high_pass_frequency: 1.0, ..default() },
+        Bloom { intensity: 0.25, low_frequency_boost: 0.6,
+            low_frequency_boost_curvature: 0.6, high_pass_frequency: 0.8, ..default() },
         Transform::from_xyz(0.0, 0.0, CAMERA_Z).looking_at(Vec3::ZERO, Vec3::Y),
         Projection::Perspective(PerspectiveProjection {
             fov: CAMERA_FOV.to_radians(), ..default()

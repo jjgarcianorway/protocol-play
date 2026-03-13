@@ -1,0 +1,86 @@
+{
+  "name": "First Steps",
+  "board_size": 3,
+  "tiles": [
+    [
+      1,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      0,
+      {
+        "Turn": [
+          0,
+          "East"
+        ]
+      },
+      true
+    ],
+    [
+      2,
+      0,
+      {
+        "Goal": 0
+      },
+      false
+    ],
+    [
+      1,
+      2,
+      {
+        "Source": [
+          0,
+          "North"
+        ]
+      },
+      false
+    ],
+    [
+      0,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      0,
+      "Floor",
+      false
+    ]
+  ],
+  "solution": [
+    [
+      1,
+      0,
+      {
+        "Turn": [
+          0,
+          "East"
+        ]
+      }
+    ]
+  ],
+  "seed": 4180072356399594268,
+  "difficulty": 23
+}

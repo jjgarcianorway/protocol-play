@@ -352,6 +352,7 @@ pub struct TestInventory {
 #[derive(Serialize, Deserialize)] pub struct LevelData {
     pub name: String, pub board_size: u32, pub tiles: Vec<(u32, u32, TileKind, bool)>,
     #[serde(default)] pub solution: Vec<(u32, u32, TileKind)>,
+    #[serde(default)] pub seed: Option<u64>, #[serde(default)] pub difficulty: Option<u32>,
 }
 #[derive(Component)] pub struct SaveButton;
 #[derive(Component)] pub struct LoadButton;
@@ -372,17 +373,12 @@ pub struct TestInventory {
 
 #[derive(Component)]
 pub struct BotFormation {
-    pub offset: Vec2, pub target_offset: Vec2,
-    pub visual_scale: f32, pub target_scale: f32,
+    pub offset: Vec2, pub target_offset: Vec2, pub visual_scale: f32, pub target_scale: f32,
 }
 impl Default for BotFormation {
-    fn default() -> Self {
-        Self { offset: Vec2::ZERO, target_offset: Vec2::ZERO, visual_scale: 1.0, target_scale: 1.0 }
-    }
+    fn default() -> Self { Self { offset: Vec2::ZERO, target_offset: Vec2::ZERO, visual_scale: 1.0, target_scale: 1.0 } }
 }
-
-#[derive(Component)]
-pub struct MergeFlash { pub progress: f32 }
+#[derive(Component)] pub struct MergeFlash { pub progress: f32 }
 #[derive(Component)] pub struct SaveDialogCursor;
 #[derive(Component)] pub struct OverwriteDialog;
 #[derive(Component)] pub struct OverwriteConfirm;
@@ -390,7 +386,9 @@ pub struct MergeFlash { pub progress: f32 }
 #[derive(Component)] pub struct LoadDialogList;
 #[derive(Component)] pub struct ScrollbarThumb;
 #[derive(Resource, Default)] pub struct CursorBlinkTimer(pub f32);
-#[derive(Resource, Default)] pub struct LoadedLevelName(pub Option<String>);
+#[derive(Resource, Default)] pub struct LoadedLevelName {
+    pub name: Option<String>, pub gen_seed: Option<u64>, pub gen_difficulty: Option<u32>,
+}
 #[derive(Resource, Default)] pub struct PendingSave(pub Option<(String, LevelData)>);
 #[derive(Resource, Default)] pub struct ScrollbarDrag(pub Option<f32>);
 #[derive(Component)] pub struct DeleteLevelButton(pub String);

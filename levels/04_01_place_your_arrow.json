@@ -1,0 +1,86 @@
+{
+  "name": "Place Your Arrow",
+  "board_size": 3,
+  "tiles": [
+    [
+      2,
+      1,
+      {
+        "Source": [
+          0,
+          "South"
+        ]
+      },
+      false
+    ],
+    [
+      1,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      2,
+      {
+        "ArrowBut": [
+          1,
+          "West"
+        ]
+      },
+      true
+    ],
+    [
+      2,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      2,
+      {
+        "Goal": 0
+      },
+      false
+    ],
+    [
+      0,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      1,
+      "Floor",
+      false
+    ]
+  ],
+  "solution": [
+    [
+      2,
+      2,
+      {
+        "ArrowBut": [
+          1,
+          "West"
+        ]
+      }
+    ]
+  ],
+  "seed": 12655468327723716321,
+  "difficulty": 31
+}

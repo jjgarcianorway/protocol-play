@@ -74,7 +74,8 @@ fn spawn_bar(parent: &mut ChildSpawnerCommands, is_shield: bool, font: &Handle<F
             bar.spawn(Node {
                 width: Val::Percent(100.0),
                 height: Val::Percent(100.0),
-                align_self: AlignSelf::FlexEnd,
+                flex_direction: FlexDirection::Column,
+                justify_content: JustifyContent::FlexEnd,
                 ..default()
             }).with_children(|fill_parent| {
                 if is_shield {
@@ -102,22 +103,26 @@ pub fn update_bars(
 ) -> Result {
     let shield_pct = (state.shield / SHIELD_MAX).clamp(0.0, 1.0);
     let (mut s_node, mut s_bg) = shield_q.single_mut()?;
-    s_node.height = Val::Percent(shield_pct * 100.0);
+    let new_h = Val::Percent(shield_pct * 100.0);
+    if s_node.height != new_h { s_node.height = new_h; }
     let t = shield_pct;
-    s_bg.0 = Color::srgb(
+    let new_color = Color::srgb(
         SHIELD_LOW_COLOR.0 + (SHIELD_FULL_COLOR.0 - SHIELD_LOW_COLOR.0) * t,
         SHIELD_LOW_COLOR.1 + (SHIELD_FULL_COLOR.1 - SHIELD_LOW_COLOR.1) * t,
         SHIELD_LOW_COLOR.2 + (SHIELD_FULL_COLOR.2 - SHIELD_LOW_COLOR.2) * t,
     );
+    if s_bg.0 != new_color { s_bg.0 = new_color; }
 
     let life_pct = (state.life / LIFE_MAX).clamp(0.0, 1.0);
     let (mut l_node, mut l_bg) = life_q.single_mut()?;
-    l_node.height = Val::Percent(life_pct * 100.0);
+    let new_h = Val::Percent(life_pct * 100.0);
+    if l_node.height != new_h { l_node.height = new_h; }
     let t = life_pct;
-    l_bg.0 = Color::srgb(
+    let new_color = Color::srgb(
         LIFE_LOW_COLOR.0 + (LIFE_FULL_COLOR.0 - LIFE_LOW_COLOR.0) * t,
         LIFE_LOW_COLOR.1 + (LIFE_FULL_COLOR.1 - LIFE_LOW_COLOR.1) * t,
         LIFE_LOW_COLOR.2 + (LIFE_FULL_COLOR.2 - LIFE_LOW_COLOR.2) * t,
     );
+    if l_bg.0 != new_color { l_bg.0 = new_color; }
     Ok(())
 }

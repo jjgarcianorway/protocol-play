@@ -5,7 +5,6 @@ use super::constants::*;
 
 // === Components ===
 #[derive(Component)] pub struct Ship;
-#[derive(Component)] pub struct ShipPart;
 
 #[derive(Component)]
 pub struct Asteroid {
@@ -33,6 +32,14 @@ pub struct CrystalCloud {
     pub radius: f32,
     pub value: u64,
     pub remaining: f32,
+    pub rot_axis: Vec3,
+    pub particle_timer: f32,
+}
+
+#[derive(Component)]
+pub struct CrystalParticle {
+    pub velocity: Vec3,
+    pub lifetime: f32,
 }
 
 // === Resources ===
@@ -92,8 +99,10 @@ impl Default for AsteroidSpawnTimer {
 pub struct GatheringAssets {
     pub asteroid_meshes: Vec<Handle<Mesh>>,
     pub asteroid_materials: Vec<Handle<StandardMaterial>>,
-    pub crystal_mesh: Handle<Mesh>,
-    pub crystal_material: Handle<StandardMaterial>,
+    pub crystal_meshes: Vec<Handle<Mesh>>,
+    pub crystal_materials: Vec<Handle<StandardMaterial>>,
+    pub particle_mesh: Handle<Mesh>,
+    pub particle_materials: Vec<Handle<StandardMaterial>>,
 }
 
 #[derive(Resource)]

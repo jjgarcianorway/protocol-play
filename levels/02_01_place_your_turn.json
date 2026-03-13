@@ -1,0 +1,86 @@
+{
+  "name": "Place Your Turn",
+  "board_size": 3,
+  "tiles": [
+    [
+      0,
+      2,
+      {
+        "Source": [
+          0,
+          "East"
+        ]
+      },
+      false
+    ],
+    [
+      2,
+      2,
+      {
+        "TurnBut": [
+          1,
+          "West"
+        ]
+      },
+      true
+    ],
+    [
+      0,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      1,
+      {
+        "Goal": 0
+      },
+      false
+    ],
+    [
+      1,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      0,
+      "Floor",
+      false
+    ]
+  ],
+  "solution": [
+    [
+      2,
+      2,
+      {
+        "TurnBut": [
+          1,
+          "West"
+        ]
+      }
+    ]
+  ],
+  "seed": 4356423448201551109,
+  "difficulty": 31
+}

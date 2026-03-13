@@ -4,36 +4,55 @@
 pub const CAMERA_Z: f32 = 50.0;
 pub const CAMERA_FOV: f32 = 45.0;
 
-// Ship
-pub const SHIP_LENGTH: f32 = 2.2;
-pub const SHIP_WIDTH: f32 = 1.4;
-pub const SHIP_HEIGHT: f32 = 0.45;
+// Ship geometry (smooth capsules + spheres)
+pub const SHIP_HULL_R: f32 = 0.35;
+pub const SHIP_HULL_LEN: f32 = 1.6;
+pub const SHIP_NACELLE_R: f32 = 0.18;
+pub const SHIP_NACELLE_LEN: f32 = 0.9;
+pub const SHIP_NACELLE_OFF: f32 = 0.7;
+pub const SHIP_NACELLE_Y: f32 = 0.2;
+pub const SHIP_ENGINE_R: f32 = 0.14;
+pub const SHIP_COCKPIT_R: f32 = 0.22;
+pub const SHIP_WING_SPAN: f32 = 1.8;
+pub const SHIP_WING_THICK: f32 = 0.06;
+pub const SHIP_WING_CHORD: f32 = 0.6;
 pub const SHIP_INERTIA: f32 = 6.0;
-pub const SHIP_MAX_TILT: f32 = 0.45;
-pub const SHIP_MAX_PITCH: f32 = 0.2;
-pub const SHIP_TILT_SPEED: f32 = 5.0;
-pub const SHIP_COLLISION_RADIUS: f32 = 0.7;
-pub const SHIP_HULL_COLOR: [f32; 4] = [0.55, 0.6, 0.68, 1.0];
-pub const SHIP_ACCENT_COLOR: [f32; 4] = [0.35, 0.4, 0.48, 1.0];
-pub const SHIP_ENGINE_COLOR: [f32; 4] = [0.3, 0.7, 1.0, 1.0];
-pub const SHIP_WINDOW_COLOR: [f32; 4] = [0.6, 0.85, 1.0, 1.0];
+pub const SHIP_MAX_TILT: f32 = 1.4;
+pub const SHIP_MAX_PITCH: f32 = 0.3;
+pub const SHIP_TILT_SPEED: f32 = 8.0;
+pub const SHIP_TILT_FACTOR: f32 = 0.07;
+pub const SHIP_PITCH_FACTOR: f32 = 0.02;
+pub const SHIP_COLLISION_RADIUS: f32 = 0.9;
+
+// Ship colors (tuples for srgb)
+pub const SHIP_HULL_COLOR: (f32, f32, f32) = (0.65, 0.68, 0.75);
+pub const SHIP_ACCENT_COLOR: (f32, f32, f32) = (0.45, 0.50, 0.58);
+pub const SHIP_ENGINE_COLOR: (f32, f32, f32) = (0.3, 0.75, 1.0);
+pub const SHIP_ENGINE_EMISSIVE: f32 = 6.0;
+pub const SHIP_COCKPIT_COLOR: (f32, f32, f32) = (0.5, 0.85, 1.0);
+pub const SHIP_COCKPIT_EMISSIVE: f32 = 3.0;
+pub const SHIP_WING_COLOR: (f32, f32, f32) = (0.5, 0.52, 0.58);
 
 // Asteroids
-pub const NUM_ASTEROID_MESHES: usize = 6;
-pub const ASTEROID_ICO_SUBDIVISIONS: u32 = 2;
-pub const ASTEROID_PERTURB: f32 = 0.25;
+pub const NUM_ASTEROID_MESHES: usize = 12;
+pub const ASTEROID_ICO_SUBDIVISIONS: [u32; 4] = [1, 2, 2, 3];
+pub const ASTEROID_PERTURB_MIN: f32 = 0.12;
+pub const ASTEROID_PERTURB_MAX: f32 = 0.35;
+pub const ASTEROID_ELONGATION_MIN: f32 = 0.7;
+pub const ASTEROID_ELONGATION_MAX: f32 = 1.5;
 pub const ASTEROID_MIN_RADIUS: f32 = 0.8;
 pub const ASTEROID_MAX_RADIUS: f32 = 5.0;
-pub const ASTEROID_MIN_SPEED: f32 = 4.0;
-pub const ASTEROID_MAX_SPEED: f32 = 14.0;
+pub const ASTEROID_MIN_SPEED: f32 = 2.0;
+pub const ASTEROID_MAX_SPEED: f32 = 7.0;
 pub const ASTEROID_MIN_ROT_SPEED: f32 = 0.2;
 pub const ASTEROID_MAX_ROT_SPEED: f32 = 1.5;
-pub const ASTEROID_SPAWN_INTERVAL: f32 = 0.35;
+pub const ASTEROID_SPAWN_INTERVAL: f32 = 0.50;
 pub const ASTEROID_SPAWN_BUFFER: f32 = 8.0;
 pub const ASTEROID_DESPAWN_BUFFER: f32 = 8.0;
-pub const ASTEROID_COLORS: [(f32, f32, f32); 5] = [
+pub const ASTEROID_COLORS: [(f32, f32, f32); 8] = [
     (0.45, 0.40, 0.35), (0.35, 0.32, 0.30), (0.50, 0.42, 0.38),
-    (0.40, 0.38, 0.42), (0.48, 0.45, 0.40),
+    (0.40, 0.38, 0.42), (0.48, 0.45, 0.40), (0.30, 0.28, 0.32),
+    (0.55, 0.48, 0.40), (0.38, 0.35, 0.28),
 ];
 
 // Damage
@@ -89,17 +108,42 @@ pub const STATS_CARD_PAD: f32 = 40.0;
 pub const STATS_CARD_GAP: f32 = 12.0;
 pub const STATS_SUCCESS_COLOR: (f32, f32, f32) = (0.3, 0.7, 1.0);
 
-// Crystal clouds
+// Crystal nebula clouds
 pub const CRYSTAL_MIN_RADIUS: f32 = 1.5;
 pub const CRYSTAL_MAX_RADIUS: f32 = 3.5;
 pub const CRYSTAL_ABSORB_RANGE: f32 = 4.0;
 pub const CRYSTAL_ABSORB_RATE: f32 = 0.6;
 pub const CRYSTAL_MIN_VALUE: u64 = 5_000;
 pub const CRYSTAL_MAX_VALUE: u64 = 50_000;
-pub const CRYSTAL_COLOR: (f32, f32, f32) = (0.2, 0.6, 1.0);
-pub const CRYSTAL_EMISSIVE_MULT: f32 = 5.0;
 pub const CRYSTAL_SPAWN_INTERVAL: f32 = 4.0;
-pub const CRYSTAL_ICO_SUBDIVISIONS: u32 = 1;
+pub const CRYSTAL_ICO_SUBDIVISIONS: u32 = 2;
+pub const CRYSTAL_NEBULA_LAYERS: usize = 8;
+pub const CRYSTAL_NEBULA_PERTURB: f32 = 0.3;
+pub const CRYSTAL_CORE_ALPHA: f32 = 0.25;
+pub const CRYSTAL_OUTER_ALPHA: f32 = 0.04;
+pub const CRYSTAL_CORE_EMISSIVE: f32 = 12.0;
+pub const CRYSTAL_OUTER_EMISSIVE: f32 = 4.0;
+pub const CRYSTAL_ROT_SPEED: f32 = 0.3;
+pub const CRYSTAL_POINT_LIGHT_INTENSITY: f32 = 800.0;
+pub const CRYSTAL_POINT_LIGHT_RANGE: f32 = 12.0;
+pub const CRYSTAL_COLORS: [(f32, f32, f32); 5] = [
+    (0.1, 0.4, 1.0),    // deep blue core
+    (0.25, 0.55, 1.0),   // bright blue
+    (0.45, 0.25, 0.9),   // purple tint
+    (0.15, 0.7, 0.85),   // cyan
+    (0.3, 0.35, 1.0),    // indigo
+];
+
+// Crystal absorption particles (pollen-like)
+pub const PARTICLE_SIZE: f32 = 0.18;
+pub const PARTICLE_SPEED: f32 = 14.0;
+pub const PARTICLE_EMIT_RATE: f32 = 18.0;
+pub const PARTICLE_LIFETIME: f32 = 1.5;
+pub const PARTICLE_HOMING: f32 = 8.0;
+pub const PARTICLE_LIGHT_INTENSITY: f32 = 40.0;
+pub const PARTICLE_LIGHT_RANGE: f32 = 3.5;
+pub const PARTICLE_EMISSIVE: f32 = 18.0;
+pub const PARTICLE_SPREAD: f32 = 0.5;
 
 // Difficulty
 pub const DIFFICULTY_TIME_SCALE: f32 = 0.003;
@@ -110,6 +154,7 @@ pub const DIFFICULTY_SIDE_SPAWN_CHANCE: f32 = 0.25;
 
 // Asteroid-asteroid collision
 pub const ASTEROID_BOUNCE_FACTOR: f32 = 0.8;
+pub const ASTEROID_SEPARATION_SPEED: f32 = 3.0;
 
 // Lighting
 pub const DIR_LIGHT_DIR: [f32; 3] = [-0.4, -0.6, -0.8];

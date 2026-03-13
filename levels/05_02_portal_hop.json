@@ -1,0 +1,128 @@
+{
+  "name": "Portal Hop",
+  "board_size": 4,
+  "tiles": [
+    [
+      3,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      0,
+      {
+        "Turn": [
+          0,
+          "East"
+        ]
+      },
+      true
+    ],
+    [
+      0,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      2,
+      {
+        "Goal": 0
+      },
+      false
+    ],
+    [
+      0,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      0,
+      {
+        "Source": [
+          0,
+          "West"
+        ]
+      },
+      false
+    ],
+    [
+      2,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      0,
+      "Floor",
+      false
+    ]
+  ],
+  "solution": [
+    [
+      1,
+      0,
+      {
+        "Turn": [
+          0,
+          "East"
+        ]
+      }
+    ]
+  ],
+  "seed": 7639342378086088168,
+  "difficulty": 15
+}

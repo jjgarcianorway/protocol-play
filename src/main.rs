@@ -4,6 +4,7 @@
 mod constants; mod types; mod textures; mod gen_textures; mod board;
 mod ui_helpers; mod slot_ui; mod inventory; mod systems; mod simulation;
 mod bot_formation; mod mat_helpers; mod test_mode; mod level_io; mod save_dialog;
+mod level_gen_sim; mod level_gen_tiles; mod level_gen_algo; mod level_gen_ui; mod level_gen_interact;
 #[cfg(feature = "player")] mod player;
 #[cfg(feature = "gathering")] mod gathering;
 
@@ -22,6 +23,9 @@ use mat_helpers::*;
 use test_mode::*;
 use level_io::*;
 use save_dialog::*;
+use level_gen_algo::*;
+use level_gen_ui::*;
+use level_gen_interact::*;
 
 fn main() {
     #[cfg(feature = "gathering")]
@@ -30,6 +34,7 @@ fn main() {
         app.add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window { title: "The Gathering".into(), ..default() }), ..default()
         }));
+        app.set_error_handler(bevy::ecs::error::warn);
         gathering::build_app(&mut app);
         app.run();
         return;
@@ -38,6 +43,7 @@ fn main() {
     gen_textures::ensure_textures();
     let title = if cfg!(feature = "player") { "protocol: play (player)" } else { "protocol: play" };
     let mut app = App::new();
+    app.set_error_handler(bevy::ecs::error::warn);
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window { title: title.into(), ..default() }), ..default()
         }))
@@ -52,6 +58,7 @@ fn main() {
         .insert_resource(SavedBoardState::default()).insert_resource(SavedTestState::default())
         .insert_resource(TestInventory::default()).insert_resource(LevelValidated::default())
         .insert_resource(CursorBlinkTimer::default()).insert_resource(LoadedLevelName::default()).insert_resource(PendingSave::default()).insert_resource(ScrollbarDrag::default())
+        .insert_resource(GenSettings::default()).insert_resource(GeneratorState::default())
         .add_systems(Startup, (setup_scene, setup_ui));
     #[cfg(feature = "player")]
     app.add_systems(Startup, player::setup_player.after(setup_scene).after(setup_ui));
@@ -82,12 +89,22 @@ fn main() {
             test_button_interaction, stop_test_interaction.after(play_stop_interaction), reset_test_interaction,
             handle_test_tile_click.after(update_hovered_cell), test_inventory_interaction,
             sync_editor_buttons_visibility, save_button_interaction, save_dialog_input,
-            save_dialog_buttons, blink_save_cursor, overwrite_dialog_buttons, validation_error_ok,
+            blink_save_cursor, overwrite_dialog_buttons, validation_error_ok,
         ))
+        .add_systems(Update, save_dialog_buttons)
         .add_systems(Update, (
             load_button_interaction, load_dialog_buttons, load_entry_hover,
             delete_level_button_interaction, delete_level_dialog_buttons,
             update_status_bar, update_load_scrollbar, scrollbar_drag,
+        ))
+        .add_systems(Update, (
+            gen_button_interaction, gen_stepper_interaction, gen_hole_place_interaction,
+            gen_inv_interaction, gen_difficulty_interaction, gen_weight_interaction,
+            gen_all_equal_interaction, gen_clear_weights_interaction, gen_toggle_interaction,
+            gen_cancel_interaction, gen_generate_interaction, gen_chain_interaction,
+            gen_path_share_interaction, gen_confusion_interaction,
+            gen_preset_interaction, gen_update_progress, gen_btn_pulse,
+            gen_apply_result, update_generator,
         ));
     #[cfg(feature = "player")]
     { app.add_systems(Update, (handle_test_tile_click.after(update_hovered_cell),
@@ -347,8 +364,10 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
             .with_child((Text::new("Mark"), tfs.clone(), TextColor(Color::WHITE)));
         p.spawn((Button, tbtn.clone(), BackgroundColor(bc), TestButton))
             .with_child((Text::new("Test"), tfs.clone(), TextColor(Color::WHITE)));
-        p.spawn((Button, tbtn, BackgroundColor(bc), LoadButton))
-            .with_child((Text::new("Load"), tfs, TextColor(Color::WHITE)));
+        p.spawn((Button, tbtn.clone(), BackgroundColor(bc), LoadButton))
+            .with_child((Text::new("Load"), tfs.clone(), TextColor(Color::WHITE)));
+        p.spawn((Button, tbtn, BackgroundColor(bc), GenButton))
+            .with_child((Text::new("Gen"), tfs, TextColor(Color::WHITE)));
     });
     }
 

@@ -248,3 +248,48 @@ pub const BLOOM_LF_BOOST: f32 = 0.3;
 pub const EMISSIVE_STRENGTH: f32 = 5.0;
 pub const FLOOR_TINT: (f32, f32, f32) = (1.0, 1.0, 1.0);
 pub const UI_CORNER_RADIUS: f32 = 6.0;
+
+// Level generator
+pub const GEN_MAX_ATTEMPTS: usize = 5000;
+pub const GEN_ATTEMPTS_PER_FRAME: usize = 50;
+pub const GEN_MAX_SIM_STEPS: usize = 200;
+pub const GEN_MIN_PATH_LENGTH: usize = 3;
+pub const GEN_MAX_MECHANIC_PICKS: usize = 3;
+pub const GEN_DIALOG_WIDTH: f32 = 380.0;
+pub const GEN_STEPPER_BTN: f32 = 28.0;
+pub const GEN_STEPPER_FONT: f32 = 18.0;
+pub const GEN_VALUE_WIDTH: f32 = 56.0;
+pub const GEN_WEIGHT_BTN: f32 = 18.0;
+pub const GEN_WEIGHT_VAL_W: f32 = 22.0;
+pub const GEN_WEIGHT_FONT: f32 = 13.0;
+pub const GEN_WEIGHT_CELL_W: f32 = 120.0;
+pub const GEN_MAX_WEIGHT: u32 = 10;
+pub const GEN_DEFAULT_WEIGHT: u32 = 5;
+pub const GEN_NUM_WEIGHTS: usize = 12;
+pub const GEN_TOGGLE_SIZE: f32 = 22.0;
+pub const GEN_TOGGLE_ON: (f32, f32, f32) = (0.3, 0.6, 1.0);
+pub const GEN_TOGGLE_OFF: (f32, f32, f32) = (0.25, 0.25, 0.3);
+pub const GEN_PROGRESS_H: f32 = 4.0;
+pub const GEN_PROGRESS_BG: (f32, f32, f32) = (0.15, 0.15, 0.18);
+pub const GEN_PROGRESS_FILL: (f32, f32, f32) = (0.3, 0.7, 0.4);
+pub const GEN_LABEL_FONT: f32 = 15.0;
+pub const GEN_PCT_FONT: f32 = 11.0;
+pub const GEN_BTN_GAP: f32 = 12.0;
+pub const GEN_SECTION_FONT: f32 = 12.0;
+pub const GEN_SECTION_COLOR: (f32, f32, f32) = (0.4, 0.5, 0.7);
+pub const GEN_HINT_FONT: f32 = 11.0;
+pub const GEN_HINT_COLOR: (f32, f32, f32) = (0.45, 0.45, 0.5);
+pub const GEN_PRESET_PAD: (f32, f32) = (8.0, 5.0);
+pub const GEN_PRESET_FONT: f32 = 12.0;
+pub const GEN_DIALOG_MAX_H: f32 = 80.0; // max height in vh%
+pub const GEN_BEST_TOLERANCE: u32 = 10; // accept if within this range of target difficulty
+pub const GEN_PULSE_SPEED: f32 = 3.0;
+pub const GEN_PULSE_MIN: f32 = 0.3;
+pub const GEN_PULSE_MAX: f32 = 0.8;
+pub const GEN_PRESET_COLORS: [(f32, f32, f32); 5] = [
+    (0.2, 0.5, 0.3),  // Easy - green
+    (0.4, 0.4, 0.15),  // Medium - olive
+    (0.5, 0.3, 0.1),  // Hard - orange
+    (0.5, 0.15, 0.15), // Expert - red
+    (0.35, 0.15, 0.5), // Chaos - purple
+];

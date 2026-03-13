@@ -377,7 +377,6 @@ pub fn paint_bots(
                 m.base_color = Color::srgb(fr + (tor - fr) * t, fg + (tog - fg) * t, fb + (tob - fb) * t);
             }
             if tr.progress >= 1.0 {
-                mov.color_index = tr.to_color;
                 *mat = MeshMaterial3d(assets.bot_materials[tr.to_color].clone());
                 commands.entity(entity).remove::<BotColorTransition>();
             }
@@ -385,11 +384,14 @@ pub fn paint_bots(
             if let Some(TileKind::Painter(ci)) = tiles.iter()
                 .find(|(c, _)| c.col as i32 == mov.col && c.row as i32 == mov.row).map(|(_, k)| *k)
             { if ci != mov.color_index {
-                    let (r, g, b) = SOURCE_COLORS[mov.color_index];
+                    let old_color = mov.color_index;
+                    let (r, g, b) = SOURCE_COLORS[old_color];
                     let unique = materials.add(StandardMaterial { base_color: Color::srgb(r, g, b), ..default() });
                     *mat = MeshMaterial3d(unique.clone());
+                    // Update logical color immediately — visual transition is cosmetic only
+                    mov.color_index = ci;
                     commands.entity(entity).insert(BotColorTransition {
-                        from_color: mov.color_index, to_color: ci, progress: 0.0, material: unique,
+                        from_color: old_color, to_color: ci, progress: 0.0, material: unique,
                     });
             }}
         }

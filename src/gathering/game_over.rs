@@ -65,9 +65,11 @@ pub fn spawn_game_over_screen(
     gathering_state: Res<State<GatheringState>>,
     existing: Query<Entity, With<GameOverScreen>>,
     font: Res<GatheringFont>,
+    fade: Res<FadeTimer>,
 ) {
     if *gathering_state.get() != GatheringState::GameOver { return; }
     if !existing.is_empty() { return; }
+    if !fade.triggered { return; } // Prevent re-spawn after Try Again resets fade
 
     let title_font = TextFont { font: font.0.clone(), font_size: STATS_TITLE_FONT, ..default() };
     let stat_font = TextFont { font: font.0.clone(), font_size: STATS_FONT, ..default() };
@@ -142,9 +144,10 @@ pub fn try_again_interaction(
     mut shake: ResMut<ScreenShake>,
     mut fade: ResMut<FadeTimer>,
     game_over_q: Query<Entity, With<GameOverScreen>>,
-    fade_q: Query<Entity, With<FadeOverlay>>,
+    mut fade_bg_q: Query<&mut BackgroundColor, With<FadeOverlay>>,
     asteroid_q: Query<Entity, With<Asteroid>>,
     crystal_q: Query<Entity, With<CrystalCloud>>,
+    particle_q: Query<Entity, With<CrystalParticle>>,
     mut difficulty: ResMut<Difficulty>,
     mut commands: Commands,
 ) {
@@ -156,12 +159,11 @@ pub fn try_again_interaction(
         *difficulty = Difficulty::default();
         next_state.set(GatheringState::Running);
         for entity in game_over_q.iter() { commands.entity(entity).despawn(); }
-        for entity in fade_q.iter() {
-            if let Ok(mut bg) = commands.get_entity(entity) {
-                bg.insert(BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.0)));
-            }
+        for mut bg in fade_bg_q.iter_mut() {
+            bg.0 = Color::srgba(0.0, 0.0, 0.0, 0.0);
         }
         for entity in asteroid_q.iter() { commands.entity(entity).despawn(); }
         for entity in crystal_q.iter() { commands.entity(entity).despawn(); }
+        for entity in particle_q.iter() { commands.entity(entity).despawn(); }
     }
 }

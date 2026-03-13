@@ -1,0 +1,86 @@
+{
+  "name": "One Way Street",
+  "board_size": 3,
+  "tiles": [
+    [
+      0,
+      2,
+      {
+        "Goal": 0
+      },
+      false
+    ],
+    [
+      1,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      0,
+      {
+        "Arrow": [
+          0,
+          "South"
+        ]
+      },
+      true
+    ],
+    [
+      2,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      0,
+      {
+        "Source": [
+          0,
+          "West"
+        ]
+      },
+      false
+    ]
+  ],
+  "solution": [
+    [
+      0,
+      0,
+      {
+        "Arrow": [
+          0,
+          "South"
+        ]
+      }
+    ]
+  ],
+  "seed": 6410403235953378020,
+  "difficulty": 23
+}

@@ -5,6 +5,7 @@ use crate::constants::*;
 use crate::types::*;
 use crate::ui_helpers::*;
 use crate::level_io::levels_dir;
+use crate::level_gen_ui::GenDialog;
 use std::collections::HashSet;
 use std::fs;
 
@@ -58,7 +59,7 @@ pub fn save_button_interaction(
     interaction_query: Query<&Interaction, (With<SaveButton>, Changed<Interaction>)>,
     play_mode: Res<PlayMode>,
     mut commands: Commands,
-    existing_dialog: Query<Entity, Or<(With<SaveDialog>, With<LoadDialog>, With<ValidationErrorDialog>, With<OverwriteDialog>, With<DeleteLevelDialog>)>>,
+    existing_dialog: Query<Entity, Or<(With<SaveDialog>, With<LoadDialog>, With<ValidationErrorDialog>, With<OverwriteDialog>, With<DeleteLevelDialog>, With<GenDialog>)>>,
     tiles: Query<(&TileCoord, &TileKind, Option<&InventoryMarker>), (With<Tile>, Without<DespawnAtZeroScale>)>,
     validated: Res<LevelValidated>,
     saved_board: Res<SavedBoardState>,
@@ -76,7 +77,7 @@ pub fn save_button_interaction(
             validate_kinds(tiles.iter().map(|(_, k, _)| *k), validated.0)
         };
         if errors.is_empty() {
-            spawn_save_dialog(&mut commands, &font.0, loaded_name.0.as_deref());
+            spawn_save_dialog(&mut commands, &font.0, loaded_name.name.as_deref());
         } else {
             spawn_validation_error(&mut commands, &errors, &font.0);
         }
@@ -219,9 +220,12 @@ pub fn save_dialog_buttons(
         .filter(|(_, _, _, marked)| *marked).map(|(c, r, k, _)| (*c, *r, *k)).collect();
     let bs = board_size.0;
     let name = format!("{bs}x{bs}_{raw_name}");
-    let level = LevelData { name: raw_name.clone(), board_size: bs, tiles: tile_data, solution };
+    let level = LevelData {
+        name: raw_name.clone(), board_size: bs, tiles: tile_data, solution,
+        seed: loaded_name.gen_seed, difficulty: loaded_name.gen_difficulty,
+    };
     let path = levels_dir().join(format!("{name}.json"));
-    loaded_name.0 = Some(name.clone());
+    loaded_name.name = Some(name.clone());
     if path.exists() {
         pending.0 = Some((name.clone(), level));
         suppress_ghost(&hovered, &mut ghost_cell);

@@ -219,6 +219,36 @@ pub fn spawn_board(commands: &mut Commands, size: u32, assets: &GameAssets) {
     }
 }
 
+/// Populate the board from a tile list, spawning tiles and marking inventory.
+pub fn populate_board(
+    commands: &mut Commands, size: u32,
+    tile_data: &[(u32, u32, TileKind, bool)], assets: &GameAssets,
+) {
+    let mut present = std::collections::HashSet::new();
+    for &(col, row, _, _) in tile_data { present.insert((col, row)); }
+    for row in 0..size {
+        for col in 0..size {
+            if !present.contains(&(col, row)) {
+                spawn_tile(commands, col, row, size, TileKind::Empty, assets);
+            }
+        }
+    }
+    for &(col, row, kind, is_marked) in tile_data {
+        if col >= size || row >= size { continue; }
+        let entity = spawn_tile(commands, col, row, size, kind, assets);
+        if is_marked {
+            commands.entity(entity).insert(InventoryMarker).with_children(|parent| {
+                parent.spawn((
+                    Mesh3d(assets.marker_mesh.clone()),
+                    MeshMaterial3d(assets.marker_material.clone()),
+                    Transform::from_translation(Vec3::new(0.0, FLOOR_TOP_Y + MARKER_Y_OFFSET, 0.0)),
+                    InventoryMarkerVisual,
+                ));
+            });
+        }
+    }
+}
+
 // === Board Size Buttons ===
 pub fn button_interaction(
     mut commands: Commands,
