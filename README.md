@@ -49,7 +49,38 @@ A game built with [Bevy 0.18](https://bevyengine.org/) (Rust).
 | 12. Color Switch Tiles | Color switch inventory | 8 + 3 boss |
 | 13. Grand Mastery | All combined | 12 + 3 final + 2 secret |
 
-## Building
+## Download & Play
+
+Pre-built binaries for **Windows**, **macOS**, and **Linux**:
+[**Download latest release**](https://github.com/jjgarcianorway/protocol-play/releases/latest)
+
+### Windows
+Extract the zip, open the folder, double-click `protocol-player.exe`.
+If Windows Defender blocks it, click "More info" → "Run anyway".
+
+### macOS
+Double-click the `.tar.gz` to extract. Open Terminal (Cmd+Space → type "Terminal" → Enter):
+```sh
+cd ~/Downloads/protocol-player-macos && xattr -cr . && chmod +x protocol-player && ./protocol-player
+```
+Next time, just:
+```sh
+cd ~/Downloads/protocol-player-macos && ./protocol-player
+```
+
+### Linux
+```sh
+tar xzf protocol-player-linux.tar.gz
+cd protocol-player-linux && chmod +x protocol-player && ./protocol-player
+```
+
+### Multiple players on the same computer
+Copy the extracted folder for each player (e.g. `paula/`, `barbara/`). Each folder keeps its own progress.
+
+### Options
+- `--reset-stats` — clear all progress and start fresh
+
+## Building from source
 
 Requires [Rust](https://www.rust-lang.org/tools/install).
 
@@ -67,7 +98,7 @@ cargo build --release --bin generate-campaign
 ./target/release/generate-campaign
 ```
 
-## Running
+## Running from source
 
 ```sh
 # Editor
