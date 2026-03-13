@@ -26,12 +26,13 @@ jobs:
           mkdir bundle
           copy target\x86_64-pc-windows-msvc\release\protocol-play.exe bundle\protocol-player-windows.exe
           for %%f in (levels\*.json) do copy "%%f" "bundle\"
+          cd bundle && 7z a ../protocol-player-windows.zip *
         shell: cmd
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windows-bundle
-          path: bundle/
+          name: protocol-player-windows.zip
+          path: protocol-player-windows.zip
 
   build-macos:
     runs-on: macos-latest
@@ -48,11 +49,12 @@ jobs:
           cp target/aarch64-apple-darwin/release/protocol-play bundle/protocol-player-macos
           chmod +x bundle/protocol-player-macos
           cp levels/*.json bundle/
+          tar czf protocol-player-macos.tar.gz -C bundle .
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: macos-bundle
-          path: bundle/
+          name: protocol-player-macos.tar.gz
+          path: protocol-player-macos.tar.gz
 
   build-linux:
     runs-on: ubuntu-latest
@@ -69,11 +71,12 @@ jobs:
           cp target/release/protocol-play bundle/protocol-player-linux
           chmod +x bundle/protocol-player-linux
           cp levels/*.json bundle/
+          tar czf protocol-player-linux.tar.gz -C bundle .
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: linux-bundle
-          path: bundle/
+          name: protocol-player-linux.tar.gz
+          path: protocol-player-linux.tar.gz
 
   release:
     needs: [build-windows, build-macos, build-linux]
@@ -90,9 +93,9 @@ jobs:
 
       - name: Prepare release files
         run: |
-          cd artifacts/windows-bundle && zip ../../protocol-player-windows.zip protocol-player-windows.exe *.json
-          cd ../../artifacts/macos-bundle && tar czf ../../protocol-player-macos.tar.gz protocol-player-macos *.json
-          cd ../../artifacts/linux-bundle && tar czf ../../protocol-player-linux.tar.gz protocol-player-linux *.json
+          cp artifacts/protocol-player-windows.zip/protocol-player-windows.zip .
+          cp artifacts/protocol-player-macos.tar.gz/protocol-player-macos.tar.gz .
+          cp artifacts/protocol-player-linux.tar.gz/protocol-player-linux.tar.gz .
 
       - name: Create release
         uses: softprops/action-gh-release@v2
@@ -103,9 +106,10 @@ jobs:
             Player build with 149 campaign levels across 13 chapters.
 
             **Windows**: Extract the zip and run `protocol-player-windows.exe`.
-            **macOS**: Extract, then run in Terminal: `xattr -cr protocol-player-macos && ./protocol-player-macos`
-            **Linux**: Extract and run `./protocol-player-linux`
+            **macOS**: Extract, then `chmod +x protocol-player-macos && ./protocol-player-macos`
+            **Linux**: Extract and run `chmod +x protocol-player-linux && ./protocol-player-linux`
 
+            Use `--reset-stats` to clear all progress and start fresh.
             Stats are logged to `stats.jsonl` next to the executable.
           files: |
             protocol-player-windows.zip
