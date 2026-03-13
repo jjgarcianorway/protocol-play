@@ -30,57 +30,45 @@ fn main() {
     let chapters = campaign_chapters();
     let out_dir = std::path::PathBuf::from("campaign_levels");
     let _ = std::fs::create_dir_all(&out_dir);
-
     let mut total = 0u32;
     let mut failed = 0u32;
-
     for (ci, chapter) in chapters.iter().enumerate() {
         println!("\n=== Chapter {}: {} ===", ci + 1, chapter.name);
         for (li, level) in chapter.levels.iter().enumerate() {
-            let num = li + 1;
-            let ch_num = ci + 1;
-            let filename = format!("{:02}_{:02}_{}", ch_num, num,
-                sanitize(&level.display_name));
+            let (num, ch_num) = (li + 1, ci + 1);
+            let filename = format!("{:02}_{:02}_{}", ch_num, num, sanitize(&level.name));
             print!("  [{ch_num}-{num:02}] {} ({}x{}, diff={}, bots={})... ",
-                level.display_name, level.config.board_size, level.config.board_size,
+                level.name, level.config.board_size, level.config.board_size,
                 level.config.difficulty, level.config.num_bots);
-
             let attempts = if level.config.num_bots >= 8 { 200000 }
                 else if level.config.num_bots >= 6 { 100000 }
                 else if level.config.num_bots >= 4 { 50000 } else { 20000 };
             match generate_level(&level.config, attempts) {
                 Some((tiles, rating, seed)) => {
-                    let data = LevelData {
-                        name: level.display_name.clone(),
-                        board_size: level.config.board_size,
-                        tiles, solution: vec![],
-                        seed: Some(seed), difficulty: Some(rating),
-                    };
-                    // Fill in solution from marked tiles
-                    let solution: Vec<_> = data.tiles.iter()
+                    let solution: Vec<_> = tiles.iter()
                         .filter(|(_, _, _, m)| *m).map(|(c, r, k, _)| (*c, *r, *k)).collect();
-                    let data = LevelData { solution, ..data };
-                    let path = out_dir.join(format!("{filename}.json"));
+                    let data = LevelData {
+                        name: level.name.clone(), board_size: level.config.board_size,
+                        tiles, solution, seed: Some(seed), difficulty: Some(rating),
+                    };
                     let json = serde_json::to_string_pretty(&data).unwrap();
-                    std::fs::write(&path, json).unwrap();
+                    std::fs::write(out_dir.join(format!("{filename}.json")), json).unwrap();
                     println!("OK (diff={rating})");
                     total += 1;
                 }
-                None => {
-                    println!("FAILED");
-                    failed += 1;
-                }
+                None => { println!("FAILED"); failed += 1; }
             }
         }
     }
     println!("\n=== Done: {total} levels generated, {failed} failed ===");
 }
 
-fn generate_level(config: &GenConfig, max_attempts: usize) -> Option<(Vec<(u32, u32, TileKind, bool)>, u32, u64)> {
+fn generate_level(config: &GenConfig, max_attempts: usize)
+    -> Option<(Vec<(u32, u32, TileKind, bool)>, u32, u64)>
+{
     let mut rng = rand::thread_rng();
     let seed: u64 = rand::Rng::r#gen(&mut rng);
     let mut best: Option<(Vec<(u32, u32, TileKind, bool)>, u32)> = None;
-
     for _ in 0..max_attempts {
         if let Some((tiles, rating)) = generate_attempt(config, &mut rng) {
             let gap = (rating as i32 - config.difficulty as i32).unsigned_abs();
@@ -99,291 +87,256 @@ fn sanitize(name: &str) -> String {
         .collect::<String>().trim_matches('_').to_string()
 }
 
+// ===================================================================
 // Campaign definition — 13 chapters, 149 levels
-struct Chapter {
-    name: String,
-    levels: Vec<CampaignLevel>,
-}
+// ===================================================================
 
-struct CampaignLevel {
-    display_name: String,
-    config: GenConfig,
-}
+struct Chapter { name: String, levels: Vec<Level> }
+struct Level { name: String, config: GenConfig }
 
-fn cfg(board_size: u32, num_bots: u32, difficulty: u32, weights: [u32; GEN_NUM_WEIGHTS]) -> GenConfig {
+fn cfg(board: u32, bots: u32, diff: u32, weights: [u32; GEN_NUM_WEIGHTS]) -> GenConfig {
     GenConfig {
-        board_size, num_bots, difficulty, weights,
+        board_size: board, num_bots: bots, difficulty: diff, weights,
         hole_percent: 20, hole_placement: HolePlacement::Both,
-        unique_solution: false, inventory_target: 0,
+        unique_solution: false, inventory_target: (board * 3 / 2).max(2).min(15),
         door_chains: 0, path_sharing: false, confusion_tiles: false,
+    }
+}
+
+/// Cumulative weights: new mechanic emphasized, all previously learned included.
+fn ch_w(ch: usize, pos: usize) -> [u32; GEN_NUM_WEIGHTS] {
+    // Weight index -> chapter where it's introduced
+    let unlock = [1usize, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 9];
+    let new_idx: &[usize] = match ch {
+        1=>&[0], 2=>&[1], 3=>&[2], 4=>&[3], 5=>&[4], 6=>&[5],
+        7=>&[6], 8=>&[7], 9=>&[11], 10=>&[8], 11=>&[9], 12=>&[10], _=>&[],
+    };
+    let (nw, ow) = if ch >= 13 { (8, 8) }
+        else if pos == 0 { (10, 2) }   // intro: new mechanic + light path-building
+        else if pos <= 3 { (8, 4) }     // learning: new dominant
+        else if pos <= 7 { (7, 5) }     // challenge: mixed
+        else { (6, 6) };               // boss: balanced
+    let mut w = [0u32; GEN_NUM_WEIGHTS];
+    for i in 0..GEN_NUM_WEIGHTS {
+        if new_idx.contains(&i) { w[i] = nw; }
+        else if ch >= unlock[i] { w[i] = ow; }
+    }
+    w
+}
+
+/// Build a level with chapter-appropriate modifiers applied automatically.
+fn make_level(ch: usize, pos: usize, name: &str, board: u32, bots: u32, diff: u32) -> Level {
+    let mut c = cfg(board, bots, diff, ch_w(ch, pos));
+    if ch >= 2 { c.path_sharing = true; }
+    c.confusion_tiles = ch >= 2 && (pos > 0 || ch >= 13);
+    if ch >= 10 { c.door_chains = match pos { 0..=2=>1, 3..=5=>2, 6..=8=>3, _=>4 }; }
+    let pct = 15 + pos as u32 * 2;
+    match pos % 3 {
+        0 => { c.hole_placement = HolePlacement::Edges; c.hole_percent = pct; }
+        1 => { c.hole_placement = HolePlacement::Middle; c.hole_percent = pct; }
+        _ => { c.hole_percent = pct; }
+    }
+    if matches!(ch, 2|4|6|8|12) { c.inventory_target = (2 + pos as u32).min(10); }
+    Level { name: name.into(), config: c }
+}
+
+fn ch(num: usize, name: &str, specs: &[(&str, u32, u32, u32)]) -> Chapter {
+    Chapter {
+        name: name.into(),
+        levels: specs.iter().enumerate()
+            .map(|(pos, &(n, b, bt, d))| make_level(num, pos, n, b, bt, d)).collect(),
     }
 }
 
 fn campaign_chapters() -> Vec<Chapter> {
     vec![
-        // Chapter 1: Turns — 2 bots early, edge/mid holes for variety
-        Chapter { name: "Turns".into(), levels: vec![
-            cl("First Steps", cfg(3, 1, 20, w(&[(0, 8)])).edge_holes(15)),
-            cl("Corner to Corner", cfg(4, 2, 30, w(&[(0, 9)])).mid_holes(15).share()),
-            cl("The Zigzag", cfg(4, 2, 40, w(&[(0, 10)])).edge_holes(20).share()),
-            cl("Around the Block", cfg(5, 2, 45, w(&[(0, 10)])).holes(20).share()),
-            cl("Spiral Path", cfg(5, 3, 50, w(&[(0, 11)])).mid_holes(20).share()),
-            cl("Double Back", cfg(5, 3, 55, w(&[(0, 12)])).edge_holes(25).share()),
-            cl("Winding Road", cfg(6, 3, 60, w(&[(0, 12)])).holes(25).share()),
-            cl("Crossroads", cfg(6, 3, 65, w(&[(0, 12)])).mid_holes(25).share()),
-            cl("Turn Master I", cfg(6, 4, 70, w(&[(0, 12)])).edge_holes(20).share()),
-            cl("Turn Master II", cfg(7, 4, 75, w(&[(0, 13)])).holes(25).share()),
-            cl("Turn Master III", cfg(8, 4, 80, w(&[(0, 14)])).mid_holes(25).share()),
-        ]},
-        // Chapter 2: TurnBut — 2-4 bots
-        Chapter { name: "Turn Tiles".into(), levels: {
-            let mut lvls = vec![
-                cl("Place Your Turn", cfg(4, 2, 30, w(&[(0, 5), (1, 6)])).inv(2).edge_holes(15)),
-                cl("Two Turns", cfg(4, 2, 40, w(&[(0, 5), (1, 7)])).inv(3).mid_holes(15).share()),
-                cl("Choose Wisely", cfg(5, 3, 50, w(&[(0, 6), (1, 7)])).inv(3).holes(20).share().confuse()),
-                cl("Mixed Turns", cfg(5, 3, 55, w(&[(0, 6), (1, 7)])).inv(3).edge_holes(20).share()),
-                cl("Turn Puzzle", cfg(6, 3, 60, w(&[(0, 6), (1, 8)])).inv(4).mid_holes(20).share().confuse()),
-                cl("Inventory Challenge", cfg(6, 3, 65, w(&[(0, 7), (1, 8)])).inv(4).holes(25).share()),
-                cl("Precision Placement", cfg(6, 4, 70, w(&[(0, 7), (1, 8)])).inv(5).edge_holes(25).share().confuse()),
-                cl("No Room for Error", cfg(7, 4, 75, w(&[(0, 7), (1, 9)])).inv(5).holes(25).share()),
-            ];
-            lvls.push(cl("Turn Builder I", cfg(7, 4, 80, w(&[(0, 8), (1, 9)])).inv(6).mid_holes(25).share().confuse()));
-            lvls.push(cl("Turn Builder II", cfg(7, 4, 85, w(&[(0, 8), (1, 10)])).inv(6).holes(25).share().confuse()));
-            lvls.push(cl("Turn Builder III", cfg(8, 4, 90, w(&[(0, 9), (1, 10)])).inv(7).edge_holes(30).share().confuse()));
-            lvls
-        }},
-        // Chapter 3: Arrows — 2-4 bots
-        Chapter { name: "Arrows".into(), levels: vec![
-            cl("One Way Street", cfg(4, 2, 30, w(&[(0, 4), (2, 8)])).edge_holes(15).share()),
-            cl("Follow the Arrow", cfg(5, 2, 40, w(&[(0, 5), (2, 8)])).mid_holes(15).share()),
-            cl("Arrow Maze", cfg(5, 3, 50, w(&[(0, 5), (2, 8)])).holes(20).share()),
-            cl("Turn and Thrust", cfg(5, 3, 55, w(&[(0, 6), (2, 8)])).edge_holes(20).share()),
-            cl("Arrow Chain", cfg(6, 3, 60, w(&[(0, 6), (2, 9)])).mid_holes(20).share().confuse()),
-            cl("Speed Lines", cfg(6, 3, 65, w(&[(0, 6), (2, 9)])).holes(25).share()),
-            cl("The Gauntlet", cfg(6, 4, 70, w(&[(0, 7), (2, 10)])).edge_holes(25).share().confuse()),
-            cl("Forced March", cfg(7, 4, 75, w(&[(0, 7), (2, 10)])).holes(25).share()),
-            cl("Arrow Storm I", cfg(7, 4, 80, w(&[(0, 8), (2, 10)])).mid_holes(25).share().confuse()),
-            cl("Arrow Storm II", cfg(8, 4, 85, w(&[(0, 8), (2, 11)])).holes(25).share().confuse()),
-            cl("Arrow Storm III", cfg(8, 4, 90, w(&[(0, 9), (2, 11)])).edge_holes(30).share().confuse()),
-        ]},
-        // Chapter 4: ArrowBut — 2-4 bots
-        Chapter { name: "Arrow Tiles".into(), levels: {
-            let mut lvls = vec![
-                cl("Place Your Arrow", cfg(4, 2, 35, w(&[(0, 4), (2, 4), (3, 7)])).inv(2).mid_holes(15)),
-                cl("Arrow Setup", cfg(5, 2, 45, w(&[(0, 5), (1, 3), (2, 4), (3, 7)])).inv(3).holes(20).share()),
-                cl("Redirect", cfg(5, 3, 55, w(&[(0, 5), (1, 3), (2, 5), (3, 7)])).inv(3).edge_holes(20).share().confuse()),
-                cl("Arrow Architect", cfg(6, 3, 60, w(&[(0, 6), (2, 5), (3, 7)])).inv(4).holes(20).share()),
-                cl("Mixed Signals", cfg(6, 3, 65, w(&[(0, 5), (1, 4), (2, 5), (3, 8)])).inv(4).mid_holes(25).share().confuse()),
-                cl("Direction Control", cfg(6, 4, 70, w(&[(0, 6), (1, 4), (2, 5), (3, 8)])).inv(5).holes(25).share()),
-                cl("Arrow Master", cfg(7, 4, 75, w(&[(0, 6), (2, 6), (3, 9)])).inv(5).edge_holes(25).share().confuse()),
-                cl("Full Arsenal", cfg(7, 4, 80, w(&[(0, 7), (1, 4), (2, 6), (3, 9)])).inv(5).holes(25).share().confuse()),
-            ];
-            lvls.push(cl("Arrow Crafter I", cfg(7, 4, 85, w(&[(0, 7), (1, 5), (2, 6), (3, 9)])).inv(6).mid_holes(25).share().confuse()));
-            lvls.push(cl("Arrow Crafter II", cfg(8, 4, 90, w(&[(0, 7), (1, 5), (2, 6), (3, 10)])).inv(6).holes(30).share().confuse()));
-            lvls.push(cl("Arrow Crafter III", cfg(8, 4, 95, w(&[(0, 8), (1, 5), (2, 7), (3, 10)])).inv(7).edge_holes(30).share().confuse()));
-            lvls
-        }},
-        // Chapter 5: Teleports — 3-6 bots
-        Chapter { name: "Teleports".into(), levels: vec![
-            cl("Warp Zone", cfg(5, 3, 40, w(&[(0, 5), (2, 3), (4, 8)])).mid_holes(20).share()),
-            cl("Portal Hop", cfg(5, 3, 50, w(&[(0, 5), (2, 4), (4, 8)])).edge_holes(20).share()),
-            cl("Double Warp", cfg(6, 4, 55, w(&[(0, 6), (2, 4), (4, 9)])).holes(20).share()),
-            cl("Teleport Chain", cfg(6, 4, 60, w(&[(0, 6), (2, 4), (4, 9)])).mid_holes(25).share()),
-            cl("Warp Tactics", cfg(7, 5, 65, w(&[(0, 6), (2, 5), (4, 9)])).holes(25).share().confuse()),
-            cl("Portal Network", cfg(7, 5, 70, w(&[(0, 7), (2, 5), (4, 10)])).edge_holes(25).share()),
-            cl("Dimensional Shift", cfg(8, 5, 75, w(&[(0, 7), (2, 5), (4, 10)])).holes(25).share().confuse()),
-            cl("Space Fold", cfg(8, 5, 80, w(&[(0, 7), (2, 6), (4, 10)])).mid_holes(25).share()),
-            cl("Warp Master I", cfg(9, 6, 85, w(&[(0, 8), (2, 6), (4, 10)])).holes(25).share().confuse()),
-            cl("Warp Master II", cfg(9, 6, 90, w(&[(0, 8), (2, 6), (4, 11)])).edge_holes(30).share().confuse()),
-            cl("Warp Master III", cfg(10, 6, 95, w(&[(0, 9), (2, 7), (4, 11)])).holes(30).share().confuse()),
-        ]},
-        // Chapter 6: TeleportBut — 3-6 bots
-        Chapter { name: "Teleport Tiles".into(), levels: {
-            let mut lvls = vec![
-                cl("Place Your Portal", cfg(5, 3, 45, w(&[(0, 5), (4, 4), (5, 7)])).inv(2).mid_holes(20).share()),
-                cl("Warp Builder", cfg(6, 4, 55, w(&[(0, 5), (2, 3), (4, 4), (5, 7)])).inv(3).holes(20).share()),
-                cl("Portal Placement", cfg(6, 4, 60, w(&[(0, 5), (1, 3), (2, 4), (5, 8)])).inv(3).edge_holes(25).share().confuse()),
-                cl("Linked Portals", cfg(7, 5, 65, w(&[(0, 6), (2, 4), (4, 5), (5, 8)])).inv(4).holes(25).share()),
-                cl("Warp Circuit", cfg(7, 5, 70, w(&[(0, 6), (1, 3), (2, 4), (4, 5), (5, 8)])).inv(4).mid_holes(25).share().confuse()),
-                cl("Teleport Engineer", cfg(8, 5, 75, w(&[(0, 6), (2, 5), (3, 3), (4, 5), (5, 9)])).inv(5).holes(25).share()),
-                cl("Dimension Builder", cfg(8, 5, 80, w(&[(0, 7), (2, 5), (4, 5), (5, 9)])).inv(5).edge_holes(25).share().confuse()),
-                cl("Space Architect", cfg(9, 6, 85, w(&[(0, 7), (1, 4), (2, 5), (4, 5), (5, 9)])).inv(5).holes(25).share().confuse()),
-            ];
-            lvls.push(cl("Portal Crafter I", cfg(9, 6, 90, w(&[(0, 7), (2, 5), (3, 3), (4, 5), (5, 10)])).inv(6).mid_holes(30).share().confuse()));
-            lvls.push(cl("Portal Crafter II", cfg(10, 6, 95, w(&[(0, 8), (1, 4), (2, 6), (4, 6), (5, 10)])).inv(6).holes(30).share().confuse()));
-            lvls.push(cl("Portal Crafter III", cfg(10, 6, 100, w(&[(0, 8), (2, 6), (3, 4), (4, 6), (5, 11)])).inv(7).edge_holes(30).share().confuse()));
-            lvls
-        }},
-        // Chapter 7: Bounce — 3-7 bots
-        Chapter { name: "Bounce".into(), levels: vec![
-            cl("First Bounce", cfg(5, 3, 40, w(&[(0, 5), (2, 4), (6, 8)])).edge_holes(20).share()),
-            cl("Ricochet", cfg(6, 4, 50, w(&[(0, 5), (2, 4), (6, 9)])).mid_holes(20).share()),
-            cl("Bounce Path", cfg(6, 4, 55, w(&[(0, 6), (2, 5), (6, 9)])).holes(20).share()),
-            cl("Wall Runner", cfg(7, 5, 60, w(&[(0, 6), (4, 3), (6, 9)])).edge_holes(25).share()),
-            cl("Reflection Point", cfg(7, 5, 65, w(&[(0, 6), (2, 5), (4, 3), (6, 9)])).holes(25).share().confuse()),
-            cl("Bounce House", cfg(8, 5, 70, w(&[(0, 7), (2, 5), (4, 4), (6, 10)])).mid_holes(25).share()),
-            cl("Echo Chamber", cfg(8, 6, 75, w(&[(0, 7), (2, 5), (4, 4), (6, 10)])).holes(25).share().confuse()),
-            cl("Rebound", cfg(9, 6, 80, w(&[(0, 7), (2, 6), (4, 4), (6, 10)])).edge_holes(25).share()),
-            cl("Bounce King I", cfg(9, 6, 85, w(&[(0, 8), (2, 6), (4, 5), (6, 10)])).holes(25).share().confuse()),
-            cl("Bounce King II", cfg(10, 7, 90, w(&[(0, 8), (2, 6), (4, 5), (6, 11)])).mid_holes(30).share().confuse()),
-            cl("Bounce King III", cfg(10, 7, 95, w(&[(0, 9), (2, 7), (4, 5), (6, 11)])).holes(30).share().confuse()),
-        ]},
-        // Chapter 8: BounceBut — 3-7 bots
-        Chapter { name: "Bounce Tiles".into(), levels: {
-            let mut lvls = vec![
-                cl("Place Your Bounce", cfg(5, 3, 45, w(&[(0, 5), (6, 4), (7, 7)])).inv(2).edge_holes(20).share()),
-                cl("Bounce Setup", cfg(6, 4, 55, w(&[(0, 5), (2, 3), (6, 4), (7, 8)])).inv(3).holes(20).share()),
-                cl("Ricochet Builder", cfg(7, 5, 60, w(&[(0, 6), (2, 4), (6, 4), (7, 8)])).inv(3).mid_holes(25).share().confuse()),
-                cl("Bounce Craft", cfg(7, 5, 65, w(&[(0, 6), (4, 3), (6, 5), (7, 8)])).inv(4).holes(25).share()),
-                cl("Reflection Lab", cfg(8, 5, 70, w(&[(0, 6), (2, 4), (4, 3), (6, 5), (7, 9)])).inv(4).edge_holes(25).share().confuse()),
-                cl("Bounce Engineer", cfg(8, 6, 75, w(&[(0, 7), (1, 3), (2, 4), (6, 5), (7, 9)])).inv(5).holes(25).share()),
-                cl("Echo Builder", cfg(9, 6, 80, w(&[(0, 7), (2, 5), (4, 4), (6, 5), (7, 9)])).inv(5).mid_holes(25).share().confuse()),
-                cl("Rebound Architect", cfg(9, 6, 85, w(&[(0, 7), (2, 5), (3, 3), (4, 4), (6, 5), (7, 10)])).inv(5).holes(25).share().confuse()),
-            ];
-            lvls.push(cl("Bounce Crafter I", cfg(10, 7, 90, w(&[(0, 8), (2, 5), (4, 4), (6, 5), (7, 10)])).inv(6).edge_holes(30).share().confuse()));
-            lvls.push(cl("Bounce Crafter II", cfg(10, 7, 95, w(&[(0, 8), (1, 4), (2, 6), (6, 6), (7, 10)])).inv(6).holes(30).share().confuse()));
-            lvls.push(cl("Bounce Crafter III", cfg(11, 7, 100, w(&[(0, 9), (2, 6), (4, 5), (6, 6), (7, 11)])).inv(7).mid_holes(30).share().confuse()));
-            lvls
-        }},
-        // Chapter 9: Painters — 3-8 bots
-        Chapter { name: "Painters".into(), levels: vec![
-            cl("Color Shift", cfg(5, 3, 45, w(&[(0, 5), (2, 4), (11, 8)])).edge_holes(20).share()),
-            cl("Paint the Path", cfg(6, 4, 55, w(&[(0, 6), (2, 4), (11, 8)])).holes(20).share()),
-            cl("Color Journey", cfg(7, 5, 60, w(&[(0, 6), (2, 5), (4, 3), (11, 9)])).mid_holes(25).share()),
-            cl("Rainbow Road", cfg(7, 5, 65, w(&[(0, 6), (2, 5), (6, 3), (11, 9)])).holes(25).share().confuse()),
-            cl("Chromatic Path", cfg(8, 6, 70, w(&[(0, 7), (2, 5), (4, 4), (11, 9)])).edge_holes(25).share()),
-            cl("Painter's Palette", cfg(8, 6, 75, w(&[(0, 7), (2, 5), (6, 4), (11, 10)])).holes(25).share().confuse()),
-            cl("Color Cascade", cfg(9, 7, 80, w(&[(0, 7), (2, 6), (4, 4), (6, 4), (11, 10)])).mid_holes(25).share()),
-            cl("Hue Shift", cfg(9, 7, 85, w(&[(0, 8), (2, 6), (4, 4), (6, 4), (11, 10)])).holes(25).share().confuse()),
-            cl("Color Master I", cfg(10, 7, 90, w(&[(0, 8), (2, 6), (4, 5), (6, 4), (11, 11)])).edge_holes(30).share().confuse()),
-            cl("Color Master II", cfg(10, 8, 95, w(&[(0, 9), (2, 7), (4, 5), (6, 5), (11, 11)])).holes(30).share().confuse()),
-            cl("Color Master III", cfg(11, 8, 100, w(&[(0, 9), (2, 7), (4, 5), (6, 5), (11, 12)])).mid_holes(30).share().confuse()),
-        ]},
-        // Chapter 10: Doors & Switches — 3-8 bots
-        Chapter { name: "Doors & Switches".into(), levels: {
-            let mut lvls = vec![
-                cl("Open Sesame", cfg(5, 3, 50, w(&[(0, 6), (2, 4), (8, 8)])).chains(1).edge_holes(20).share()),
-                cl("Locked Path", cfg(6, 4, 60, w(&[(0, 6), (2, 5), (8, 8)])).chains(1).holes(20).share()),
-                cl("Switch Timing", cfg(7, 5, 65, w(&[(0, 7), (2, 5), (4, 3), (8, 9)])).chains(1).mid_holes(25).share()),
-                cl("Door Dance", cfg(7, 5, 70, w(&[(0, 7), (2, 5), (6, 3), (8, 9)])).chains(1).holes(25).share().confuse()),
-                cl("Double Lock", cfg(8, 6, 75, w(&[(0, 7), (2, 5), (4, 4), (8, 9)])).chains(2).edge_holes(25).share()),
-                cl("Gate Keeper", cfg(8, 6, 80, w(&[(0, 7), (2, 6), (4, 4), (8, 10)])).chains(2).holes(25).share().confuse()),
-                cl("Synchronized", cfg(9, 7, 85, w(&[(0, 8), (2, 6), (4, 4), (6, 3), (8, 10)])).chains(2).mid_holes(25).share()),
-                cl("Chain Reaction", cfg(9, 7, 90, w(&[(0, 8), (2, 6), (4, 5), (8, 10)])).chains(3).holes(30).share().confuse()),
-            ];
-            lvls.push(cl("Lock Master I", cfg(10, 7, 95, w(&[(0, 9), (2, 7), (4, 5), (6, 4), (8, 11)])).chains(3).edge_holes(30).share().confuse()));
-            lvls.push(cl("Lock Master II", cfg(10, 8, 100, w(&[(0, 9), (2, 7), (4, 5), (8, 11)])).chains(3).holes(30).share().confuse()));
-            lvls.push(cl("Lock Master III", cfg(11, 8, 100, w(&[(0, 10), (2, 7), (4, 5), (6, 5), (8, 12)])).chains(4).mid_holes(30).share().confuse()));
-            lvls
-        }},
-        // Chapter 11: ColorSwitch — 3-8 bots
-        Chapter { name: "Color Switches".into(), levels: {
-            let mut lvls = vec![
-                cl("Color Gate", cfg(6, 3, 55, w(&[(0, 6), (2, 4), (9, 8), (11, 4)])).chains(1).edge_holes(20).share()),
-                cl("Chromatic Lock", cfg(7, 5, 65, w(&[(0, 6), (2, 4), (8, 4), (9, 8), (11, 4)])).chains(1).holes(25).share()),
-                cl("Color Timing", cfg(7, 5, 70, w(&[(0, 7), (2, 5), (9, 9), (11, 5)])).chains(1).mid_holes(25).share().confuse()),
-                cl("Hue Gate", cfg(8, 6, 75, w(&[(0, 7), (2, 5), (4, 3), (8, 4), (9, 9)])).chains(1).holes(25).share()),
-                cl("Spectrum Lock", cfg(8, 6, 80, w(&[(0, 7), (2, 5), (4, 4), (9, 9)])).chains(2).edge_holes(25).share().confuse()),
-                cl("Color Cascade", cfg(9, 7, 85, w(&[(0, 8), (2, 6), (6, 3), (8, 5), (9, 10)])).chains(2).holes(25).share()),
-                cl("Prismatic Path", cfg(9, 7, 90, w(&[(0, 8), (2, 6), (4, 4), (9, 10), (11, 5)])).chains(2).mid_holes(30).share().confuse()),
-                cl("Rainbow Gate", cfg(10, 7, 95, w(&[(0, 8), (2, 6), (4, 4), (8, 5), (9, 10)])).chains(3).holes(30).share().confuse()),
-            ];
-            lvls.push(cl("Chroma Master I", cfg(10, 8, 100, w(&[(0, 9), (2, 7), (4, 5), (8, 5), (9, 11)])).chains(3).edge_holes(30).share().confuse()));
-            lvls.push(cl("Chroma Master II", cfg(11, 8, 100, w(&[(0, 9), (2, 7), (6, 4), (8, 6), (9, 11), (11, 5)])).chains(3).holes(30).share().confuse()));
-            lvls.push(cl("Chroma Master III", cfg(11, 8, 100, w(&[(0, 10), (2, 7), (4, 5), (6, 5), (8, 6), (9, 12)])).chains(4).mid_holes(30).share().confuse()));
-            lvls
-        }},
-        // Chapter 12: ColorSwitchBut — 3-8 bots
-        Chapter { name: "Color Switch Tiles".into(), levels: {
-            let mut lvls = vec![
-                cl("Place Your Gate", cfg(6, 3, 60, w(&[(0, 6), (2, 4), (9, 4), (10, 8)])).inv(2).chains(1).edge_holes(25).share()),
-                cl("Color Builder", cfg(7, 5, 65, w(&[(0, 6), (2, 4), (8, 3), (9, 4), (10, 8)])).inv(3).chains(1).holes(25).share()),
-                cl("Switch Craft", cfg(7, 5, 70, w(&[(0, 7), (2, 5), (4, 3), (10, 9)])).inv(3).chains(1).mid_holes(25).share().confuse()),
-                cl("Chromatic Builder", cfg(8, 6, 75, w(&[(0, 7), (2, 5), (8, 4), (9, 4), (10, 9)])).inv(4).chains(2).holes(25).share()),
-                cl("Gate Architect", cfg(8, 6, 80, w(&[(0, 7), (2, 5), (4, 4), (9, 4), (10, 9)])).inv(4).chains(2).edge_holes(25).share().confuse()),
-                cl("Color Engineer", cfg(9, 7, 85, w(&[(0, 8), (2, 6), (6, 3), (8, 4), (10, 10)])).inv(5).chains(2).holes(25).share()),
-                cl("Prismatic Craft", cfg(10, 7, 90, w(&[(0, 8), (2, 6), (4, 4), (9, 5), (10, 10)])).inv(5).chains(2).mid_holes(30).share().confuse()),
-                cl("Spectrum Builder", cfg(10, 7, 95, w(&[(0, 8), (2, 6), (4, 4), (8, 5), (9, 5), (10, 10)])).inv(5).chains(3).holes(30).share().confuse()),
-            ];
-            lvls.push(cl("Gate Crafter I", cfg(11, 8, 100, w(&[(0, 9), (2, 7), (4, 5), (9, 5), (10, 11)])).inv(6).chains(3).edge_holes(30).share().confuse()));
-            lvls.push(cl("Gate Crafter II", cfg(11, 8, 100, w(&[(0, 9), (2, 7), (6, 4), (8, 5), (9, 6), (10, 11)])).inv(6).chains(3).holes(30).share().confuse()));
-            lvls.push(cl("Gate Crafter III", cfg(12, 8, 100, w(&[(0, 10), (1, 5), (2, 7), (4, 5), (9, 6), (10, 12)])).inv(7).chains(4).mid_holes(30).share().confuse()));
-            lvls
-        }},
-        // Chapter 13: Grand Mastery — 5-10 bots, big boards, everything combined
-        Chapter { name: "Grand Mastery".into(), levels: {
-            let all_w = |d: u32| -> [u32; GEN_NUM_WEIGHTS] {
-                let s = d as f32 / 100.0;
-                let v = |base: u32| (base as f32 * (0.8 + s * 1.0)) as u32;
-                [v(6), v(4), v(6), v(4), v(5), v(3), v(5), v(3), v(5), v(4), v(3), v(4)]
-            };
-            let mut lvls = vec![
-                cl("The Convergence", cfg(8, 5, 65, all_w(65)).chains(1).edge_holes(25).share().confuse()),
-                cl("All In", cfg(8, 5, 70, all_w(70)).chains(1).holes(25).share().confuse()),
-                cl("Synthesis", cfg(9, 6, 75, all_w(75)).chains(2).mid_holes(25).share().confuse()),
-                cl("Full Spectrum", cfg(9, 6, 80, all_w(80)).chains(2).holes(25).share().confuse()),
-                cl("Mechanic Fusion", cfg(9, 7, 85, all_w(85)).inv(4).chains(2).edge_holes(25).share().confuse()),
-                cl("The Crucible", cfg(10, 7, 88, all_w(88)).inv(5).chains(3).holes(30).share().confuse()),
-                cl("Quantum Tangle", cfg(10, 8, 90, all_w(90)).inv(5).chains(3).mid_holes(30).share().confuse()),
-                cl("Neural Network", cfg(11, 8, 92, all_w(92)).inv(6).chains(3).holes(30).share().confuse()),
-                cl("Chaos Theory", cfg(11, 8, 95, all_w(95)).inv(6).chains(4).edge_holes(30).share().confuse()),
-                cl("The Architect", cfg(12, 9, 97, all_w(97)).inv(7).chains(4).holes(30).share().confuse()),
-                cl("Event Horizon", cfg(12, 9, 100, all_w(100)).inv(7).chains(4).mid_holes(30).share().confuse()),
-                cl("Singularity", cfg(12, 10, 100, all_w(100)).inv(7).chains(4).holes(30).share().confuse()),
-            ];
-            lvls.push(cl("FINAL BOSS I — The Protocol", cfg(12, 10, 100, [12; GEN_NUM_WEIGHTS]).inv(8).chains(5).edge_holes(30).share().confuse()));
-            lvls.push(cl("FINAL BOSS II — The Machine", cfg(12, 10, 100, [12; GEN_NUM_WEIGHTS]).inv(8).chains(5).holes(30).share().confuse()));
-            lvls.push(cl("FINAL BOSS III — Transcendence", cfg(12, 10, 100, [14; GEN_NUM_WEIGHTS]).inv(9).chains(5).mid_holes(30).share().confuse()));
-            lvls.push(cl("SECRET — The Impossible", cfg(12, 10, 100, [14; GEN_NUM_WEIGHTS]).inv(8).chains(5).holes(30).share().confuse()));
-            lvls.push(cl("SECRET — Protocol Complete", cfg(12, 10, 100, [14; GEN_NUM_WEIGHTS]).inv(8).chains(5).edge_holes(30).share().confuse()));
-            lvls
-        }},
+        // Ch1: Turns — learn path building (1→4 bots)
+        ch(1, "Turns", &[
+            ("First Steps",       3, 1, 15),
+            ("Corner to Corner",  4, 2, 30),
+            ("The Zigzag",        4, 2, 40),
+            ("Around the Block",  5, 2, 50),
+            ("Spiral Path",       5, 3, 55),
+            ("Double Back",       6, 3, 60),
+            ("Winding Road",      6, 3, 65),
+            ("Crossroads",        6, 3, 70),
+            ("Turn Master I",     7, 4, 80),
+            ("Turn Master II",    8, 4, 85),
+            ("Turn Master III",   8, 4, 90),
+        ]),
+        // Ch2: TurnBut — place turns from inventory (2→4 bots, uses Turn+TurnBut)
+        ch(2, "Turn Tiles", &[
+            ("Place Your Turn",       4, 2, 25),
+            ("Two Turns",             4, 2, 35),
+            ("Choose Wisely",         5, 2, 45),
+            ("Mixed Turns",           5, 3, 55),
+            ("Turn Puzzle",           6, 3, 60),
+            ("Inventory Challenge",   6, 3, 65),
+            ("Precision Placement",   6, 4, 70),
+            ("No Room for Error",     7, 4, 75),
+            ("Turn Builder I",        7, 4, 80),
+            ("Turn Builder II",       8, 4, 85),
+            ("Turn Builder III",      8, 4, 90),
+        ]),
+        // Ch3: Arrows — forced direction (2→5 bots, uses Turn+TurnBut+Arrow)
+        ch(3, "Arrows", &[
+            ("One Way Street",    4, 2, 30),
+            ("Follow the Arrow",  5, 2, 40),
+            ("Arrow Maze",        5, 3, 50),
+            ("Turn and Thrust",   5, 3, 55),
+            ("Arrow Chain",       6, 3, 60),
+            ("Speed Lines",       6, 4, 65),
+            ("The Gauntlet",      7, 4, 70),
+            ("Forced March",      7, 4, 75),
+            ("Arrow Storm I",     8, 5, 85),
+            ("Arrow Storm II",    8, 5, 90),
+            ("Arrow Storm III",   9, 5, 95),
+        ]),
+        // Ch4: ArrowBut — place arrows (2→5 bots, uses all Turn/Arrow variants)
+        ch(4, "Arrow Tiles", &[
+            ("Place Your Arrow",  4, 2, 30),
+            ("Arrow Setup",       5, 2, 45),
+            ("Redirect",          5, 3, 55),
+            ("Arrow Architect",   6, 3, 60),
+            ("Mixed Signals",     6, 4, 65),
+            ("Direction Control", 6, 4, 70),
+            ("Arrow Master",      7, 4, 75),
+            ("Full Arsenal",      7, 5, 80),
+            ("Arrow Crafter I",   8, 5, 85),
+            ("Arrow Crafter II",  8, 5, 90),
+            ("Arrow Crafter III", 9, 5, 95),
+        ]),
+        // Ch5: Teleports — warp mechanics (3→7 bots, uses all previous)
+        ch(5, "Teleports", &[
+            ("Warp Zone",          5, 3, 35),
+            ("Portal Hop",         6, 3, 50),
+            ("Double Warp",        6, 4, 55),
+            ("Teleport Chain",     7, 4, 60),
+            ("Warp Tactics",       7, 5, 70),
+            ("Portal Network",     8, 5, 75),
+            ("Dimensional Shift",  8, 5, 80),
+            ("Space Fold",         9, 6, 85),
+            ("Warp Master I",      9, 6, 90),
+            ("Warp Master II",    10, 6, 95),
+            ("Warp Master III",   10, 7, 100),
+        ]),
+        // Ch6: TeleportBut — place portals (3→7 bots, all previous)
+        ch(6, "Teleport Tiles", &[
+            ("Place Your Portal",  5, 3, 40),
+            ("Warp Builder",       6, 3, 50),
+            ("Portal Placement",   6, 4, 60),
+            ("Linked Portals",     7, 5, 65),
+            ("Warp Circuit",       7, 5, 70),
+            ("Teleport Engineer",  8, 5, 75),
+            ("Dimension Builder",  8, 6, 80),
+            ("Space Architect",    9, 6, 85),
+            ("Portal Crafter I",   9, 6, 90),
+            ("Portal Crafter II", 10, 7, 95),
+            ("Portal Crafter III",10, 7, 100),
+        ]),
+        // Ch7: Bounce — reflection (3→7 bots, all previous)
+        ch(7, "Bounce", &[
+            ("First Bounce",       5, 3, 40),
+            ("Ricochet",           6, 4, 50),
+            ("Bounce Path",        6, 4, 55),
+            ("Wall Runner",        7, 5, 65),
+            ("Reflection Point",   7, 5, 70),
+            ("Bounce House",       8, 5, 75),
+            ("Echo Chamber",       8, 6, 80),
+            ("Rebound",            9, 6, 85),
+            ("Bounce King I",      9, 6, 90),
+            ("Bounce King II",    10, 7, 95),
+            ("Bounce King III",   10, 7, 100),
+        ]),
+        // Ch8: BounceBut — place bounces (3→7 bots, all previous)
+        ch(8, "Bounce Tiles", &[
+            ("Place Your Bounce",  5, 3, 40),
+            ("Bounce Setup",       6, 4, 50),
+            ("Ricochet Builder",   7, 4, 60),
+            ("Bounce Craft",       7, 5, 65),
+            ("Reflection Lab",     8, 5, 70),
+            ("Bounce Engineer",    8, 6, 75),
+            ("Echo Builder",       9, 6, 80),
+            ("Rebound Architect",  9, 6, 85),
+            ("Bounce Crafter I",  10, 7, 90),
+            ("Bounce Crafter II", 10, 7, 95),
+            ("Bounce Crafter III",11, 7, 100),
+        ]),
+        // Ch9: Painters — color changing (3→8 bots, all previous)
+        ch(9, "Painters", &[
+            ("Color Shift",        5, 3, 40),
+            ("Paint the Path",     6, 4, 55),
+            ("Color Journey",      7, 5, 60),
+            ("Rainbow Road",       7, 5, 65),
+            ("Chromatic Path",     8, 6, 75),
+            ("Painter's Palette",  8, 6, 80),
+            ("Color Cascade",      9, 7, 85),
+            ("Hue Shift",          9, 7, 90),
+            ("Color Master I",    10, 7, 92),
+            ("Color Master II",   10, 8, 95),
+            ("Color Master III",  11, 8, 100),
+        ]),
+        // Ch10: Doors & Switches — toggle timing (3→8 bots, all previous + door chains)
+        ch(10, "Doors & Switches", &[
+            ("Open Sesame",        5, 3, 45),
+            ("Locked Path",        6, 4, 55),
+            ("Switch Timing",      7, 5, 65),
+            ("Door Dance",         7, 5, 70),
+            ("Double Lock",        8, 6, 75),
+            ("Gate Keeper",        8, 6, 80),
+            ("Synchronized",       9, 7, 85),
+            ("Chain Reaction",     9, 7, 90),
+            ("Lock Master I",     10, 7, 95),
+            ("Lock Master II",    10, 8, 97),
+            ("Lock Master III",   11, 8, 100),
+        ]),
+        // Ch11: ColorSwitch — color-gated toggling (3→8 bots, all previous)
+        ch(11, "Color Switches", &[
+            ("Color Gate",         6, 3, 50),
+            ("Chromatic Lock",     7, 5, 65),
+            ("Color Timing",       7, 5, 70),
+            ("Hue Gate",           8, 6, 75),
+            ("Spectrum Lock",      8, 6, 80),
+            ("Color Cascade",      9, 7, 85),
+            ("Prismatic Path",     9, 7, 90),
+            ("Rainbow Gate",      10, 7, 95),
+            ("Chroma Master I",   10, 8, 97),
+            ("Chroma Master II",  11, 8, 100),
+            ("Chroma Master III", 11, 8, 100),
+        ]),
+        // Ch12: ColorSwitchBut — all tiles placeable (3→8 bots, everything)
+        ch(12, "Color Switch Tiles", &[
+            ("Place Your Gate",    6, 3, 55),
+            ("Color Builder",      7, 5, 65),
+            ("Switch Craft",       7, 5, 70),
+            ("Chromatic Builder",  8, 6, 75),
+            ("Gate Architect",     8, 6, 80),
+            ("Color Engineer",     9, 7, 85),
+            ("Prismatic Craft",   10, 7, 90),
+            ("Spectrum Builder",  10, 7, 95),
+            ("Gate Crafter I",    11, 8, 97),
+            ("Gate Crafter II",   11, 8, 100),
+            ("Gate Crafter III",  12, 8, 100),
+        ]),
+        // Ch13: Grand Mastery — all mechanics combined (5→10 bots)
+        ch(13, "Grand Mastery", &[
+            ("The Convergence",    8, 5, 65),
+            ("All In",             8, 5, 70),
+            ("Synthesis",          9, 6, 75),
+            ("Full Spectrum",      9, 6, 80),
+            ("Mechanic Fusion",    9, 7, 85),
+            ("The Crucible",      10, 7, 88),
+            ("Quantum Tangle",    10, 8, 90),
+            ("Neural Network",    11, 8, 92),
+            ("Chaos Theory",      11, 8, 95),
+            ("The Architect",     12, 9, 97),
+            ("Event Horizon",     12, 9, 100),
+            ("Singularity",       12, 10, 100),
+            ("FINAL BOSS I — The Protocol",    12, 10, 100),
+            ("FINAL BOSS II — The Machine",    12, 10, 100),
+            ("FINAL BOSS III — Transcendence", 12, 10, 100),
+            ("SECRET — The Impossible",        12, 10, 100),
+            ("SECRET — Protocol Complete",     12, 10, 100),
+        ]),
     ]
-}
-
-// ============================================================
-// Builder helpers
-// ============================================================
-
-fn w(pairs: &[(usize, u32)]) -> [u32; GEN_NUM_WEIGHTS] {
-    let mut weights = [0u32; GEN_NUM_WEIGHTS];
-    for &(idx, val) in pairs { weights[idx] = val; }
-    weights
-}
-
-fn cl(name: &str, config: GenConfig) -> CampaignLevel {
-    CampaignLevel { display_name: name.into(), config }
-}
-
-trait ConfigExt {
-    fn inv(self, target: u32) -> Self;
-    fn chains(self, n: u32) -> Self;
-    fn share(self) -> Self;
-    fn confuse(self) -> Self;
-    fn unique(self) -> Self;
-    fn holes(self, pct: u32) -> Self;
-    fn edge_holes(self, pct: u32) -> Self;
-    fn mid_holes(self, pct: u32) -> Self;
-}
-
-impl ConfigExt for GenConfig {
-    fn inv(mut self, target: u32) -> Self { self.inventory_target = target; self }
-    fn chains(mut self, n: u32) -> Self { self.door_chains = n; self }
-    fn share(mut self) -> Self { self.path_sharing = true; self }
-    fn confuse(mut self) -> Self { self.confusion_tiles = true; self }
-    fn unique(mut self) -> Self { self.unique_solution = true; self }
-    fn holes(mut self, pct: u32) -> Self { self.hole_percent = pct; self }
-    fn edge_holes(mut self, pct: u32) -> Self { self.hole_percent = pct; self.hole_placement = HolePlacement::Edges; self }
-    fn mid_holes(mut self, pct: u32) -> Self { self.hole_percent = pct; self.hole_placement = HolePlacement::Middle; self }
-}
-
-impl ConfigExt for CampaignLevel {
-    fn inv(mut self, target: u32) -> Self { self.config.inventory_target = target; self }
-    fn chains(mut self, n: u32) -> Self { self.config.door_chains = n; self }
-    fn share(mut self) -> Self { self.config.path_sharing = true; self }
-    fn confuse(mut self) -> Self { self.config.confusion_tiles = true; self }
-    fn unique(mut self) -> Self { self.config.unique_solution = true; self }
-    fn holes(mut self, pct: u32) -> Self { self.config.hole_percent = pct; self }
-    fn edge_holes(mut self, pct: u32) -> Self { self.config.hole_percent = pct; self.config.hole_placement = HolePlacement::Edges; self }
-    fn mid_holes(mut self, pct: u32) -> Self { self.config.hole_percent = pct; self.config.hole_placement = HolePlacement::Middle; self }
 }

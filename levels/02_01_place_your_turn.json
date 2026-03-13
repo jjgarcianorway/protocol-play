@@ -3,148 +3,148 @@
   "board_size": 4,
   "tiles": [
     [
-      2,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      3,
-      {
-        "Goal": 5
-      },
-      false
-    ],
-    [
-      3,
-      3,
-      {
-        "Goal": 6
-      },
-      false
-    ],
-    [
       1,
       2,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      3,
       {
         "Turn": [
-          5,
+          9,
+          "North"
+        ]
+      },
+      true
+    ],
+    [
+      1,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      0,
+      {
+        "Goal": 0
+      },
+      false
+    ],
+    [
+      2,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      0,
+      {
+        "Source": [
+          9,
+          "South"
+        ]
+      },
+      false
+    ],
+    [
+      3,
+      2,
+      {
+        "Goal": 9
+      },
+      false
+    ],
+    [
+      3,
+      3,
+      {
+        "Source": [
+          0,
           "West"
         ]
       },
-      true
+      false
     ],
     [
       0,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      2,
-      {
-        "Source": [
-          5,
-          "South"
-        ]
-      },
-      false
-    ],
-    [
       3,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      0,
-      {
-        "Source": [
-          6,
-          "East"
-        ]
-      },
-      false
-    ],
-    [
-      3,
-      0,
       {
         "Turn": [
-          6,
-          "South"
+          0,
+          "North"
         ]
       },
       true
     ],
     [
-      1,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      0,
       2,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      1,
+      0,
       "Floor",
       false
     ]
   ],
   "solution": [
     [
+      1,
       2,
-      3,
       {
         "Turn": [
-          5,
-          "West"
+          9,
+          "North"
         ]
       }
     ],
     [
-      3,
       0,
+      3,
       {
         "Turn": [
-          6,
-          "South"
+          0,
+          "North"
         ]
       }
     ]
   ],
-  "seed": 15979709806729643526,
+  "seed": 18224453585944929398,
   "difficulty": 34
 }
