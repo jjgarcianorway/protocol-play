@@ -225,7 +225,9 @@ pub fn move_bots(
                     if trigger { mov.switch_pending = true; }
                 }
                 Some(TileKind::Door(false)) => { advance!(); mov.phase = BotPhase::Decelerating(Some(mov.direction.opposite())); }
+                Some(TileKind::Turn(tci, _)) if tci != mov.color_index => { advance!(); }
                 Some(TileKind::TurnBut(tci, _)) if tci == mov.color_index => { advance!(); }
+                Some(TileKind::Bounce(bci)) if bci != mov.color_index => { advance!(); }
                 Some(TileKind::BounceBut(bci)) if bci == mov.color_index => { advance!(); }
                 Some(TileKind::Bounce(_)) | Some(TileKind::BounceBut(_)) => { advance!(); mov.phase = BotPhase::Decelerating(Some(mov.direction.opposite())); }
                 Some(TileKind::Turn(_, tdir)) | Some(TileKind::TurnBut(_, tdir)) => {
@@ -240,6 +242,7 @@ pub fn move_bots(
                 Some(TileKind::TeleportBut(co, _)) => {
                     advance!(); if co != mov.color_index { mov.phase = BotPhase::Decelerating(None); }
                 }
+                Some(TileKind::Arrow(aci, _)) if aci != mov.color_index => { advance!(); }
                 Some(TileKind::ArrowBut(aci, _)) if aci == mov.color_index => { advance!(); }
                 Some(TileKind::Arrow(_, adir)) | Some(TileKind::ArrowBut(_, adir)) => {
                     advance!(); if adir != mov.direction { mov.phase = BotPhase::Decelerating(Some(adir)); }
