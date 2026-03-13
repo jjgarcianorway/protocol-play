@@ -54,15 +54,15 @@ pub fn simulate_headless(size: u32, tiles: &[(u32, u32, TileKind)]) -> bool {
             match tile {
                 Some(TileKind::Goal(ci)) if ci == bot.color => { bot.at_goal = true; }
                 Some(TileKind::Painter(ci)) => { bot.color = ci; }
-                Some(TileKind::Turn(_, td)) => {
+                Some(TileKind::Turn(ci, td)) if ci == bot.color => {
                     if let Some(e) = bot.dir.turn_exit(td) { bot.dir = e; }
                 }
                 Some(TileKind::TurnBut(ci, td)) if ci != bot.color => {
                     if let Some(e) = bot.dir.turn_exit(td) { bot.dir = e; }
                 }
-                Some(TileKind::Bounce(_)) => { bot.dir = bot.dir.opposite(); }
+                Some(TileKind::Bounce(ci)) if ci == bot.color => { bot.dir = bot.dir.opposite(); }
                 Some(TileKind::BounceBut(ci)) if ci != bot.color => { bot.dir = bot.dir.opposite(); }
-                Some(TileKind::Arrow(_, d)) => { bot.dir = d; }
+                Some(TileKind::Arrow(ci, d)) if ci == bot.color => { bot.dir = d; }
                 Some(TileKind::ArrowBut(ci, d)) if ci != bot.color => { bot.dir = d; }
                 Some(TileKind::Switch) => { bot.switch_pending = true; }
                 Some(TileKind::ColorSwitch(ci)) if ci == bot.color => { bot.switch_pending = true; }
