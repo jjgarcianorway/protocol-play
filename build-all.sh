@@ -10,7 +10,7 @@ echo "Building gathering..."
 cargo build --release --features gathering
 cp target/release/protocol-play target/release/protocol-play-gathering
 echo "Copying campaign levels next to player binary..."
-cp levels/*.json target/release/
+cp campaign_levels/*.json target/release/
 echo "Done! Binaries:"
 echo "  target/release/protocol-play-editor"
 echo "  target/release/protocol-play-player (+ 149 campaign levels)"
