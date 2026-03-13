@@ -100,21 +100,23 @@ pub const NUM_BOUNCE_COLORS: usize = NUM_COLORS + 1;
 pub const NUM_SWITCH_COLORS: usize = NUM_COLORS + 1;
 pub const NUM_ARROW_COLORS: usize = NUM_COLORS + 1;
 
+// Colors ordered for maximum contrast between adjacent indices:
+// warm-cool-warm-cool pattern so same-level bots look distinct.
 pub const COLOR_NAMES: [&str; NUM_COLORS] = [
-    "Red", "Orange", "Gold", "Yellow-Green",
-    "Green", "Cyan", "Blue", "Purple", "Pink",
+    "Red", "Blue", "Gold", "Green",
+    "Purple", "Orange", "Cyan", "Pink", "Yellow-Green",
 ];
 
 pub const SOURCE_COLORS: [(f32, f32, f32); NUM_COLORS] = [
-    (0.827, 0.271, 0.271),  // Red       (211, 69, 69)
-    (0.827, 0.506, 0.271),  // Orange    (211, 129, 69)
-    (0.827, 0.651, 0.271),  // Gold      (211, 166, 69)
-    (0.718, 0.827, 0.271),  // Yellow-Green (183, 211, 69)
-    (0.271, 0.827, 0.584),  // Green     (69, 211, 149)
-    (0.271, 0.757, 0.827),  // Cyan      (69, 193, 211)
-    (0.271, 0.478, 0.827),  // Blue      (69, 122, 211)
-    (0.506, 0.271, 0.827),  // Purple    (129, 69, 211)
-    (0.827, 0.271, 0.557),  // Pink      (211, 69, 142)
+    (0.827, 0.271, 0.271),  // 0 Red         (211, 69, 69)
+    (0.271, 0.478, 0.827),  // 1 Blue        (69, 122, 211)
+    (0.827, 0.651, 0.271),  // 2 Gold        (211, 166, 69)
+    (0.271, 0.827, 0.584),  // 3 Green       (69, 211, 149)
+    (0.506, 0.271, 0.827),  // 4 Purple      (129, 69, 211)
+    (0.827, 0.506, 0.271),  // 5 Orange      (211, 129, 69)
+    (0.271, 0.757, 0.827),  // 6 Cyan        (69, 193, 211)
+    (0.827, 0.271, 0.557),  // 7 Pink        (211, 69, 142)
+    (0.718, 0.827, 0.271),  // 8 Yellow-Green (183, 211, 69)
 ];
 
 // UI colors

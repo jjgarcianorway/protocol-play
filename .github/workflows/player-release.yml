@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag (e.g. v0.18.0)'
+        description: 'Release tag (e.g. v0.19.2)'
         required: true
         type: string
 
@@ -19,13 +19,18 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-msvc
+      - name: Generate campaign levels
+        run: |
+          cargo build --release --bin generate-campaign --target x86_64-pc-windows-msvc
+          target\x86_64-pc-windows-msvc\release\generate-campaign.exe
+        shell: cmd
       - name: Build player
         run: cargo build --release --features player --target x86_64-pc-windows-msvc
       - name: Package
         run: |
           mkdir bundle
           copy target\x86_64-pc-windows-msvc\release\protocol-play.exe bundle\protocol-player.exe
-          for %%f in (levels\*.json) do copy "%%f" "bundle\"
+          for %%f in (campaign_levels\*.json) do copy "%%f" "bundle\"
           cd bundle && 7z a ../protocol-player-windows.zip *
         shell: cmd
       - name: Upload artifact
@@ -41,6 +46,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-apple-darwin
+      - name: Generate campaign levels
+        run: |
+          cargo build --release --bin generate-campaign
+          ./target/release/generate-campaign
       - name: Build player
         run: cargo build --release --features player --target aarch64-apple-darwin
       - name: Package
@@ -48,7 +57,7 @@ jobs:
           mkdir bundle
           cp target/aarch64-apple-darwin/release/protocol-play bundle/protocol-player
           chmod +x bundle/protocol-player
-          cp levels/*.json bundle/
+          cp campaign_levels/*.json bundle/
           cd bundle && tar czf ../protocol-player-macos.tar.gz .
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -63,6 +72,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev
+      - name: Generate campaign levels
+        run: |
+          cargo build --release --bin generate-campaign
+          ./target/release/generate-campaign
       - name: Build player
         run: cargo build --release --features player
       - name: Package
@@ -70,7 +83,7 @@ jobs:
           mkdir bundle
           cp target/release/protocol-play bundle/protocol-player
           chmod +x bundle/protocol-player
-          cp levels/*.json bundle/
+          cp campaign_levels/*.json bundle/
           cd bundle && tar czf ../protocol-player-linux.tar.gz .
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -110,7 +123,6 @@ jobs:
             **Linux**: Extract, open the folder, then: `chmod +x protocol-player && ./protocol-player`
 
             Use `--reset-stats` to clear all progress and start fresh.
-            Stats are logged to `stats.jsonl` next to the executable.
           files: |
             protocol-player-windows.zip
             protocol-player-macos.tar.gz
