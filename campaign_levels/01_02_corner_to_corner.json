@@ -1,0 +1,150 @@
+{
+  "name": "Corner to Corner",
+  "board_size": 4,
+  "tiles": [
+    [
+      3,
+      0,
+      {
+        "Goal": 0
+      },
+      false
+    ],
+    [
+      1,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      3,
+      {
+        "Goal": 8
+      },
+      false
+    ],
+    [
+      2,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      3,
+      {
+        "Source": [
+          0,
+          "North"
+        ]
+      },
+      false
+    ],
+    [
+      3,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      0,
+      {
+        "Turn": [
+          0,
+          "East"
+        ]
+      },
+      true
+    ],
+    [
+      0,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      1,
+      {
+        "Source": [
+          8,
+          "South"
+        ]
+      },
+      false
+    ],
+    [
+      3,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      3,
+      {
+        "Turn": [
+          8,
+          "North"
+        ]
+      },
+      true
+    ]
+  ],
+  "solution": [
+    [
+      0,
+      0,
+      {
+        "Turn": [
+          0,
+          "East"
+        ]
+      }
+    ],
+    [
+      2,
+      3,
+      {
+        "Turn": [
+          8,
+          "North"
+        ]
+      }
+    ]
+  ],
+  "seed": 542333197991038679,
+  "difficulty": 34
+}
