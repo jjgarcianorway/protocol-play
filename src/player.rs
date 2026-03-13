@@ -74,7 +74,11 @@ pub fn setup_player(
         return;
     }
 
-    if do_reset { reset_all_progress(&search_dir, &filenames); info!("Stats reset."); }
+    if do_reset {
+        reset_all_progress(&search_dir, &filenames);
+        println!("All progress and stats have been reset ({} levels).", filenames.len());
+        std::process::exit(0);
+    }
     ensure_stats_file(&search_dir);
     let progress_data: Vec<LevelProgress> = filenames.iter()
         .map(|f| load_progress(&search_dir, f)).collect();

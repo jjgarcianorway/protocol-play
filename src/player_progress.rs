@@ -67,6 +67,7 @@ pub fn reset_all_progress(dir: &Path, filenames: &[String]) {
         let _ = fs::remove_file(dir.join(format!("{f}.progress.json")));
     }
     let _ = fs::remove_file(dir.join("stats.jsonl"));
+    let _ = fs::remove_file(dir.join("stats.json"));
 }
 
 pub fn ensure_stats_file(dir: &Path) {
