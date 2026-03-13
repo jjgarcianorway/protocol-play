@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag (e.g. v0.12.0-player)'
+        description: 'Release tag (e.g. v0.18.0)'
         required: true
         type: string
 
@@ -54,8 +54,29 @@ jobs:
           name: macos-bundle
           path: bundle/
 
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev
+      - name: Build player
+        run: cargo build --release --features player
+      - name: Package
+        run: |
+          mkdir bundle
+          cp target/release/protocol-play bundle/protocol-player-linux
+          chmod +x bundle/protocol-player-linux
+          cp levels/*.json bundle/
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-bundle
+          path: bundle/
+
   release:
-    needs: [build-windows, build-macos]
+    needs: [build-windows, build-macos, build-linux]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -71,19 +92,22 @@ jobs:
         run: |
           cd artifacts/windows-bundle && zip ../../protocol-player-windows.zip protocol-player-windows.exe *.json
           cd ../../artifacts/macos-bundle && tar czf ../../protocol-player-macos.tar.gz protocol-player-macos *.json
+          cd ../../artifacts/linux-bundle && tar czf ../../protocol-player-linux.tar.gz protocol-player-linux *.json
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag }}
-          name: "Player ${{ inputs.tag }}"
+          name: "protocol: play ${{ inputs.tag }}"
           body: |
-            Player build with 6 puzzle levels.
+            Player build with 149 campaign levels across 13 chapters.
 
             **Windows**: Extract the zip and run `protocol-player-windows.exe`.
             **macOS**: Extract, then run in Terminal: `xattr -cr protocol-player-macos && ./protocol-player-macos`
+            **Linux**: Extract and run `./protocol-player-linux`
 
             Stats are logged to `stats.jsonl` next to the executable.
           files: |
             protocol-player-windows.zip
             protocol-player-macos.tar.gz
+            protocol-player-linux.tar.gz
