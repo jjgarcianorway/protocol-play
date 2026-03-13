@@ -45,8 +45,9 @@ fn main() {
                 level.display_name, level.config.board_size, level.config.board_size,
                 level.config.difficulty, level.config.num_bots);
 
-            let attempts = if level.config.num_bots >= 7 { 80000 }
-                else if level.config.num_bots >= 5 { 50000 } else { 20000 };
+            let attempts = if level.config.num_bots >= 8 { 200000 }
+                else if level.config.num_bots >= 6 { 100000 }
+                else if level.config.num_bots >= 4 { 50000 } else { 20000 };
             match generate_level(&level.config, attempts) {
                 Some((tiles, rating, seed)) => {
                     let data = LevelData {

@@ -69,11 +69,11 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
     let mut bot_floor_paths: Vec<Vec<(u32, u32)>> = Vec::new();
     let total_cells = (size * size) as usize;
 
-    // For 3+ bots, auto-enable path sharing and scale paths shorter
+    // For 3+ bots, auto-enable path sharing; scale paths to balance density vs generation
     let sharing = config.path_sharing || config.num_bots >= 3;
-    let bot_scale = if config.num_bots <= 2 { 1.0 }
-        else { (2.5 / config.num_bots as f32).max(0.35) };
-    let cell_budget = total_cells * 3 / (config.num_bots.max(2) as usize + 1);
+    let nb = config.num_bots as f32;
+    let bot_scale = if config.num_bots <= 2 { 1.0 } else { (2.5 / nb).max(0.4) };
+    let cell_budget = total_cells * 2 / (config.num_bots.max(2) as usize + 1);
 
     let color_offset: usize = rng.gen_range(0..NUM_COLORS);
     for bot_idx in 0..config.num_bots {
@@ -87,7 +87,7 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
         let mut current_color = ci;
         let base_min = GEN_MIN_PATH_LENGTH.max((size as f32 * (0.4 + diff * 1.2)) as usize);
         let min_len = ((base_min as f32 * bot_scale) as usize).max(GEN_MIN_PATH_LENGTH);
-        let max_len = ((min_len as f32 * (1.3 + diff * 0.5)) as usize).min(cell_budget);
+        let max_len = cell_budget.max(min_len + 2);
         let target = rng.gen_range(min_len..=max_len.max(min_len));
         let (mut steps, mut turns) = (0, 0);
         let mut straight_run = 0u32;
