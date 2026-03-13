@@ -4,7 +4,7 @@ A game built with [Bevy 0.18](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.18.0** — 149-level campaign, level generator with presets, animated UI, The Gathering space runner.
+**v0.18.1** — 149-level campaign (rebalanced: tighter boards, higher difficulty), level generator with presets, animated UI, The Gathering space runner.
 
 ### Bot Game (Editor + Player)
 - **149 campaign levels** across 13 chapters, each introducing a new mechanic
