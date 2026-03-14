@@ -4,7 +4,7 @@ A game built with [Bevy 0.18](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.19.9** — Fixed board centering, inventory overflow, erase button cleanup, multiple-selection bug
+**v0.20.0** — Bigger But circles, distinct lime color, inventory cleanup on level change
 
 ### Bot Game (Editor + Player)
 - **149 campaign levels** across 13 chapters, each introducing a new mechanic

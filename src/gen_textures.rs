@@ -37,11 +37,11 @@ fn in_star_shape(x: f32, y: f32, expand: f32) -> bool {
 }
 
 fn in_but_circle(x: f32, y: f32) -> bool {
-    (x * x + y * y).sqrt() < 0.36
+    (x * x + y * y).sqrt() < 0.55
 }
 
 fn in_forbidden_line(x: f32, y: f32) -> bool {
-    in_but_circle(x, y) && (x + y).abs() / std::f32::consts::SQRT_2 < 0.045
+    in_but_circle(x, y) && (x + y).abs() / std::f32::consts::SQRT_2 < 0.055
 }
 
 fn in_bounce_shape(x: f32, y: f32, e: f32) -> bool { x.abs() + y.abs() < 0.42 + e }

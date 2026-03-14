@@ -104,7 +104,7 @@ pub const NUM_ARROW_COLORS: usize = NUM_COLORS + 1;
 // warm-cool-warm-cool pattern so same-level bots look distinct.
 pub const COLOR_NAMES: [&str; NUM_COLORS] = [
     "Red", "Blue", "Gold", "Green",
-    "Purple", "Orange", "Cyan", "Pink", "Yellow-Green",
+    "Purple", "Orange", "Cyan", "Pink", "Lime",
 ];
 
 pub const SOURCE_COLORS: [(f32, f32, f32); NUM_COLORS] = [
@@ -116,7 +116,7 @@ pub const SOURCE_COLORS: [(f32, f32, f32); NUM_COLORS] = [
     (0.827, 0.506, 0.271),  // 5 Orange      (211, 129, 69)
     (0.271, 0.757, 0.827),  // 6 Cyan        (69, 193, 211)
     (0.827, 0.271, 0.557),  // 7 Pink        (211, 69, 142)
-    (0.718, 0.827, 0.271),  // 8 Yellow-Green (183, 211, 69)
+    (0.400, 0.820, 0.300),  // 8 Lime Green (102, 209, 77)
 ];
 
 // UI colors

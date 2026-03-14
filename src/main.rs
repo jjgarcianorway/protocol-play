@@ -112,7 +112,8 @@ fn main() {
         test_inventory_interaction, reset_test_interaction, update_status_bar));
       app.add_systems(Update, (player::player_nav_interaction, player::update_player_stats));
       app.add_systems(Update, (player::auto_save_progress, player::handle_level_complete));
-      app.add_systems(Update, player::populate_stats.before(spawn_simulation_overlay)); }
+      app.add_systems(Update, player::populate_stats.before(spawn_simulation_overlay));
+      app.add_systems(Update, player::cleanup_stale_inventory); }
     app.run();
 }
 

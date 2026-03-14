@@ -377,6 +377,25 @@ pub fn handle_level_complete(
     if first_unsolved(&progress.data).is_none() { spawn_congrats(&mut commands, &font.0, &progress); }
 }
 
+/// Belt-and-suspenders cleanup: ensure no duplicate TestInventoryContainer
+/// entities linger after level transitions (deferred commands can cause overlap).
+pub fn cleanup_stale_inventory(
+    mut commands: Commands,
+    containers: Query<Entity, With<TestInventoryContainer>>,
+    play_mode: Res<PlayMode>,
+) {
+    let entities: Vec<Entity> = containers.iter().collect();
+    if entities.len() <= 1 { return; }
+    // Keep only the last (newest) container, despawn the rest
+    for &e in &entities[..entities.len() - 1] {
+        commands.entity(e).despawn();
+    }
+    // If in Playing mode (completed level), no inventory should exist
+    if *play_mode == PlayMode::Playing {
+        for e in &containers { commands.entity(e).despawn(); }
+    }
+}
+
 pub fn populate_stats(
     mut sim_result: ResMut<SimulationResult>,
     stats: Res<LevelStats>,
