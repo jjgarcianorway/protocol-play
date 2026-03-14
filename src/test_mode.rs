@@ -400,6 +400,7 @@ pub fn handle_test_tile_click(
         }
         // Re-find the selected tile kind after potential sort shifted indices
         let idx = test_inv.items.iter().position(|(k, _)| *k == tile_kind).unwrap();
+        test_inv.selected = Some(idx);
         commands.entity(entity).despawn();
         crate::board::spawn_tile_at_scale(&mut commands, col, row, board_size.0, tile_kind, &assets, Vec3::ZERO);
         test_inv.items[idx].1 -= 1;

@@ -44,6 +44,7 @@ pub fn setup_player(
     font: Res<GameFont>,
     mut play_mode: ResMut<PlayMode>,
     mut clear_color: ResMut<ClearColor>,
+    mut selected_tool: ResMut<SelectedTool>,
 ) {
     let exe_dir = std::env::current_exe().ok()
         .and_then(|p| p.parent().map(|d| d.to_path_buf()));
@@ -98,7 +99,7 @@ pub fn setup_player(
     let p = progress.data[start_idx].clone();
     for e in &tiles { commands.entity(e).despawn(); }
     load_level(&mut commands, &assets, &mut board_size, &mut test_inv, &icons,
-        &font.0, &mut play_mode, &player_levels, &p, &mut stats, true);
+        &font.0, &mut play_mode, &player_levels, &p, &mut stats, true, &mut selected_tool);
     clear_color.0 = chapter_bg(start_idx);
 
     if first_unsolved(&progress.data).is_none() { spawn_congrats(&mut commands, &font.0, &progress); }
@@ -125,6 +126,7 @@ fn load_level(
     test_inv: &mut TestInventory, icons: &InventoryIcons, font: &Handle<Font>,
     play_mode: &mut PlayMode, player_levels: &PlayerLevels,
     progress: &LevelProgress, stats: &mut LevelStats, first_load: bool,
+    selected_tool: &mut SelectedTool,
 ) {
     let level = &player_levels.levels[player_levels.current];
     board_size.0 = level.board_size.clamp(MIN_BOARD_SIZE, MAX_BOARD_SIZE);
@@ -161,6 +163,7 @@ fn load_level(
             }
         }
         test_inv.items.clear(); test_inv.selected = None; test_inv.remove_mode = false;
+        selected_tool.0 = Tool::Floor;
         commands.insert_resource(SavedTestState { tiles: vec![], inventory: vec![] });
         spawn_player_buttons(commands, font, player_levels, progress, first_load);
         *play_mode = PlayMode::Playing;
@@ -191,6 +194,7 @@ fn load_level(
 
     test_inv.items = progress.inventory_state.clone().unwrap_or(default_inv);
     test_inv.selected = None; test_inv.remove_mode = false;
+    selected_tool.0 = Tool::Floor;
 
     spawn_test_inventory(commands, test_inv, icons, first_load, font);
     spawn_player_buttons(commands, font, player_levels, progress, first_load);
@@ -268,6 +272,7 @@ pub fn player_nav_interaction(
     cleanup: Query<Entity, Or<(With<TestInventoryContainer>, With<TestTopButtons>, With<Bot>, With<CongratsScreen>)>>,
     mut stats: ResMut<LevelStats>, progress: Res<PlayerProgress>,
     mut clear_color: ResMut<ClearColor>,
+    mut selected_tool: ResMut<SelectedTool>,
 ) {
     if levels.levels.is_empty() { return; }
     let d = if prev_q.iter().any(|i| *i == Interaction::Pressed) { -1 }
@@ -280,7 +285,7 @@ pub fn player_nav_interaction(
     for e in &cleanup { commands.entity(e).despawn(); }
     for e in &tiles { commands.entity(e).despawn(); }
     load_level(&mut commands, &assets, &mut board_size, &mut test_inv, &icons,
-        &font.0, &mut play_mode, &levels, &progress.data[next].clone(), &mut stats, false);
+        &font.0, &mut play_mode, &levels, &progress.data[next].clone(), &mut stats, false, &mut selected_tool);
     clear_color.0 = chapter_bg(next);
 }
 
@@ -344,6 +349,7 @@ pub fn handle_level_complete(
     font: Res<GameFont>, mut play_mode: ResMut<PlayMode>,
     cleanup: Query<Entity, Or<(With<TestInventoryContainer>, With<TestTopButtons>)>>,
     saved_test: Res<SavedTestState>, mut clear_color: ResMut<ClearColor>,
+    mut selected_tool: ResMut<SelectedTool>,
 ) {
     if levels.levels.is_empty() { return; }
     if !validated.is_changed() || !validated.0 { return; }
@@ -366,7 +372,7 @@ pub fn handle_level_complete(
     for e in &cleanup { commands.entity(e).despawn(); }
     for (e, _, _) in &tile_q { commands.entity(e).despawn(); }
     let p = progress.data[next].clone();
-    load_level(&mut commands, &assets, &mut board_size, &mut test_inv, &icons, &font.0, &mut play_mode, &levels, &p, &mut stats, false);
+    load_level(&mut commands, &assets, &mut board_size, &mut test_inv, &icons, &font.0, &mut play_mode, &levels, &p, &mut stats, false, &mut selected_tool);
     clear_color.0 = chapter_bg(next);
     if first_unsolved(&progress.data).is_none() { spawn_congrats(&mut commands, &font.0, &progress); }
 }
