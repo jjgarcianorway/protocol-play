@@ -280,7 +280,7 @@ pub fn button_interaction(
 // === Camera ===
 pub fn adapt_camera(
     windows: Query<&Window>,
-    mut cameras: Query<(&mut Transform, &Projection), With<Camera3d>>,
+    mut cameras: Query<(&mut Transform, &Projection), (With<Camera3d>, Without<IconCamera>)>,
     board_size: Res<BoardSize>,
     expansion: Query<&Node, With<ExpansionContainer>>,
     play_mode: Res<PlayMode>,

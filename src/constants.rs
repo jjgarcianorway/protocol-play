@@ -183,17 +183,16 @@ pub const SIM_BTN_BG: (f32, f32, f32) = (0.3, 0.3, 0.3);
 pub const SIM_BTN_PAD: (f32, f32) = (30.0, 12.0);
 pub const SIM_BTN_FONT: f32 = 20.0;
 
-// Texture colors (brighter for better inventory visibility)
-pub const TILE_GRAY: [u8; 4] = [72, 78, 95, 255];
-pub const TILE_DARK: [u8; 4] = [45, 50, 65, 255];
-pub const SYMBOL_STROKE: [u8; 4] = [55, 60, 75, 255];
-pub const BUT_STICK_GRAY: [u8; 4] = [179, 179, 179, 255]; // matches GREY_COLOR for "all bots"
-pub const STROKE_EXPAND: f32 = 0.030;
-pub const TURN_CENTER_BRIGHTNESS: f32 = 0.45;
-pub const ICON_WHITE: [u8; 4] = [150, 150, 150, 255];
-pub const ICON_DARK_BG: [u8; 4] = [35, 40, 55, 255];
-pub const ISO_SIDE_COLOR: [u8; 4] = [55, 60, 75, 255];
-pub const ISO_BOTTOM_COLOR: [u8; 4] = [35, 40, 55, 255];
+// Texture colors
+pub const TILE_GRAY: [u8; 4] = [52, 58, 72, 255];
+pub const TILE_DARK: [u8; 4] = [28, 32, 45, 255];
+pub const SYMBOL_STROKE: [u8; 4] = [38, 42, 55, 255];
+pub const STROKE_EXPAND: f32 = 0.025;
+pub const TURN_CENTER_BRIGHTNESS: f32 = 0.35;
+pub const ICON_WHITE: [u8; 4] = [100, 100, 100, 255];
+pub const ICON_DARK_BG: [u8; 4] = [22, 26, 38, 255];
+pub const ISO_SIDE_COLOR: [u8; 4] = [35, 40, 55, 255];
+pub const ISO_BOTTOM_COLOR: [u8; 4] = [20, 24, 36, 255];
 pub const ISO_MARGIN: f32 = 0.08;
 pub const DELETE_ICON_COLOR: [u8; 4] = [220, 60, 60, 255];
 pub const PLAY_ICON_COLOR: [u8; 4] = [80, 200, 80, 255];

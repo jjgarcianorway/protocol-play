@@ -5,6 +5,7 @@ mod constants; mod types; mod textures; mod gen_textures; mod board;
 mod ui_helpers; mod slot_ui; mod inventory; mod systems; mod simulation;
 mod bot_formation; mod mat_helpers; mod test_mode; mod level_io; mod save_dialog;
 mod level_gen_sim; mod level_gen_tiles; mod level_gen_algo; mod level_gen_ui; mod level_gen_interact;
+mod icon_render;
 #[cfg(feature = "player")] mod player;
 #[cfg(feature = "gathering")] mod gathering;
 
@@ -28,6 +29,12 @@ use level_gen_ui::*;
 use level_gen_interact::*;
 
 fn main() {
+    // Change CWD to the executable's directory so assets/textures/ and level files
+    // are found regardless of where the binary is launched from.
+    if let Some(exe_dir) = std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.to_path_buf())) {
+        let _ = std::env::set_current_dir(&exe_dir);
+    }
+
     #[cfg(feature = "gathering")]
     {
         let mut app = App::new();
@@ -59,9 +66,12 @@ fn main() {
         .insert_resource(TestInventory::default()).insert_resource(LevelValidated::default())
         .insert_resource(CursorBlinkTimer::default()).insert_resource(LoadedLevelName::default()).insert_resource(PendingSave::default()).insert_resource(ScrollbarDrag::default())
         .insert_resource(GenSettings::default()).insert_resource(GeneratorState::default())
-        .add_systems(Startup, (setup_scene, setup_ui));
+        .add_systems(Startup, (setup_scene, setup_ui))
+        .add_systems(Startup, icon_render::setup_icon_render.after(setup_ui).after(setup_scene));
     #[cfg(feature = "player")]
     app.add_systems(Startup, player::setup_player.after(setup_scene).after(setup_ui));
+    app.add_systems(Update, icon_render::update_icon_render
+            .run_if(resource_exists::<icon_render::IconRenderState>));
     app.add_systems(Update, (
             animate_node_width, update_hovered_cell,
             update_ghost_and_highlight.after(update_hovered_cell),
@@ -255,90 +265,47 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
     let f = fonts.add(Font::try_from_bytes(font_bytes).unwrap());
     commands.insert_resource(GameFont(f.clone()));
 
-    let floor_tex_data = tile_texture_data(TEX_SIZE, TEX_BORDER);
-    let floor_icon = create_isometric_icon(&mut images, &floor_tex_data, TEX_SIZE, ICON_SIZE);
-    let white = ICON_WHITE;
-    let icon = |images: &mut Assets<Image>, data: &[u8]| create_isometric_icon(images, data, TEX_SIZE, ICON_SIZE);
+    let ph = |images: &mut Assets<Image>| icon_render::create_placeholder(images);
+    let ph4 = |images: &mut Assets<Image>| [ph(images), ph(images), ph(images), ph(images)];
+    let phv = |images: &mut Assets<Image>, n: usize| (0..n).map(|_| ph(images)).collect::<Vec<_>>();
     let delete_icon = create_delete_icon(&mut images);
-    let p = |n: &str| load_png_pair(n);
-    let (src_b, src_m, ps) = p("source"); let (goal_b, goal_m, _) = p("goal");
-    let (turn_b, turn_m, _) = p("turn"); let (tbut_b, tbut_m, _) = p("turnbut");
-    let (bnc_b, bnc_m, _) = p("bounce"); let (bbot_b, bbot_m, _) = p("bouncebut");
-    let (do_b, do_m, _) = p("door_open"); let (dc_b, dc_m, _) = p("door_closed");
-    let (sw_b, sw_m, _) = p("switch"); let (csw_b, csw_m, _) = p("colorswitch");
-    let (cswb_b, cswb_m, _) = p("colorswitchbut"); let (pnt_b, pnt_m, _) = p("painter");
-    let (arr_b, arr_m, _) = p("arrow"); let (abut_b, abut_m, _) = p("arrowbut");
-    let cp = |b: &[u8], m: &[u8], rot: f32, fill: [u8; 4]| composite_icon_from_png(b, m, ps, TEX_SIZE, TEX_BORDER, rot, fill);
-    let source_icon = icon(&mut images, &cp(&src_b, &src_m, 0.0, white));
-    let goal_icon = icon(&mut images, &cp(&goal_b, &goal_m, 0.0, white));
-    let turn_icon = icon(&mut images, &cp(&turn_b, &turn_m, 0.0, white));
-    let turnbut_icon = icon(&mut images, &cp(&tbut_b, &tbut_m, 0.0, white));
 
-    let dir_icons = |images: &mut Assets<Image>, b: &[u8], m: &[u8]|
-        Direction::all().map(|d| icon(images, &cp(b, m, -d.rotation(), white)));
-    let source_dir_icons = dir_icons(&mut images, &src_b, &src_m);
-    let turn_dir_icons = dir_icons(&mut images, &turn_b, &turn_m);
-    let turnbut_dir_icons = dir_icons(&mut images, &tbut_b, &tbut_m);
-    let arrow_dir_icons = dir_icons(&mut images, &arr_b, &arr_m);
-    let arrowbut_dir_icons = dir_icons(&mut images, &abut_b, &abut_m);
-
-    let cfill = |ci: usize| color_to_u8(SOURCE_COLORS[ci].0, SOURCE_COLORS[ci].1, SOURCE_COLORS[ci].2);
-    let grey_fill = color_to_u8(GREY_COLOR.0, GREY_COLOR.1, GREY_COLOR.2);
-    let color_dir_icons = |images: &mut Assets<Image>, b: &[u8], m: &[u8]| -> Vec<_> {
-        (0..NUM_COLORS).flat_map(|ci| { let f = cfill(ci); Direction::all().map(move |d| (f, d)) })
-            .map(|(f, d)| icon(images, &cp(b, m, -d.rotation(), f))).collect()
-    };
-    let source_color_icons = color_dir_icons(&mut images, &src_b, &src_m);
-    let mut turn_color_icons = color_dir_icons(&mut images, &turn_b, &turn_m);
-    for d in Direction::all() { turn_color_icons.push(icon(&mut images, &cp(&turn_b, &turn_m, -d.rotation(), grey_fill))); }
-    let turnbut_color_icons = color_dir_icons(&mut images, &tbut_b, &tbut_m);
-    let mut arrow_color_icons = color_dir_icons(&mut images, &arr_b, &arr_m);
-    for d in Direction::all() { arrow_color_icons.push(icon(&mut images, &cp(&arr_b, &arr_m, -d.rotation(), grey_fill))); }
-    let arrowbut_color_icons = color_dir_icons(&mut images, &abut_b, &abut_m);
-
-    let (tp_b, tp_m, _) = p("teleport_0"); let (tpb_b, tpb_m, _) = p("teleportbut_0");
-    let teleport_icon = icon(&mut images, &cp(&tp_b, &tp_m, 0.0, white));
-    let teleportbut_icon = icon(&mut images, &cp(&tpb_b, &tpb_m, 0.0, white));
-    let mut teleport_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci| icon(&mut images, &cp(&tp_b, &tp_m, 0.0, cfill(ci)))).collect();
-    teleport_color_icons.push(icon(&mut images, &cp(&tp_b, &tp_m, 0.0, grey_fill)));
-    let teleportbut_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci| icon(&mut images, &cp(&tpb_b, &tpb_m, 0.0, cfill(ci)))).collect();
-    let goal_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci| icon(&mut images, &cp(&goal_b, &goal_m, 0.0, cfill(ci)))).collect();
-
-    let bounce_icon = icon(&mut images, &cp(&bnc_b, &bnc_m, 0.0, white));
-    let bouncebot_icon = icon(&mut images, &cp(&bbot_b, &bbot_m, 0.0, white));
-    let mut bounce_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci| icon(&mut images, &cp(&bnc_b, &bnc_m, 0.0, cfill(ci)))).collect();
-    bounce_color_icons.push(icon(&mut images, &cp(&bnc_b, &bnc_m, 0.0, grey_fill)));
-    let bouncebot_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci| icon(&mut images, &cp(&bbot_b, &bbot_m, 0.0, cfill(ci)))).collect();
-
-    let door_icon = icon(&mut images, &cp(&dc_b, &dc_m, 0.0, white));
-    let door_open_icon = icon(&mut images, &cp(&do_b, &do_m, 0.0, grey_fill));
-    let door_closed_icon = icon(&mut images, &cp(&dc_b, &dc_m, 0.0, grey_fill));
-    let switch_icon = icon(&mut images, &cp(&sw_b, &sw_m, 0.0, white));
-    let mut switch_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci| icon(&mut images, &cp(&csw_b, &csw_m, 0.0, cfill(ci)))).collect();
-    switch_color_icons.push(icon(&mut images, &cp(&sw_b, &sw_m, 0.0, grey_fill)));
-    let switchbut_icon = icon(&mut images, &cp(&cswb_b, &cswb_m, 0.0, white));
-    let switchbut_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci| icon(&mut images, &cp(&cswb_b, &cswb_m, 0.0, cfill(ci)))).collect();
-    let painter_icon = icon(&mut images, &cp(&pnt_b, &pnt_m, 0.0, white));
-    let painter_color_icons: Vec<_> = (0..NUM_COLORS).map(|ci| icon(&mut images, &cp(&pnt_b, &pnt_m, 0.0, cfill(ci)))).collect();
-    let arrow_icon = icon(&mut images, &cp(&arr_b, &arr_m, 0.0, white));
-    let arrowbut_icon = icon(&mut images, &cp(&abut_b, &abut_m, 0.0, white));
+    let floor_icon = ph(&mut images);
+    let source_icon = ph(&mut images);
+    let goal_icon = ph(&mut images);
+    let turn_icon = ph(&mut images);
+    let turnbut_icon = ph(&mut images);
+    let teleport_icon = ph(&mut images);
+    let teleportbut_icon = ph(&mut images);
+    let bounce_icon = ph(&mut images);
+    let bouncebot_icon = ph(&mut images);
+    let door_icon = ph(&mut images);
+    let switch_icon = ph(&mut images);
+    let switchbut_icon = ph(&mut images);
+    let painter_icon = ph(&mut images);
+    let arrow_icon = ph(&mut images);
+    let arrowbut_icon = ph(&mut images);
 
     commands.insert_resource(InventoryIcons {
         floor: floor_icon.clone(), source: source_icon.clone(),
         goal: goal_icon.clone(), turn: turn_icon.clone(), delete: delete_icon.clone(),
-        source_dir_icons, source_color_icons, goal_color_icons,
-        turn_dir_icons, turn_color_icons,
-        turnbut: turnbut_icon.clone(), turnbut_dir_icons, turnbut_color_icons,
-        teleport: teleport_icon.clone(), teleport_color_icons,
-        teleportbut: teleportbut_icon.clone(), teleportbut_color_icons,
-        bounce: bounce_icon.clone(), bounce_color_icons,
-        bouncebot: bouncebot_icon.clone(), bouncebot_color_icons,
-        door: door_icon.clone(), door_open: door_open_icon, door_closed: door_closed_icon,
-        switch: switch_icon.clone(), switch_color_icons,
-        switchbut: switchbut_icon.clone(), switchbut_color_icons,
-        painter: painter_icon.clone(), painter_color_icons,
-        arrow: arrow_icon.clone(), arrow_dir_icons, arrow_color_icons,
-        arrowbut: arrowbut_icon.clone(), arrowbut_dir_icons, arrowbut_color_icons,
+        source_dir_icons: ph4(&mut images), source_color_icons: phv(&mut images, NUM_COLORS * 4),
+        goal_color_icons: phv(&mut images, NUM_COLORS),
+        turn_dir_icons: ph4(&mut images), turn_color_icons: phv(&mut images, NUM_TURN_COLORS * 4),
+        turnbut: turnbut_icon.clone(), turnbut_dir_icons: ph4(&mut images),
+        turnbut_color_icons: phv(&mut images, NUM_COLORS * 4),
+        teleport: teleport_icon.clone(), teleport_color_icons: phv(&mut images, NUM_TELEPORT_COLORS),
+        teleportbut: teleportbut_icon.clone(), teleportbut_color_icons: phv(&mut images, NUM_COLORS),
+        bounce: bounce_icon.clone(), bounce_color_icons: phv(&mut images, NUM_BOUNCE_COLORS),
+        bouncebot: bouncebot_icon.clone(), bouncebot_color_icons: phv(&mut images, NUM_COLORS),
+        door: door_icon.clone(), door_open: ph(&mut images), door_closed: ph(&mut images),
+        switch: switch_icon.clone(), switch_color_icons: phv(&mut images, NUM_SWITCH_COLORS),
+        switchbut: switchbut_icon.clone(), switchbut_color_icons: phv(&mut images, NUM_COLORS),
+        painter: painter_icon.clone(), painter_color_icons: phv(&mut images, NUM_COLORS),
+        arrow: arrow_icon.clone(), arrow_dir_icons: ph4(&mut images),
+        arrow_color_icons: phv(&mut images, NUM_ARROW_COLORS * 4),
+        arrowbut: arrowbut_icon.clone(), arrowbut_dir_icons: ph4(&mut images),
+        arrowbut_color_icons: phv(&mut images, NUM_COLORS * 4),
     });
 
     // Top controls (editor only)

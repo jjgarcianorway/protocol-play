@@ -4,7 +4,7 @@ A game built with [Bevy 0.18](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.20.4** — Fix But stick colors, inventory icon compositing, stats.json warning
+**v0.20.5** — Fix CWD for player folders, revert tile colors to original, render-to-texture inventory icons
 
 ### Bot Game (Editor + Player)
 - **149 campaign levels** across 13 chapters, each introducing a new mechanic

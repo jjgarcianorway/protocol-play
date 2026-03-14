@@ -398,3 +398,4 @@ impl Default for BotFormation {
 #[derive(Component)] pub struct QuitDialog;
 #[derive(Component)] pub struct QuitConfirm;
 #[derive(Component)] pub struct QuitCancel;
+#[derive(Component)] pub struct IconCamera;

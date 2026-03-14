@@ -23,6 +23,7 @@ pub fn load_png_texture(images: &mut Assets<Image>, path: &str, is_srgb: bool) -
 }
 
 /// Load a PNG file and return its raw RGBA pixel data + width.
+#[allow(dead_code)]
 pub fn load_png_raw(path: &str) -> (Vec<u8>, u32) {
     let img = image::open(path).unwrap_or_else(|e| panic!("Failed to load {path}: {e}"));
     let rgba = img.to_rgba8();
@@ -31,6 +32,7 @@ pub fn load_png_raw(path: &str) -> (Vec<u8>, u32) {
 }
 
 /// Load base+mask PNG pair as raw data.
+#[allow(dead_code)]
 pub fn load_png_pair(name: &str) -> (Vec<u8>, Vec<u8>, u32) {
     let (base, w) = load_png_raw(&format!("assets/textures/{name}_base.png"));
     let (mask, _) = load_png_raw(&format!("assets/textures/{name}_mask.png"));
@@ -39,6 +41,7 @@ pub fn load_png_pair(name: &str) -> (Vec<u8>, Vec<u8>, u32) {
 
 /// Composite an icon texture from base+mask PNG data.
 /// Point-samples the source PNGs at exact coordinates matching procedural generation.
+#[allow(dead_code)]
 pub fn composite_icon_from_png(
     base_data: &[u8], mask_data: &[u8], src_size: u32,
     out_size: u32, border: u32, rotation: f32, fill: [u8; 4],
@@ -86,6 +89,7 @@ pub fn create_tile_texture(images: &mut Assets<Image>, size: u32, border: u32) -
     make_image(images, tile_texture_data(size, border), size)
 }
 
+#[allow(dead_code)]
 pub fn color_to_u8(r: f32, g: f32, b: f32) -> [u8; 4] {
     [(r * 255.0).clamp(0.0, 255.0) as u8, (g * 255.0).clamp(0.0, 255.0) as u8,
      (b * 255.0).clamp(0.0, 255.0) as u8, 255]
@@ -135,6 +139,7 @@ pub fn tile_texture_data(size: u32, border: u32) -> Vec<u8> {
 }
 
 // === Isometric icon rendering ===
+#[allow(dead_code)]
 fn bary(px: f32, py: f32, a: (f32,f32), b: (f32,f32), c: (f32,f32)) -> Option<(f32, f32)> {
     let (d0x, d0y) = (b.0 - a.0, b.1 - a.1);
     let (d1x, d1y) = (c.0 - a.0, c.1 - a.1);
@@ -147,6 +152,7 @@ fn bary(px: f32, py: f32, a: (f32,f32), b: (f32,f32), c: (f32,f32)) -> Option<(f
     if s >= 0.0 && t >= 0.0 && s + t <= 1.0 { Some((s, t)) } else { None }
 }
 
+#[allow(dead_code)]
 fn point_in_quad_uv(
     px: f32, py: f32, tl: (f32, f32), tr: (f32, f32), br: (f32, f32), bl: (f32, f32),
 ) -> Option<(f32, f32)> {
@@ -155,6 +161,7 @@ fn point_in_quad_uv(
     None
 }
 
+#[allow(dead_code)]
 pub fn create_isometric_icon(
     images: &mut Assets<Image>, top_data: &[u8], tex_size: u32, icon_size: u32,
 ) -> Handle<Image> {
