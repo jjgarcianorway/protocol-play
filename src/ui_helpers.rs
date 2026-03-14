@@ -24,9 +24,19 @@ pub fn border_for(selected: bool) -> BorderColor {
 }
 
 // === Node builders ===
-pub fn slot_node() -> Node {
+/// Compute effective slot sizes for `n` items to fit within the screen width.
+/// Returns (slot_vw, slot_height_vw, icon_vw).
+pub fn fit_slot_sizes(n: usize, max_slot: f32) -> (f32, f32, f32) {
+    let max_vw = 96.0;
+    let s = ((max_vw - INVENTORY_PAD_VW * 2.0 - INVENTORY_GAP_VW * (n as f32 - 1.0)) / n as f32).min(max_slot);
+    let h = s * SLOT_HEIGHT_VW / SLOT_VW;
+    let i = s * ICON_VW / SLOT_VW;
+    (s, h, i)
+}
+
+pub fn slot_node_sized(w: f32, h: f32) -> Node {
     Node {
-        width: Val::Vw(SLOT_VW), height: Val::Vw(SLOT_HEIGHT_VW),
+        width: Val::Vw(w), height: Val::Vw(h),
         border: UiRect::all(Val::Px(SLOT_BORDER_PX)),
         justify_content: JustifyContent::Center, align_items: AlignItems::Center,
         overflow: Overflow::clip(),
@@ -35,9 +45,13 @@ pub fn slot_node() -> Node {
     }
 }
 
-pub fn icon_node() -> Node {
-    Node { width: Val::Vw(ICON_VW), height: Val::Vw(ICON_VW), ..default() }
+pub fn slot_node() -> Node { slot_node_sized(SLOT_VW, SLOT_HEIGHT_VW) }
+
+pub fn icon_node_sized(s: f32) -> Node {
+    Node { width: Val::Vw(s), height: Val::Vw(s), ..default() }
 }
+
+pub fn icon_node() -> Node { icon_node_sized(ICON_VW) }
 
 pub fn text_btn_node() -> Node {
     Node { padding: UiRect::axes(Val::Px(TEXT_BTN_PAD.0), Val::Px(TEXT_BTN_PAD.1)), ..default() }

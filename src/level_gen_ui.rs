@@ -110,7 +110,8 @@ pub fn spawn_gen_dialog(commands: &mut Commands, f: &Handle<Font>, s: &GenSettin
     let tc = TextColor(Color::WHITE);
     let hc = TextColor(rgb(GEN_HINT_COLOR));
     let hf = gf(GEN_HINT_FONT, f);
-    let mut pn = dialog_panel_node(DIALOG_ROW_GAP);
+    let mut pn = dialog_panel_node(GEN_DIALOG_ROW_GAP);
+    pn.padding = UiRect::all(Val::Px(GEN_DIALOG_PAD));
     pn.min_width = Val::Px(GEN_DIALOG_WIDTH);
     pn.max_height = Val::Vh(GEN_DIALOG_MAX_H);
     pn.overflow.y = OverflowAxis::Scroll;

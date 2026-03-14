@@ -388,7 +388,6 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
 
     // Inventory bar (editor only)
     if !cfg!(feature = "player") {
-    let sn = slot_node();
     use InventorySlot::*;
     let l1: Vec<(InventorySlot, Handle<Image>)> = vec![
         (Floor, floor_icon), (Source, source_icon), (Goal, goal_icon), (Turn, turn_icon),
@@ -396,6 +395,10 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
         (Bounce, bounce_icon), (BounceBut, bouncebot_icon), (Door, door_icon),
         (Switch, switch_icon), (SwitchBut, switchbut_icon), (Painter, painter_icon),
         (Arrow, arrow_icon), (ArrowBut, arrowbut_icon) ];
+    let n = l1.len() + 1; // +1 for delete
+    let (sw, sh, iw) = fit_slot_sizes(n, SLOT_VW);
+    let sn = slot_node_sized(sw, sh);
+    let in_node = icon_node_sized(iw);
 
     commands.spawn((Node {
         position_type: PositionType::Absolute, bottom: Val::Px(INV_SLIDE_HIDE),
@@ -424,10 +427,10 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
                         let glow = BoxShadow::new(rgba(SLOT_GLOW_COLOR), Val::ZERO, Val::ZERO,
                             Val::Px(SLOT_GLOW_SPREAD), Val::Px(SLOT_GLOW_BLUR));
                         c.spawn((Button, sn.clone(), BackgroundColor(slot_bg()), border_for(i == 0), *slot_type, glow))
-                            .with_child((icon_node(), ImageNode::new(icon_handle.clone())));
+                            .with_child((in_node.clone(), ImageNode::new(icon_handle.clone())));
                     }
                     c.spawn((Button, sn.clone(), BackgroundColor(Color::NONE), BorderColor::all(Color::NONE), InventorySlot::Delete))
-                        .with_child((icon_node(), ImageNode::new(delete_icon)));
+                        .with_child((in_node.clone(), ImageNode::new(delete_icon)));
                 });
             });
     });

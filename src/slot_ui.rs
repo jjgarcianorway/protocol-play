@@ -9,8 +9,11 @@ pub fn spawn_base_slot(
     commands: &mut Commands, parent: Entity, slot: InventorySlot, icon: Handle<Image>,
     selected: bool, is_l3: bool, available: bool, animate: bool, count_text: &str, font: &Handle<Font>,
 ) -> Entity {
+    let sv = EDITOR_SLOT_VW;
+    let sh = sv * SLOT_HEIGHT_VW / SLOT_VW;
+    let iw = sv * ICON_VW / SLOT_VW;
     let bc = border_for(selected);
-    let mut node = slot_node();
+    let mut node = slot_node_sized(sv, sh);
     let grow = animate && available;
     if (is_l3 && !available) || grow { node.width = Val::Vw(0.0); }
     let bg = slot_bg();
@@ -19,9 +22,9 @@ pub fn spawn_base_slot(
         Val::Px(SLOT_GLOW_SPREAD), Val::Px(SLOT_GLOW_BLUR));
     let mut ec = commands.spawn((Button, node, BackgroundColor(bg.with_alpha(alpha)), bc, slot, glow));
     if is_l3 { ec.insert(Level3Slot); }
-    if grow { ec.insert(NodeWidthAnim { target: SLOT_VW, despawn_at_zero: false }); }
+    if grow { ec.insert(NodeWidthAnim { target: sv, despawn_at_zero: false }); }
     let child = ec.with_children(|p| {
-        p.spawn((icon_node(), ImageNode::new(icon)));
+        p.spawn((icon_node_sized(iw), ImageNode::new(icon)));
         if is_l3 {
             p.spawn(Node { position_type: PositionType::Absolute, bottom: Val::Px(2.0),
                 width: Val::Percent(100.0), justify_content: JustifyContent::Center, ..default() })
@@ -73,7 +76,7 @@ pub fn collapse_container(commands: &mut Commands, container: Entity) {
 
 pub fn spawn_l2l3_divider(commands: &mut Commands, container: Entity) {
     let child = commands.spawn((
-        Node { width: Val::Px(L2L3_DIVIDER_WIDTH), height: Val::Vw(SLOT_HEIGHT_VW * 0.6),
+        Node { width: Val::Px(L2L3_DIVIDER_WIDTH), height: Val::Vw(EDITOR_SLOT_HEIGHT_VW * 0.6),
             ..default() },
         BackgroundColor(rgba(L2L3_DIVIDER_COLOR)), L2L3Divider,
     )).id();
