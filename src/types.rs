@@ -395,3 +395,6 @@ impl Default for BotFormation {
 #[derive(Component)] pub struct DeleteLevelDialog;
 #[derive(Component)] pub struct DeleteLevelConfirm(pub String);
 #[derive(Component)] pub struct DeleteLevelCancel;
+#[derive(Component)] pub struct QuitDialog;
+#[derive(Component)] pub struct QuitConfirm;
+#[derive(Component)] pub struct QuitCancel;

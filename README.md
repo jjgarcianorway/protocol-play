@@ -4,7 +4,7 @@ A game built with [Bevy 0.18](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.19.6** — Fixed color-matching for Turn/Bounce/Arrow tiles, bigger inventory and board, higher-res textures, redesigned But tiles with larger colored circle, guaranteed mechanic introduction per chapter.
+**v0.19.7** — Escape key quit confirmation, fixed color-matching, bigger UI, higher-res textures, redesigned But tiles, guaranteed mechanic introduction per chapter.
 
 ### Bot Game (Editor + Player)
 - **149 campaign levels** across 13 chapters, each introducing a new mechanic

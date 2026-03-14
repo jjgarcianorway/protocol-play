@@ -68,6 +68,7 @@ fn main() {
             animate_scale.after(update_ghost_and_highlight).after(move_bots).after(apply_bot_formation),
             animate_ui_slides, animate_border_fade, cleanup_despawned.after(animate_scale),
         ))
+        .add_systems(Update, (escape_to_quit, quit_dialog_buttons))
         .add_systems(Update, (
             overlay_button_interaction, play_stop_interaction.after(overlay_button_interaction),
             move_bots.after(play_stop_interaction), update_bot_formation.after(move_bots),

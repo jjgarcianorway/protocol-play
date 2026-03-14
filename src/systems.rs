@@ -4,6 +4,8 @@ use bevy::prelude::*;
 use crate::constants::*;
 use crate::types::*;
 use crate::board::*;
+use crate::ui_helpers::{gf, rgb, btn_bg, dialog_panel_node, dialog_btn_node};
+use crate::simulation::SimulationOverlay;
 
 // === Animation ===
 pub fn animate_scale(
@@ -395,4 +397,49 @@ pub fn sync_inventory_play_mode(
         _ => return,
     };
     for mut anim in &mut inv { anim.target = target; }
+}
+
+pub fn escape_to_quit(
+    mut commands: Commands,
+    keys: Res<ButtonInput<KeyCode>>,
+    existing: Query<Entity, With<QuitDialog>>,
+    // Don't show quit dialog if another dialog is open
+    other_dialogs: Query<Entity, Or<(
+        With<SaveDialog>, With<LoadDialog>, With<ValidationErrorDialog>,
+        With<OverwriteDialog>, With<DeleteLevelDialog>, With<SimulationOverlay>,
+    )>>,
+    font: Res<GameFont>,
+) {
+    if !keys.just_pressed(KeyCode::Escape) { return; }
+    if !existing.is_empty() || !other_dialogs.is_empty() { return; }
+    let tf = gf(DIALOG_TITLE_FONT, &font.0);
+    let tc = TextColor(Color::WHITE);
+    crate::ui_helpers::spawn_dialog(&mut commands, QuitDialog, dialog_panel_node(DIALOG_ROW_GAP), |panel| {
+        panel.spawn((Text::new("Quit game?"), tf.clone(), tc));
+        panel.spawn(Node { flex_direction: FlexDirection::Row, column_gap: Val::Px(DIALOG_BTN_GAP), ..default() })
+            .with_children(|row| {
+                row.spawn((Button, QuitConfirm, dialog_btn_node(),
+                    BackgroundColor(rgb(STOP_TEST_BTN_BG))))
+                    .with_child((Text::new("Quit"), tf.clone(), tc));
+                row.spawn((Button, QuitCancel, dialog_btn_node(), BackgroundColor(btn_bg())))
+                    .with_child((Text::new("Cancel"), tf, tc));
+            });
+    });
+}
+
+pub fn quit_dialog_buttons(
+    mut commands: Commands,
+    confirm_q: Query<&Interaction, (With<QuitConfirm>, Changed<Interaction>)>,
+    cancel_q: Query<&Interaction, (With<QuitCancel>, Changed<Interaction>)>,
+    dialog: Query<Entity, With<QuitDialog>>,
+    keys: Res<ButtonInput<KeyCode>>,
+) {
+    if dialog.is_empty() { return; }
+    if cancel_q.iter().any(|i| *i == Interaction::Pressed) || keys.just_pressed(KeyCode::Escape) {
+        crate::ui_helpers::fade_out(&mut commands, &dialog);
+        return;
+    }
+    if confirm_q.iter().any(|i| *i == Interaction::Pressed) || keys.just_pressed(KeyCode::Enter) {
+        std::process::exit(0);
+    }
 }
