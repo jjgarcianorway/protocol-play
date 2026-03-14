@@ -59,6 +59,7 @@ pub fn setup_player(
                 let p = e.path();
                 p.extension().is_some_and(|ext| ext == "json")
                     && !p.file_name().unwrap_or_default().to_string_lossy().ends_with(".progress.json")
+                    && p.file_name().unwrap_or_default() != "stats.json"
             }).collect();
         json_files.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
         for entry in json_files {

@@ -184,9 +184,10 @@ pub const SIM_BTN_PAD: (f32, f32) = (30.0, 12.0);
 pub const SIM_BTN_FONT: f32 = 20.0;
 
 // Texture colors (brighter for better inventory visibility)
-pub const TILE_GRAY: [u8; 4] = [179, 179, 179, 255];
+pub const TILE_GRAY: [u8; 4] = [72, 78, 95, 255];
 pub const TILE_DARK: [u8; 4] = [45, 50, 65, 255];
 pub const SYMBOL_STROKE: [u8; 4] = [55, 60, 75, 255];
+pub const BUT_STICK_GRAY: [u8; 4] = [179, 179, 179, 255]; // matches GREY_COLOR for "all bots"
 pub const STROKE_EXPAND: f32 = 0.030;
 pub const TURN_CENTER_BRIGHTNESS: f32 = 0.45;
 pub const ICON_WHITE: [u8; 4] = [150, 150, 150, 255];

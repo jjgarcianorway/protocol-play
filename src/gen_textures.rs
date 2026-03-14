@@ -145,7 +145,7 @@ fn generate_symbol_textures(
                 base.put_pixel(px, py, Rgba([0, 0, 0, 255]));
                 if is_but {
                     mask.put_pixel(px, py, Rgba([0, 0, 0, 255]));
-                    base.put_pixel(px, py, Rgba(TILE_GRAY));
+                    base.put_pixel(px, py, Rgba(BUT_STICK_GRAY));
                 } else {
                     mask.put_pixel(px, py, Rgba([255, 255, 255, 255]));
                 }
@@ -205,7 +205,7 @@ fn generate_teleportbut_textures(size: u32, dir: &Path) {
                     mask.put_pixel(px, py, Rgba([b, b, b, 255]));
                 } else if in_teleport_shape(nx, ny, 0.0, num) {
                     // Main ring shape — gray for But
-                    base.put_pixel(px, py, Rgba(TILE_GRAY));
+                    base.put_pixel(px, py, Rgba(BUT_STICK_GRAY));
                     mask.put_pixel(px, py, Rgba([0, 0, 0, 255]));
                 } else if in_ring(nx, ny, STROKE_EXPAND) {
                     base.put_pixel(px, py, Rgba(SYMBOL_STROKE));

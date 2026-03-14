@@ -65,8 +65,13 @@ pub fn composite_icon_from_png(
                         color = SYMBOL_STROKE;
                     } else {
                         let b = mask_data[si] as f32 / 255.0;
-                        color = [(fill[0] as f32 * b) as u8, (fill[1] as f32 * b) as u8,
-                                 (fill[2] as f32 * b) as u8, 255];
+                        if b < 0.01 {
+                            // Fixed color from base texture (e.g. But sticks)
+                            color = [base_data[si], base_data[si + 1], base_data[si + 2], 255];
+                        } else {
+                            color = [(fill[0] as f32 * b) as u8, (fill[1] as f32 * b) as u8,
+                                     (fill[2] as f32 * b) as u8, 255];
+                        }
                     }
                 }
             }
