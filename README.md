@@ -4,7 +4,7 @@ A game built with [Bevy 0.18](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.20.1** — Fix editor inventory overflow, compact gen dialog, consistent slot sizing
+**v0.20.2** — Double But circle size for better visual distinction
 
 ### Bot Game (Editor + Player)
 - **149 campaign levels** across 13 chapters, each introducing a new mechanic
