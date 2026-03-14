@@ -36,8 +36,12 @@ fn in_star_shape(x: f32, y: f32, expand: f32) -> bool {
     dist <= edge_r
 }
 
+fn in_but_circle(x: f32, y: f32) -> bool {
+    (x * x + y * y).sqrt() < 0.36
+}
+
 fn in_forbidden_line(x: f32, y: f32) -> bool {
-    in_turn_center(x, y) && (x + y).abs() / std::f32::consts::SQRT_2 < 0.035
+    in_but_circle(x, y) && (x + y).abs() / std::f32::consts::SQRT_2 < 0.045
 }
 
 fn in_bounce_shape(x: f32, y: f32, e: f32) -> bool { x.abs() + y.abs() < 0.42 + e }
@@ -113,25 +117,46 @@ fn generate_symbol_textures(
     center_fn: Option<fn(f32, f32) -> bool>, center_brightness: f32,
     forbidden_fn: Option<fn(f32, f32) -> bool>,
 ) {
+    let is_but = forbidden_fn.is_some();
     let c = size as f32 / 2.0;
     let mut base = RgbaImage::new(size, size);
     let mut mask = RgbaImage::new(size, size);
     for py in 0..size {
         for px in 0..size {
             let (nx, ny) = ((px as f32 - c) / c, (py as f32 - c) / c);
-            if forbidden_fn.is_some_and(|ff| ff(nx, ny)) {
+            let in_circle = is_but && in_but_circle(nx, ny);
+            let on_line = forbidden_fn.is_some_and(|ff| ff(nx, ny));
+            if on_line {
+                // Forbidden line (slash) — always stroke color, no tint
                 base.put_pixel(px, py, Rgba(SYMBOL_STROKE));
                 mask.put_pixel(px, py, Rgba([0, 0, 0, 255]));
-            } else if center_fn.is_some_and(|cf| cf(nx, ny)) {
+            } else if in_circle && center_fn.is_some_and(|cf| cf(nx, ny)) {
+                // Center dot inside But circle — colored
+                base.put_pixel(px, py, Rgba([0, 0, 0, 255]));
+                let b = (center_brightness * 255.0) as u8;
+                mask.put_pixel(px, py, Rgba([b, b, b, 255]));
+            } else if in_circle && !shape_fn(nx, ny, 0.0) {
+                // But circle area (outside shape) — colored ring
                 base.put_pixel(px, py, Rgba([0, 0, 0, 255]));
                 let b = (center_brightness * 255.0) as u8;
                 mask.put_pixel(px, py, Rgba([b, b, b, 255]));
             } else if shape_fn(nx, ny, 0.0) {
+                // Main shape — gray for But tiles, colored for normal
                 base.put_pixel(px, py, Rgba([0, 0, 0, 255]));
-                mask.put_pixel(px, py, Rgba([255, 255, 255, 255]));
+                if is_but {
+                    mask.put_pixel(px, py, Rgba([0, 0, 0, 255]));
+                    base.put_pixel(px, py, Rgba(TILE_GRAY));
+                } else {
+                    mask.put_pixel(px, py, Rgba([255, 255, 255, 255]));
+                }
             } else if shape_fn(nx, ny, STROKE_EXPAND) {
                 base.put_pixel(px, py, Rgba(SYMBOL_STROKE));
                 mask.put_pixel(px, py, Rgba([0, 0, 0, 255]));
+            } else if in_circle {
+                // But circle ring outer area — colored
+                base.put_pixel(px, py, Rgba([0, 0, 0, 255]));
+                let b = (center_brightness * 255.0) as u8;
+                mask.put_pixel(px, py, Rgba([b, b, b, 255]));
             }
         }
     }
@@ -163,22 +188,25 @@ fn generate_teleport_textures(size: u32, dir: &Path) {
 
 fn generate_teleportbut_textures(size: u32, dir: &Path) {
     let c = size as f32 / 2.0;
+    let b = (TURN_CENTER_BRIGHTNESS * 255.0) as u8;
     for num in 0..NUM_TELEPORTS {
         let mut base = RgbaImage::new(size, size);
         let mut mask = RgbaImage::new(size, size);
         for py in 0..size {
             for px in 0..size {
                 let (nx, ny) = ((px as f32 - c) / c, (py as f32 - c) / c);
+                let in_circle = in_but_circle(nx, ny);
                 if in_forbidden_line(nx, ny) {
                     base.put_pixel(px, py, Rgba(SYMBOL_STROKE));
                     mask.put_pixel(px, py, Rgba([0, 0, 0, 255]));
-                } else if in_turn_center(nx, ny) {
+                } else if in_circle && !in_teleport_shape(nx, ny, 0.0, num) {
+                    // But circle area — colored
                     base.put_pixel(px, py, Rgba([0, 0, 0, 255]));
-                    let b = (TURN_CENTER_BRIGHTNESS * 255.0) as u8;
                     mask.put_pixel(px, py, Rgba([b, b, b, 255]));
                 } else if in_teleport_shape(nx, ny, 0.0, num) {
-                    base.put_pixel(px, py, Rgba([0, 0, 0, 255]));
-                    mask.put_pixel(px, py, Rgba([255, 255, 255, 255]));
+                    // Main ring shape — gray for But
+                    base.put_pixel(px, py, Rgba(TILE_GRAY));
+                    mask.put_pixel(px, py, Rgba([0, 0, 0, 255]));
                 } else if in_ring(nx, ny, STROKE_EXPAND) {
                     base.put_pixel(px, py, Rgba(SYMBOL_STROKE));
                     mask.put_pixel(px, py, Rgba([0, 0, 0, 255]));
