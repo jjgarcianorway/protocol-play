@@ -386,17 +386,39 @@ pub fn handle_tile_click(
     Ok(())
 }
 
-pub fn sync_inventory_play_mode(
+pub fn sync_ui_play_mode(
+    mut commands: Commands,
     play_mode: Res<PlayMode>,
     mut inv: Query<&mut UiBottomAnim, With<InventoryContainer>>,
+    test_inv: Query<Entity, With<TestInventoryContainer>>,
+    top_bar: Query<Entity, With<TopControlsBar>>,
 ) {
     if !play_mode.is_changed() { return; }
-    let target = match *play_mode {
-        PlayMode::Playing => INV_SLIDE_HIDE,
-        PlayMode::Editing => INV_SLIDE_SHOW,
-        _ => return,
-    };
-    for mut anim in &mut inv { anim.target = target; }
+    let playing = matches!(*play_mode, PlayMode::Playing | PlayMode::TestPlaying);
+    // Editor inventory
+    match *play_mode {
+        PlayMode::Playing => { for mut a in &mut inv { a.target = INV_SLIDE_HIDE; } }
+        PlayMode::Editing => { for mut a in &mut inv { a.target = INV_SLIDE_SHOW; } }
+        _ => {}
+    }
+    // Test inventory
+    if playing {
+        for e in &test_inv {
+            commands.entity(e).insert(UiBottomAnim { target: INV_SLIDE_HIDE, despawn_at_target: false });
+        }
+    } else if *play_mode == PlayMode::TestEditing {
+        for e in &test_inv {
+            commands.entity(e).insert(UiBottomAnim { target: INV_SLIDE_SHOW, despawn_at_target: false });
+        }
+    }
+    // Top bar
+    for e in &top_bar {
+        if playing {
+            commands.entity(e).insert(UiTopAnim { target: TOP_SLIDE_HIDE, despawn_at_target: false });
+        } else {
+            commands.entity(e).insert(UiTopAnim { target: TOP_SLIDE_SHOW, despawn_at_target: false });
+        }
+    }
 }
 
 pub fn escape_to_quit(

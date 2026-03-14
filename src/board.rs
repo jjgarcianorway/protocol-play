@@ -283,6 +283,8 @@ pub fn adapt_camera(
     mut cameras: Query<(&mut Transform, &Projection), With<Camera3d>>,
     board_size: Res<BoardSize>,
     expansion: Query<&Node, With<ExpansionContainer>>,
+    play_mode: Res<PlayMode>,
+    time: Res<Time>,
 ) -> Result {
     let window = windows.single()?;
     let (mut transform, projection) = cameras.single_mut()?;
@@ -295,27 +297,31 @@ pub fn adapt_camera(
     let half_fov_v = fov / 2.0;
     let half_fov_h = (half_fov_v.tan() * aspect).atan();
     let dist_h = radius / half_fov_h.sin();
-    // Account for UI: top bar and bottom inventory eat into viewable area
-    let vw = window.width() / 100.0;
-    let exp_px = expansion.iter().next()
-        .map(|n| match n.height { Val::Vw(v) => v * vw, _ => 0.0 })
-        .unwrap_or(0.0);
-    let inv_px = SLOT_HEIGHT_VW * vw + INVENTORY_PAD_VW * 2.0 * vw + COUNT_FONT
-        + SLOT_BORDER_PX * 2.0 + INV_SLIDE_SHOW + exp_px;
-    let top_px = TOP_BTN_SIZE + TOP_SLIDE_SHOW;
+    let playing = matches!(*play_mode, PlayMode::Playing | PlayMode::TestPlaying);
+    // During play: no UI compensation (inventory and top bar are hidden)
+    let (inv_px, top_px) = if playing { (0.0, 0.0) } else {
+        let vw = window.width() / 100.0;
+        let exp_px = expansion.iter().next()
+            .map(|n| match n.height { Val::Vw(v) => v * vw, _ => 0.0 })
+            .unwrap_or(0.0);
+        (SLOT_HEIGHT_VW * vw + INVENTORY_PAD_VW * 2.0 * vw + COUNT_FONT
+            + SLOT_BORDER_PX * 2.0 + INV_SLIDE_SHOW + exp_px,
+         TOP_BTN_SIZE + TOP_SLIDE_SHOW)
+    };
     let usable_h = window.height() - inv_px - top_px;
-    // Recompute distance to fit board in usable vertical space
     let usable_fov_v = fov * (usable_h / window.height());
     let half_usable_v = usable_fov_v / 2.0;
     let dist_usable_v = radius / half_usable_v.sin();
     let distance = dist_usable_v.max(dist_h) * CAMERA_MARGIN;
     let dir = camera_direction();
-    // Shift board upward: center it between top bar and inventory
-    // Divide by sin(elevation) to correct for the 30° camera angle
     let shift_px = (inv_px - top_px) / 2.0;
     let elev_sin = CAMERA_ELEVATION.to_radians().sin();
     let shift = shift_px / window.height() * distance * 2.0 * (fov / 2.0).tan() / elev_sin;
     let look_at = Vec3::new(0.0, -shift, 0.0);
-    *transform = Transform::from_translation(look_at + dir * distance).looking_at(look_at, Vec3::Y);
+    let target = Transform::from_translation(look_at + dir * distance).looking_at(look_at, Vec3::Y);
+    // Smooth cinematic lerp
+    let speed = CAMERA_ZOOM_SPEED * time.delta_secs();
+    transform.translation = transform.translation.lerp(target.translation, speed);
+    transform.rotation = transform.rotation.slerp(target.rotation, speed);
     Ok(())
 }

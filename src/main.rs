@@ -76,14 +76,13 @@ fn main() {
             paint_bots.after(move_bots), toggle_doors.after(move_bots),
             check_simulation_result.after(move_bots),
             spawn_simulation_overlay.after(check_simulation_result),
-            adapt_camera,
+            adapt_camera, sync_ui_play_mode,
         ));
     #[cfg(not(feature = "player"))]
     app.add_systems(Update, (
             button_interaction, inventory_interaction,
             update_inventory_visuals.after(inventory_interaction),
             handle_tile_click.after(update_hovered_cell),
-            sync_inventory_play_mode,
         ))
         .add_systems(Update, (
             mark_button_interaction, handle_mark_click.after(update_hovered_cell),

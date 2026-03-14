@@ -4,6 +4,8 @@
 pub const CAMERA_ELEVATION: f32 = 30.0;
 pub const CAMERA_AZIMUTH: f32 = 45.0;
 pub const CAMERA_MARGIN: f32 = 0.72;
+pub const CAMERA_ZOOM_SPEED: f32 = 3.0;
+pub const TOP_SLIDE_HIDE: f32 = -100.0;
 
 // === Board ===
 pub const MIN_BOARD_SIZE: u32 = 3;
@@ -182,7 +184,7 @@ pub const SIM_BTN_PAD: (f32, f32) = (30.0, 12.0);
 pub const SIM_BTN_FONT: f32 = 20.0;
 
 // Texture colors (brighter for better inventory visibility)
-pub const TILE_GRAY: [u8; 4] = [72, 78, 95, 255];
+pub const TILE_GRAY: [u8; 4] = [179, 179, 179, 255];
 pub const TILE_DARK: [u8; 4] = [45, 50, 65, 255];
 pub const SYMBOL_STROKE: [u8; 4] = [55, 60, 75, 255];
 pub const STROKE_EXPAND: f32 = 0.030;
