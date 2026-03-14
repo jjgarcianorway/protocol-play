@@ -3,7 +3,7 @@
 // === Camera ===
 pub const CAMERA_ELEVATION: f32 = 30.0;
 pub const CAMERA_AZIMUTH: f32 = 45.0;
-pub const CAMERA_MARGIN: f32 = 0.90;
+pub const CAMERA_MARGIN: f32 = 0.72;
 
 // === Board ===
 pub const MIN_BOARD_SIZE: u32 = 3;
@@ -39,9 +39,9 @@ pub const TOP_SLIDE_SHOW: f32 = 10.0;
 pub const BANNER_SLIDE_HIDE: f32 = -40.0;
 
 // === UI sizes ===
-pub const SLOT_VW: f32 = 5.8;
-pub const SLOT_HEIGHT_VW: f32 = 5.2;
-pub const ICON_VW: f32 = 5.0;
+pub const SLOT_VW: f32 = 7.5;
+pub const SLOT_HEIGHT_VW: f32 = 6.8;
+pub const ICON_VW: f32 = 6.5;
 pub const SLOT_BORDER_PX: f32 = 2.5;
 pub const ICON_SIZE: u32 = 256;
 pub const TOP_BTN_SIZE: f32 = 44.0;

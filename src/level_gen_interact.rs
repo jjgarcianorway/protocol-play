@@ -293,6 +293,7 @@ pub fn gen_generate_interaction(
             door_chains: settings.door_chains,
             path_sharing: settings.path_sharing,
             confusion_tiles: settings.confusion_tiles,
+            required_tile: None,
         },
     };
 }

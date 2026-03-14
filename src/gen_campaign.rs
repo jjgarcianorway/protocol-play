@@ -71,6 +71,10 @@ fn generate_level(config: &GenConfig, max_attempts: usize)
     let mut best: Option<(Vec<(u32, u32, TileKind, bool)>, u32)> = None;
     for _ in 0..max_attempts {
         if let Some((tiles, rating)) = generate_attempt(config, &mut rng) {
+            // If a required tile type is specified, reject attempts without it
+            if let Some(req) = config.required_tile {
+                if !tiles.iter().any(|(_, _, k, _)| req(k)) { continue; }
+            }
             let gap = (rating as i32 - config.difficulty as i32).unsigned_abs();
             let prev_gap = best.as_ref()
                 .map(|(_, r)| (*r as i32 - config.difficulty as i32).unsigned_abs())
@@ -100,6 +104,7 @@ fn cfg(board: u32, bots: u32, diff: u32, weights: [u32; GEN_NUM_WEIGHTS]) -> Gen
         hole_percent: 20, hole_placement: HolePlacement::Both,
         unique_solution: false, inventory_target: (board * 3 / 2).max(2).min(15),
         door_chains: 0, path_sharing: false, confusion_tiles: false,
+        required_tile: None,
     }
 }
 
@@ -112,7 +117,7 @@ fn ch_w(ch: usize, pos: usize) -> [u32; GEN_NUM_WEIGHTS] {
         7=>&[6], 8=>&[7], 9=>&[11], 10=>&[8], 11=>&[9], 12=>&[10], _=>&[],
     };
     let (nw, ow) = if ch >= 13 { (8, 8) }
-        else if pos == 0 { (10, 2) }   // intro: new mechanic + light path-building
+        else if pos == 0 { (10, 2) }   // intro: new mechanic dominant
         else if pos <= 3 { (8, 4) }     // learning: new dominant
         else if pos <= 7 { (7, 5) }     // challenge: mixed
         else { (6, 6) };               // boss: balanced
@@ -138,6 +143,24 @@ fn make_level(ch: usize, pos: usize, name: &str, board: u32, bots: u32, diff: u3
         _ => { c.hole_percent = pct; }
     }
     if matches!(ch, 2|4|6|8|12) { c.inventory_target = (2 + pos as u32).min(10); }
+    // Intro levels must contain the chapter's new mechanic
+    if pos == 0 {
+        c.required_tile = match ch {
+            1 => Some(|k: &TileKind| matches!(k, TileKind::Turn(..))),
+            2 => Some(|k: &TileKind| matches!(k, TileKind::TurnBut(..))),
+            3 => Some(|k: &TileKind| matches!(k, TileKind::Arrow(..))),
+            4 => Some(|k: &TileKind| matches!(k, TileKind::ArrowBut(..))),
+            5 => Some(|k: &TileKind| matches!(k, TileKind::Teleport(..))),
+            6 => Some(|k: &TileKind| matches!(k, TileKind::TeleportBut(..))),
+            7 => Some(|k: &TileKind| matches!(k, TileKind::Bounce(..))),
+            8 => Some(|k: &TileKind| matches!(k, TileKind::BounceBut(..))),
+            9 => Some(|k: &TileKind| matches!(k, TileKind::Painter(..))),
+            10 => Some(|k: &TileKind| matches!(k, TileKind::Door(..) | TileKind::Switch)),
+            11 => Some(|k: &TileKind| matches!(k, TileKind::ColorSwitch(..))),
+            12 => Some(|k: &TileKind| matches!(k, TileKind::ColorSwitchBut(..))),
+            _ => None,
+        };
+    }
     Level { name: name.into(), config: c }
 }
 

@@ -41,6 +41,7 @@ pub struct GenConfig {
     pub door_chains: u32,
     pub path_sharing: bool,
     pub confusion_tiles: bool,
+    pub required_tile: Option<fn(&TileKind) -> bool>,
 }
 
 // === Generator state ===

@@ -90,14 +90,14 @@ pub fn try_backtrack_redirect(
         let (hc, hr, hd) = path_history[i];
         if !is_floor(grid, (hc as u32, hr as u32)) { continue; }
         if weights[0] > 0 || weights[1] > 0 {
-            let but = weights[1] > 0 && (weights[0] == 0 || rng.gen_bool(0.3));
+            let but = weights[1] > 0 && (weights[0] == 0 || rng.gen_bool(weights[1] as f64 / (weights[0] + weights[1]) as f64));
             if try_turn_at(grid, solution, hc, hr, dir, size, rng, ci, but) {
                 *col = hc; *row = hr;
                 return true;
             }
         }
         if weights[2] > 0 || weights[3] > 0 {
-            let but = weights[3] > 0 && (weights[2] == 0 || rng.gen_bool(0.3));
+            let but = weights[3] > 0 && (weights[2] == 0 || rng.gen_bool(weights[3] as f64 / (weights[2] + weights[3]) as f64));
             let mut test_dir = hd;
             if try_arrow_at(grid, solution, hc, hr, &mut test_dir, size, rng, ci, but) {
                 *col = hc; *row = hr; *dir = test_dir;

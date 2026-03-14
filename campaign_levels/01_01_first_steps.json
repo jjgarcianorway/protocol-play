@@ -3,84 +3,84 @@
   "board_size": 3,
   "tiles": [
     [
-      1,
       2,
+      0,
+      {
+        "Goal": 4
+      },
+      false
+    ],
+    [
+      2,
+      1,
       "Floor",
       false
     ],
     [
       1,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      0,
       1,
       "Floor",
       false
     ],
     [
       2,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      0,
       0,
       "Floor",
       false
     ],
     [
+      0,
       2,
+      "Floor",
+      false
+    ],
+    [
+      1,
       2,
       {
+        "Source": [
+          4,
+          "North"
+        ]
+      },
+      false
+    ],
+    [
+      1,
+      0,
+      {
         "Turn": [
-          6,
-          "West"
+          4,
+          "East"
         ]
       },
       true
-    ],
-    [
-      0,
-      2,
-      {
-        "Goal": 6
-      },
-      false
-    ],
-    [
-      2,
-      1,
-      {
-        "Source": [
-          6,
-          "South"
-        ]
-      },
-      false
-    ],
-    [
-      1,
-      1,
-      "Floor",
-      false
     ]
   ],
   "solution": [
     [
-      2,
-      2,
+      1,
+      0,
       {
         "Turn": [
-          6,
-          "West"
+          4,
+          "East"
         ]
       }
     ]
   ],
-  "seed": 6984208197150480590,
+  "seed": 773994029705904662,
   "difficulty": 23
 }
