@@ -197,6 +197,13 @@ pub fn spawn_test_inventory(commands: &mut Commands, test_inv: &TestInventory, i
     let mut ec = commands.spawn((Node { position_type: PositionType::Absolute, bottom: Val::Px(start_bottom),
         width: Val::Percent(100.0), justify_content: JustifyContent::Center, ..default() }, TestInventoryContainer));
     if animate { ec.insert(UiBottomAnim { target: INV_SLIDE_SHOW, despawn_at_target: false }); }
+    // Compute effective slot size: scale down if items don't fit horizontally
+    let n = test_inv.items.len() + 1; // +1 for delete button
+    let max_vw = 96.0; // leave margin
+    let max_slot = (max_vw - INVENTORY_PAD_VW * 2.0 - INVENTORY_GAP_VW * (n as f32 - 1.0)) / n as f32;
+    let eff_slot = max_slot.min(SLOT_VW);
+    let eff_height = eff_slot * SLOT_HEIGHT_VW / SLOT_VW;
+    let eff_icon = eff_slot * ICON_VW / SLOT_VW;
     ec.with_children(|parent| {
         parent.spawn(Node { position_type: PositionType::Absolute, top: Val::Px(-22.0),
             width: Val::Percent(100.0), justify_content: JustifyContent::Center, ..default() })
@@ -207,7 +214,15 @@ pub fn spawn_test_inventory(commands: &mut Commands, test_inv: &TestInventory, i
             border_radius: BorderRadius::all(Val::Px(UI_CORNER_RADIUS)), ..default() },
             BackgroundColor(rgba(TEST_INVENTORY_BG)),
         )).with_children(|c| {
-            let sn = slot_node();
+            let sn = Node {
+                width: Val::Vw(eff_slot), height: Val::Vw(eff_height),
+                border: UiRect::all(Val::Px(SLOT_BORDER_PX)),
+                justify_content: JustifyContent::Center, align_items: AlignItems::Center,
+                overflow: Overflow::clip(),
+                border_radius: BorderRadius::all(Val::Px(UI_CORNER_RADIUS)),
+                ..default()
+            };
+            let in_node = Node { width: Val::Vw(eff_icon), height: Val::Vw(eff_icon), ..default() };
             for (i, (kind, count)) in test_inv.items.iter().enumerate() {
                 let Some(icon) = tilekind_to_icon(kind, icons) else { continue };
                 let sel = !test_inv.remove_mode && test_inv.selected == Some(i);
@@ -215,7 +230,7 @@ pub fn spawn_test_inventory(commands: &mut Commands, test_inv: &TestInventory, i
                     Val::Px(SLOT_GLOW_SPREAD), Val::Px(SLOT_GLOW_BLUR));
                 c.spawn((Button, TestInventorySlot(i), border_for(sel), sn.clone(),
                     BackgroundColor(slot_bg()), glow)).with_children(|w| {
-                    w.spawn((icon_node(), ImageNode::new(icon)));
+                    w.spawn((in_node.clone(), ImageNode::new(icon)));
                     let cc = if *count > 0 { rgb(COUNT_AVAIL_COLOR) } else { rgb(COUNT_EMPTY_COLOR) };
                     w.spawn(Node { width: Val::Percent(100.0), justify_content: JustifyContent::Center,
                         position_type: PositionType::Absolute, bottom: Val::Px(2.0), ..default() })
@@ -224,7 +239,7 @@ pub fn spawn_test_inventory(commands: &mut Commands, test_inv: &TestInventory, i
             }
             c.spawn((Button, TestInventorySlot(usize::MAX), border_for(test_inv.remove_mode),
                 sn, BackgroundColor(Color::NONE),
-            )).with_child((icon_node(), ImageNode::new(icons.delete.clone())));
+            )).with_child((in_node, ImageNode::new(icons.delete.clone())));
         });
     });
 }

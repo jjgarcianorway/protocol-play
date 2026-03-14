@@ -311,8 +311,10 @@ pub fn adapt_camera(
     let distance = dist_usable_v.max(dist_h) * CAMERA_MARGIN;
     let dir = camera_direction();
     // Shift board upward: center it between top bar and inventory
+    // Divide by sin(elevation) to correct for the 30° camera angle
     let shift_px = (inv_px - top_px) / 2.0;
-    let shift = shift_px / window.height() * distance * 2.0 * (fov / 2.0).tan();
+    let elev_sin = CAMERA_ELEVATION.to_radians().sin();
+    let shift = shift_px / window.height() * distance * 2.0 * (fov / 2.0).tan() / elev_sin;
     let look_at = Vec3::new(0.0, -shift, 0.0);
     *transform = Transform::from_translation(look_at + dir * distance).looking_at(look_at, Vec3::Y);
     Ok(())
