@@ -4,7 +4,7 @@ A game built with [Bevy 0.18](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.20.5** — Fix CWD for player folders, revert tile colors to original, render-to-texture inventory icons
+**v0.20.6** — Rename binary to protocol-play-player, fix CWD for asset loading, render-to-texture icons
 
 ### Bot Game (Editor + Player)
 - **149 campaign levels** across 13 chapters, each introducing a new mechanic
@@ -58,23 +58,23 @@ Pre-built binaries for **Windows**, **macOS**, and **Linux**:
 [**Download latest release**](https://github.com/jjgarcianorway/protocol-play/releases/latest)
 
 ### Windows
-Extract the zip, open the folder, double-click `protocol-player.exe`.
+Extract the zip, open the folder, double-click `protocol-play-player.exe`.
 If Windows Defender blocks it, click "More info" → "Run anyway".
 
 ### macOS
 Double-click the `.tar.gz` to extract. Open Terminal (Cmd+Space → type "Terminal" → Enter):
 ```sh
-cd ~/Downloads/protocol-player-macos && xattr -cr . && chmod +x protocol-player && ./protocol-player
+cd ~/Downloads/protocol-play-player-macos && xattr -cr . && chmod +x protocol-play-player && ./protocol-play-player
 ```
 Next time, just:
 ```sh
-cd ~/Downloads/protocol-player-macos && ./protocol-player
+cd ~/Downloads/protocol-play-player-macos && ./protocol-play-player
 ```
 
 ### Linux
 ```sh
-tar xzf protocol-player-linux.tar.gz
-cd protocol-player-linux && chmod +x protocol-player && ./protocol-player
+tar xzf protocol-play-player-linux.tar.gz
+cd protocol-play-player-linux && chmod +x protocol-play-player && ./protocol-play-player
 ```
 
 ### Multiple players on the same computer

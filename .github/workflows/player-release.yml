@@ -29,15 +29,15 @@ jobs:
       - name: Package
         run: |
           mkdir bundle
-          copy target\x86_64-pc-windows-msvc\release\protocol-play.exe bundle\protocol-player.exe
+          copy target\x86_64-pc-windows-msvc\release\protocol-play.exe bundle\protocol-play-player.exe
           for %%f in (campaign_levels\*.json) do copy "%%f" "bundle\"
-          cd bundle && 7z a ../protocol-player-windows.zip *
+          cd bundle && 7z a ../protocol-play-player-windows.zip *
         shell: cmd
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: protocol-player-windows.zip
-          path: protocol-player-windows.zip
+          name: protocol-play-player-windows.zip
+          path: protocol-play-player-windows.zip
 
   build-macos:
     runs-on: macos-latest
@@ -55,15 +55,15 @@ jobs:
       - name: Package
         run: |
           mkdir bundle
-          cp target/aarch64-apple-darwin/release/protocol-play bundle/protocol-player
-          chmod +x bundle/protocol-player
+          cp target/aarch64-apple-darwin/release/protocol-play bundle/protocol-play-player
+          chmod +x bundle/protocol-play-player
           cp campaign_levels/*.json bundle/
-          cd bundle && tar czf ../protocol-player-macos.tar.gz .
+          cd bundle && tar czf ../protocol-play-player-macos.tar.gz .
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: protocol-player-macos.tar.gz
-          path: protocol-player-macos.tar.gz
+          name: protocol-play-player-macos.tar.gz
+          path: protocol-play-player-macos.tar.gz
 
   build-linux:
     runs-on: ubuntu-latest
@@ -81,15 +81,15 @@ jobs:
       - name: Package
         run: |
           mkdir bundle
-          cp target/release/protocol-play bundle/protocol-player
-          chmod +x bundle/protocol-player
+          cp target/release/protocol-play bundle/protocol-play-player
+          chmod +x bundle/protocol-play-player
           cp campaign_levels/*.json bundle/
-          cd bundle && tar czf ../protocol-player-linux.tar.gz .
+          cd bundle && tar czf ../protocol-play-player-linux.tar.gz .
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: protocol-player-linux.tar.gz
-          path: protocol-player-linux.tar.gz
+          name: protocol-play-player-linux.tar.gz
+          path: protocol-play-player-linux.tar.gz
 
   release:
     needs: [build-windows, build-macos, build-linux]
@@ -106,9 +106,9 @@ jobs:
 
       - name: Prepare release files
         run: |
-          cp artifacts/protocol-player-windows.zip/protocol-player-windows.zip .
-          cp artifacts/protocol-player-macos.tar.gz/protocol-player-macos.tar.gz .
-          cp artifacts/protocol-player-linux.tar.gz/protocol-player-linux.tar.gz .
+          cp artifacts/protocol-play-player-windows.zip/protocol-play-player-windows.zip .
+          cp artifacts/protocol-play-player-macos.tar.gz/protocol-play-player-macos.tar.gz .
+          cp artifacts/protocol-play-player-linux.tar.gz/protocol-play-player-linux.tar.gz .
 
       - name: Create release
         uses: softprops/action-gh-release@v2
@@ -118,12 +118,12 @@ jobs:
           body: |
             Player build with 149 campaign levels across 13 chapters.
 
-            **Windows**: Extract the zip, open the folder, run `protocol-player.exe`.
-            **macOS**: Extract, open the folder, then: `chmod +x protocol-player && ./protocol-player`
-            **Linux**: Extract, open the folder, then: `chmod +x protocol-player && ./protocol-player`
+            **Windows**: Extract the zip, open the folder, run `protocol-play-player.exe`.
+            **macOS**: Extract, open the folder, then: `chmod +x protocol-play-player && ./protocol-play-player`
+            **Linux**: Extract, open the folder, then: `chmod +x protocol-play-player && ./protocol-play-player`
 
             Use `--reset-stats` to clear all progress and start fresh.
           files: |
-            protocol-player-windows.zip
-            protocol-player-macos.tar.gz
-            protocol-player-linux.tar.gz
+            protocol-play-player-windows.zip
+            protocol-play-player-macos.tar.gz
+            protocol-play-player-linux.tar.gz
