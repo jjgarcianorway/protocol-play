@@ -177,7 +177,10 @@ pub fn move_bots(
             }
             BotPhase::FallingDecel => {
                 mov.speed = (mov.speed - BOT_ACCEL * dt).max(0.0); mov.progress += mov.speed * dt;
-                if mov.progress >= 0.5 { mov.progress = 0.5; mov.speed = 0.0; mov.phase = BotPhase::FallingPause(FALL_PAUSE); }
+                if mov.speed == 0.0 || mov.progress >= 0.5 {
+                    mov.progress = mov.progress.min(0.5); mov.speed = 0.0;
+                    mov.phase = BotPhase::FallingPause(FALL_PAUSE);
+                }
             }
             BotPhase::FallingPause(ref mut t) => { *t -= dt; if *t <= 0.0 { mov.phase = BotPhase::Falling(0.0); }
                 transform.translation = Vec3::new(mov.col as f32 - half, bot_y, mov.row as f32 - half); continue; }

@@ -383,6 +383,8 @@ pub fn handle_test_tile_click(
             if let Some(e) = test_inv.items.iter_mut().find(|(k, _)| *k == *kind) { e.1 += 1; }
             else { test_inv.items.push((*kind, 1)); test_inv.items.sort_by(|(a, _), (b, _)| tile_sort_key(a).cmp(&tile_sort_key(b))); }
         }
+        // Re-find the selected tile kind after potential sort shifted indices
+        let idx = test_inv.items.iter().position(|(k, _)| *k == tile_kind).unwrap();
         commands.entity(entity).despawn();
         crate::board::spawn_tile_at_scale(&mut commands, col, row, board_size.0, tile_kind, &assets, Vec3::ZERO);
         test_inv.items[idx].1 -= 1;

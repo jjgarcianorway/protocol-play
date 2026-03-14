@@ -4,10 +4,103 @@
   "tiles": [
     [
       0,
+      4,
+      "Floor",
+      false
+    ],
+    [
+      4,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      1,
       2,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      4,
+      4,
       {
-        "Goal": 0
+        "Source": [
+          1,
+          "North"
+        ]
       },
+      false
+    ],
+    [
+      2,
+      4,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      3,
+      {
+        "Source": [
+          3,
+          "East"
+        ]
+      },
+      false
+    ],
+    [
+      2,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      3,
+      {
+        "Arrow": [
+          3,
+          "South"
+        ]
+      },
+      true
+    ],
+    [
+      1,
+      4,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      1,
+      {
+        "Goal": 2
+      },
+      false
+    ],
+    [
+      0,
+      2,
+      "Floor",
       false
     ],
     [
@@ -17,11 +110,55 @@
       false
     ],
     [
+      2,
+      0,
+      {
+        "ArrowBut": [
+          3,
+          "South"
+        ]
+      },
+      true
+    ],
+    [
+      2,
+      2,
+      {
+        "Goal": 1
+      },
+      false
+    ],
+    [
+      3,
+      4,
+      {
+        "Goal": 3
+      },
+      false
+    ],
+    [
+      3,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      4,
+      2,
+      {
+        "Arrow": [
+          1,
+          "West"
+        ]
+      },
+      true
+    ],
+    [
       0,
       0,
       {
         "Source": [
-          9,
+          2,
           "East"
         ]
       },
@@ -29,24 +166,7 @@
     ],
     [
       1,
-      4,
-      {
-        "Source": [
-          0,
-          "North"
-        ]
-      },
-      false
-    ],
-    [
-      3,
-      0,
-      "Empty",
-      false
-    ],
-    [
-      2,
-      3,
+      1,
       "Floor",
       false
     ],
@@ -57,146 +177,26 @@
       false
     ],
     [
-      3,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      4,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      2,
-      {
-        "Arrow": [
-          0,
-          "West"
-        ]
-      },
-      true
-    ],
-    [
-      3,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      2,
-      {
-        "Goal": 9
-      },
-      false
-    ],
-    [
-      1,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      4,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      0,
-      {
-        "ArrowBut": [
-          0,
-          "South"
-        ]
-      },
-      true
-    ],
-    [
-      3,
-      4,
-      {
-        "Goal": 8
-      },
-      false
-    ],
-    [
       4,
       3,
       "Floor",
       false
     ],
     [
-      0,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      4,
-      0,
-      "Empty",
-      false
-    ],
-    [
-      4,
-      2,
-      {
-        "Source": [
-          8,
-          "South"
-        ]
-      },
-      false
-    ],
-    [
       4,
       1,
       "Floor",
       false
-    ],
-    [
-      2,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      4,
-      4,
-      {
-        "ArrowBut": [
-          9,
-          "West"
-        ]
-      },
-      true
     ]
   ],
   "solution": [
     [
-      1,
-      2,
+      3,
+      3,
       {
         "Arrow": [
-          0,
-          "West"
+          3,
+          "South"
         ]
       }
     ],
@@ -205,22 +205,22 @@
       0,
       {
         "ArrowBut": [
-          0,
+          3,
           "South"
         ]
       }
     ],
     [
       4,
-      4,
+      2,
       {
-        "ArrowBut": [
-          9,
+        "Arrow": [
+          1,
           "West"
         ]
       }
     ]
   ],
-  "seed": 15665168598859993170,
+  "seed": 5022930396346108552,
   "difficulty": 51
 }

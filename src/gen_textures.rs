@@ -8,7 +8,7 @@ use std::path::Path;
 use crate::constants::*;
 
 fn in_turn_shape(x: f32, y: f32, expand: f32) -> bool {
-    let half_width = 0.06 + expand;
+    let half_width = 0.10 + expand;
     if x > -expand && x < 0.75 + expand && y.abs() < half_width { return true; }
     if y > -(0.75 + expand) && y < expand && x.abs() < half_width { return true; }
     let end_r = half_width;
@@ -19,7 +19,7 @@ fn in_turn_shape(x: f32, y: f32, expand: f32) -> bool {
     false
 }
 
-fn in_turn_center(x: f32, y: f32) -> bool { (x * x + y * y).sqrt() < 0.14 }
+fn in_turn_center(x: f32, y: f32) -> bool { (x * x + y * y).sqrt() < 0.18 }
 
 fn in_star_shape(x: f32, y: f32, expand: f32) -> bool {
     let outer_r = 0.45 + expand;

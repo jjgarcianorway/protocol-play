@@ -39,19 +39,19 @@ pub const TOP_SLIDE_SHOW: f32 = 10.0;
 pub const BANNER_SLIDE_HIDE: f32 = -40.0;
 
 // === UI sizes ===
-pub const SLOT_VW: f32 = 4.9;
-pub const SLOT_HEIGHT_VW: f32 = 4.4;
-pub const ICON_VW: f32 = 4.3;
+pub const SLOT_VW: f32 = 5.8;
+pub const SLOT_HEIGHT_VW: f32 = 5.2;
+pub const ICON_VW: f32 = 5.0;
 pub const SLOT_BORDER_PX: f32 = 2.5;
-pub const ICON_SIZE: u32 = 128;
+pub const ICON_SIZE: u32 = 256;
 pub const TOP_BTN_SIZE: f32 = 44.0;
 pub const TOP_BTN_FONT: f32 = 26.0;
 pub const LABEL_FONT: f32 = 16.0;
 pub const COUNT_FONT: f32 = 14.0;
 pub const DIALOG_TITLE_FONT: f32 = 20.0;
 pub const DIALOG_BODY_FONT: f32 = 16.0;
-pub const TEX_SIZE: u32 = 128;
-pub const TEX_BORDER: u32 = 6;
+pub const TEX_SIZE: u32 = 256;
+pub const TEX_BORDER: u32 = 12;
 pub const TILE_TEX_SIZE: u32 = 1024;
 pub const TILE_TEX_BORDER: u32 = 16;
 pub const PLAY_BTN_SIZE: f32 = 52.0;
@@ -68,8 +68,8 @@ pub const COUNT_TEXT_ALPHA: f32 = 0.7;
 pub const DISABLED_BTN_ALPHA: f32 = 0.25;
 
 // Marker/highlight textures
-pub const MARKER_TEX_SIZE: u32 = 64;
-pub const HIGHLIGHT_TEX_BORDER: u32 = 4;
+pub const MARKER_TEX_SIZE: u32 = 128;
+pub const HIGHLIGHT_TEX_BORDER: u32 = 6;
 pub const HIGHLIGHT_TEX_COLOR: [u8; 4] = [255, 255, 255, 200];
 pub const INV_MARKER_BORDER: u32 = 3;
 pub const INV_MARKER_COLOR: [u8; 4] = [255, 220, 0, 200];
@@ -112,7 +112,7 @@ pub const SOURCE_COLORS: [(f32, f32, f32); NUM_COLORS] = [
     (0.271, 0.478, 0.827),  // 1 Blue        (69, 122, 211)
     (0.827, 0.651, 0.271),  // 2 Gold        (211, 166, 69)
     (0.271, 0.827, 0.584),  // 3 Green       (69, 211, 149)
-    (0.506, 0.271, 0.827),  // 4 Purple      (129, 69, 211)
+    (0.600, 0.340, 0.900),  // 4 Purple      (153, 87, 230)
     (0.827, 0.506, 0.271),  // 5 Orange      (211, 129, 69)
     (0.271, 0.757, 0.827),  // 6 Cyan        (69, 193, 211)
     (0.827, 0.271, 0.557),  // 7 Pink        (211, 69, 142)
@@ -182,7 +182,7 @@ pub const SIM_BTN_FONT: f32 = 20.0;
 pub const TILE_GRAY: [u8; 4] = [72, 78, 95, 255];
 pub const TILE_DARK: [u8; 4] = [45, 50, 65, 255];
 pub const SYMBOL_STROKE: [u8; 4] = [55, 60, 75, 255];
-pub const STROKE_EXPAND: f32 = 0.025;
+pub const STROKE_EXPAND: f32 = 0.030;
 pub const TURN_CENTER_BRIGHTNESS: f32 = 0.45;
 pub const ICON_WHITE: [u8; 4] = [150, 150, 150, 255];
 pub const ICON_DARK_BG: [u8; 4] = [35, 40, 55, 255];
