@@ -85,7 +85,7 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
         let mut row = sr as i32;
         let mut dir = sd;
         let mut current_color = ci;
-        let base_min = GEN_MIN_PATH_LENGTH.max((size as f32 * (0.4 + diff * 1.2)) as usize);
+        let base_min = GEN_MIN_PATH_LENGTH.max((size as f32 * (0.6 + diff * 1.0)) as usize);
         let min_len = ((base_min as f32 * bot_scale) as usize).max(GEN_MIN_PATH_LENGTH);
         let max_len = cell_budget.max(min_len + 2);
         let target = rng.gen_range(min_len..=max_len.max(min_len));
@@ -135,16 +135,17 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
             straight_run += 1;
             path_history.push((col, row, dir));
 
-            if steps > 1 && steps < target - 1 {
-                let straight_bonus = (straight_run as f32 * 0.12).min(0.4);
-                // Structural bonus: prefer placing mechanics at board features
+            // Minimum straight run before placing a mechanic — spreads tiles apart
+            let min_straight = 2 + (diff * 2.0) as u32; // 2 (easy) to 4 (hard)
+            if steps > 1 && steps < target - 1 && straight_run >= min_straight {
+                let straight_bonus = ((straight_run - min_straight) as f32 * 0.15).min(0.4);
                 let near_edge = (col == 0 || col == size as i32 - 1 || row == 0 || row == size as i32 - 1) as u8 as f32 * 0.15;
                 let near_center = {
                     let cx = (col as f32 - (size as f32 - 1.0) / 2.0).abs() / (size as f32 / 2.0);
                     let cy = (row as f32 - (size as f32 - 1.0) / 2.0).abs() / (size as f32 / 2.0);
                     if cx < 0.3 && cy < 0.3 { 0.1 } else { 0.0 }
                 };
-                let chance = (base_chance + straight_bonus + near_edge + near_center).min(0.95);
+                let chance = (base_chance + straight_bonus + near_edge + near_center).min(0.85);
                 if rng.gen_bool(chance as f64) {
                     if try_mechanic(&mut grid, &mut solution_positions,
                         &mut col, &mut row, &mut dir, size, rng, &config.weights, &mut teleport_num,
@@ -164,7 +165,7 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
     // Reject if paths cover less than 15% of the board (too concentrated)
     let total_floor: usize = bot_floor_paths.iter().map(|p| p.len()).sum();
     let coverage = total_floor as f32 / (size * size) as f32;
-    if coverage < 0.15 && size >= 5 { return None; }
+    if coverage < 0.25 && size >= 5 { return None; }
 
     // === Door chain interactions ===
     if config.door_chains > 0 && config.weights[8] > 0 {

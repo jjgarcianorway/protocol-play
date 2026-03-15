@@ -136,7 +136,7 @@ fn ch_w(ch: usize, pos: usize) -> [u32; GEN_NUM_WEIGHTS] {
 fn make_level(ch: usize, pos: usize, name: &str, board: u32, bots: u32, diff: u32) -> Level {
     let mut c = cfg(board, bots, diff, ch_w(ch, pos));
     if ch >= 2 { c.path_sharing = true; }
-    c.confusion_tiles = ch >= 2 && pos >= 2; // confusion tiles from chapter 2 onwards
+    c.confusion_tiles = pos >= 3; // confusion tiles in all chapters from level 4 onwards
     if ch >= 10 { c.door_chains = match pos { 0..=2=>1, 3..=5=>2, 6..=8=>3, _=>4 }; }
     let hole_base = if ch <= 2 { 8 } else if ch <= 6 { 15 } else { 20 };
     let pct = hole_base + pos as u32 * 2;

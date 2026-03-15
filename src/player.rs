@@ -177,7 +177,8 @@ fn load_level(
     apply_saved(&mut board_tiles, &progress.board_state);
     for &(col, row, kind) in &board_tiles { spawn_tile(commands, col, row, board_size.0, kind, assets); }
     test_inv.items = progress.inventory_state.clone().unwrap_or(default_inv);
-    test_inv.selected = None; test_inv.remove_mode = false;
+    test_inv.selected = if test_inv.items.is_empty() { None } else { Some(0) };
+    test_inv.remove_mode = false;
     selected_tool.0 = Tool::Floor;
     spawn_test_inventory(commands, test_inv, icons, first_load, font);
     spawn_player_buttons(commands, font, player_levels, progress, first_load);

@@ -292,7 +292,8 @@ pub fn add_confusion_tiles(
             .any(|&(dc, dr)| non_floor.contains(&((c+dc) as u32, (r+dr) as u32)))
     }).collect();
     let all: Vec<_> = tiles.iter().map(|t| (t.0, t.1, t.2)).collect();
-    let count = rng.gen_range(1..=3u32).min(floor_idxs.len() as u32);
+    let max_conf = (sol_kinds.len() as u32 / 2).max(2).min(6);
+    let count = rng.gen_range(2..=max_conf).min(floor_idxs.len() as u32);
     let mut used: HashSet<usize> = HashSet::new();
     for _ in 0..count * 4 {
         if used.len() >= count as usize { break; }

@@ -3,109 +3,31 @@
   "board_size": 5,
   "tiles": [
     [
-      0,
-      0,
+      4,
+      1,
       "Floor",
       false
     ],
     [
-      4,
       3,
+      0,
       "Empty",
       false
     ],
     [
-      4,
       0,
+      4,
       {
         "Source": [
           5,
-          "South"
+          "East"
         ]
       },
       false
     ],
     [
-      0,
-      4,
-      "Floor",
-      false
-    ],
-    [
-      4,
-      4,
-      {
-        "Turn": [
-          2,
-          "West"
-        ]
-      },
-      true
-    ],
-    [
-      2,
-      2,
-      "Switch",
-      true
-    ],
-    [
-      0,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      2,
-      {
-        "Door": false
-      },
-      false
-    ],
-    [
       1,
       2,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      4,
-      2,
-      {
-        "Turn": [
-          5,
-          "West"
-        ]
-      },
-      true
-    ],
-    [
-      1,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      4,
       {
         "Goal": 2
       },
@@ -113,6 +35,18 @@
     ],
     [
       3,
+      4,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      2,
+      "Switch",
+      false
+    ],
+    [
+      1,
       3,
       "Floor",
       false
@@ -120,104 +54,175 @@
     [
       1,
       4,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      0,
+      {
+        "Source": [
+          8,
+          "South"
+        ]
+      },
+      false
+    ],
+    [
+      2,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      4,
+      0,
       {
         "Source": [
           2,
-          "East"
+          "South"
         ]
       },
       false
     ],
     [
-      1,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      0,
-      "Empty",
-      false
-    ],
-    [
-      2,
       4,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      1,
-      {
-        "Turn": [
-          8,
-          "West"
-        ]
-      },
-      false
-    ],
-    [
-      0,
-      1,
-      {
-        "Source": [
-          8,
-          "East"
-        ]
-      },
-      false
-    ],
-    [
       3,
-      2,
       {
         "Goal": 5
       },
       false
     ],
     [
-      2,
       0,
+      3,
+      {
+        "Turn": [
+          8,
+          "North"
+        ]
+      },
+      true
+    ],
+    [
+      2,
+      3,
+      {
+        "Door": false
+      },
+      false
+    ],
+    [
+      3,
+      3,
       {
         "Goal": 8
       },
       false
     ],
     [
-      4,
       1,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      4,
+      4,
+      {
+        "Turn": [
+          5,
+          "West"
+        ]
+      },
+      true
+    ],
+    [
+      3,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      4,
+      2,
+      {
+        "Arrow": [
+          2,
+          "West"
+        ]
+      },
+      true
+    ],
+    [
+      2,
+      4,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      2,
       "Floor",
       false
     ]
   ],
   "solution": [
     [
-      4,
-      4,
+      0,
+      3,
       {
         "Turn": [
-          2,
-          "West"
+          8,
+          "North"
         ]
       }
     ],
     [
-      2,
-      2,
-      "Switch"
-    ],
-    [
       4,
-      2,
+      4,
       {
         "Turn": [
           5,
           "West"
         ]
       }
+    ],
+    [
+      4,
+      2,
+      {
+        "Arrow": [
+          2,
+          "West"
+        ]
+      }
     ]
   ],
-  "seed": 1574821583484640562,
-  "difficulty": 68
+  "seed": 16300273159763033797,
+  "difficulty": 73
 }

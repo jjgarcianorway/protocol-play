@@ -298,39 +298,21 @@ pub fn adapt_camera(
     let half_fov_v = fov / 2.0;
     let half_fov_h = (half_fov_v.tan() * aspect).atan();
     let dist_h = radius / half_fov_h.sin();
-    let is_player = cfg!(feature = "player");
-    let top_nav = TOP_SLIDE_SHOW + 30.0; // player nav bar height
-    // UI compensation: account for visible UI elements to center the board
-    let (inv_px, top_px) = if *play_mode == PlayMode::TestPlaying {
-        (0.0, 0.0) // everything hidden during simulation → fully centered
-    } else if *play_mode == PlayMode::Playing {
-        if is_player { (0.0, top_nav) } else { (0.0, 0.0) } // completed: nav bar only
-    } else if is_player {
-        // Player TestEditing: test inventory at bottom + nav bar at top
-        let vw = window.width() / 100.0;
-        (SLOT_HEIGHT_VW * vw + INVENTORY_PAD_VW * 2.0 * vw + COUNT_FONT + SLOT_BORDER_PX * 2.0 + INV_SLIDE_SHOW,
-         top_nav)
-    } else {
-        let vw = window.width() / 100.0;
-        let exp_px = expansion.iter().next()
-            .map(|n| match n.height { Val::Vw(v) => v * vw, _ => 0.0 })
-            .unwrap_or(0.0);
-        (SLOT_HEIGHT_VW * vw + INVENTORY_PAD_VW * 2.0 * vw + COUNT_FONT
-            + SLOT_BORDER_PX * 2.0 + INV_SLIDE_SHOW + exp_px,
-         TOP_BTN_SIZE + TOP_SLIDE_SHOW)
-    };
-    let usable_h = window.height() - inv_px - top_px;
-    let usable_fov_v = fov * (usable_h / window.height());
-    let half_usable_v = usable_fov_v / 2.0;
-    let dist_usable_v = radius / half_usable_v.sin();
-    // When playing (no UI), use a larger margin so the full board fits on screen
-    let margin = if inv_px == 0.0 && top_px == 0.0 { 1.15 } else { CAMERA_MARGIN };
-    let distance = dist_usable_v.max(dist_h) * margin;
-    let dir = camera_direction();
-    let shift_px = (inv_px - top_px) / 2.0;
+    let playing = matches!(*play_mode, PlayMode::Playing | PlayMode::TestPlaying);
+    let vw = window.width() / 100.0;
+    let inv_h = SLOT_HEIGHT_VW * vw + INVENTORY_PAD_VW * 2.0 * vw + COUNT_FONT
+        + SLOT_BORDER_PX * 2.0 + INV_SLIDE_SHOW;
+    // When playing: center at screen center (no shift). When editing: shift up for inventory.
+    let shift_px = if playing { 0.0 } else { inv_h / 2.0 };
+    let base_dist = radius / half_fov_v.sin();
     let elev_sin = CAMERA_ELEVATION.to_radians().sin();
-    let shift = shift_px / window.height() * distance * 2.0 * (fov / 2.0).tan() / elev_sin;
+    let shift = shift_px / window.height() * base_dist * 2.0 * half_fov_v.tan() / elev_sin;
     let look_at = Vec3::new(0.0, -shift, 0.0);
+    let usable_h = if playing { window.height() } else { (window.height() - inv_h).max(100.0) };
+    let usable_fov = fov * (usable_h / window.height());
+    let dist_v = radius / (usable_fov / 2.0).sin();
+    let distance = dist_v.max(dist_h) * CAMERA_MARGIN;
+    let dir = camera_direction();
     let target = Transform::from_translation(look_at + dir * distance).looking_at(look_at, Vec3::Y);
     // Slow cinematic lerp
     let speed = CAMERA_ZOOM_SPEED * time.delta_secs();

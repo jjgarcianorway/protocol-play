@@ -3,57 +3,98 @@
   "board_size": 5,
   "tiles": [
     [
+      0,
+      3,
+      "Floor",
+      false
+    ],
+    [
       1,
-      2,
+      4,
       {
-        "Goal": 0
+        "Bounce": 5
+      },
+      true
+    ],
+    [
+      4,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      4,
+      0,
+      {
+        "Source": [
+          2,
+          "West"
+        ]
       },
       false
     ],
     [
-      3,
+      0,
       2,
       "Floor",
       false
     ],
     [
-      1,
       3,
+      1,
       "Floor",
       false
     ],
     [
+      3,
       0,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      2,
       1,
       "Floor",
       false
     ],
     [
-      3,
       1,
+      3,
       {
-        "Turn": [
-          3,
+        "Source": [
+          8,
           "North"
         ]
       },
       false
     ],
     [
-      2,
       0,
-      "Empty",
+      0,
+      {
+        "Turn": [
+          2,
+          "East"
+        ]
+      },
       false
     ],
     [
       0,
-      4,
-      {
-        "Source": [
-          6,
-          "East"
-        ]
-      },
+      1,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      3,
+      "Floor",
       false
     ],
     [
@@ -63,39 +104,27 @@
       false
     ],
     [
-      1,
-      1,
-      {
-        "Source": [
-          3,
-          "East"
-        ]
-      },
+      4,
+      2,
+      "Floor",
       false
     ],
     [
       2,
-      1,
-      {
-        "Goal": 3
-      },
+      4,
+      "Floor",
       false
     ],
     [
-      0,
+      2,
       0,
       "Floor",
       false
     ],
     [
-      4,
-      0,
-      {
-        "Source": [
-          0,
-          "South"
-        ]
-      },
+      1,
+      2,
+      "Floor",
       false
     ],
     [
@@ -103,123 +132,94 @@
       4,
       {
         "Turn": [
-          6,
+          5,
           "West"
         ]
       },
       true
     ],
     [
+      3,
       2,
-      4,
       {
-        "Goal": 6
+        "Goal": 5
       },
       false
     ],
     [
-      4,
       2,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      4,
+      1,
+      {
+        "Goal": 8
+      },
+      false
+    ],
+    [
+      0,
+      4,
+      {
+        "Goal": 2
+      },
+      false
+    ],
+    [
+      1,
+      1,
       {
         "Turn": [
-          0,
-          "West"
+          8,
+          "East"
         ]
       },
       true
     ],
     [
-      3,
-      0,
-      "Empty",
-      false
-    ],
-    [
-      0,
-      2,
-      "Floor",
-      false
-    ],
-    [
       4,
-      1,
+      4,
       {
-        "Bounce": 3
+        "Source": [
+          5,
+          "West"
+        ]
       },
-      true
-    ],
-    [
-      0,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      4,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      4,
-      4,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      4,
-      "Floor",
       false
     ]
   ],
   "solution": [
     [
+      1,
+      4,
+      {
+        "Bounce": 5
+      }
+    ],
+    [
       3,
       4,
       {
         "Turn": [
-          6,
+          5,
           "West"
         ]
       }
     ],
     [
-      4,
-      2,
-      {
-        "Turn": [
-          0,
-          "West"
-        ]
-      }
-    ],
-    [
-      4,
+      1,
       1,
       {
-        "Bounce": 3
+        "Turn": [
+          8,
+          "East"
+        ]
       }
     ]
   ],
-  "seed": 1923661432165212372,
+  "seed": 17071929661863825012,
   "difficulty": 62
 }
