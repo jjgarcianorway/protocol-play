@@ -19,8 +19,11 @@ cp target/release/protocol-play target/release/protocol-play-player
 echo "Building gathering..."
 cargo build --release --features gathering
 cp target/release/protocol-play target/release/protocol-play-gathering
-echo "Copying campaign levels next to player binary..."
+echo "Copying campaign levels and icons next to player binary..."
 cp campaign_levels/*.json target/release/
+mkdir -p target/release/assets/icons target/release/assets/textures
+cp assets/icons/*.png target/release/assets/icons/ 2>/dev/null || true
+cp assets/textures/*.png target/release/assets/textures/ 2>/dev/null || true
 
 # Restore progress files
 if ls "$PROGRESS_BAK"/*.json "$PROGRESS_BAK"/*.jsonl 2>/dev/null | head -1 > /dev/null 2>&1; then

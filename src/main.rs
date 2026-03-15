@@ -59,13 +59,10 @@ fn main() {
         .insert_resource(TestInventory::default()).insert_resource(LevelValidated::default())
         .insert_resource(CursorBlinkTimer::default()).insert_resource(LoadedLevelName::default()).insert_resource(PendingSave::default()).insert_resource(ScrollbarDrag::default())
         .insert_resource(GenSettings::default()).insert_resource(GeneratorState::default())
-        .add_systems(Startup, (setup_scene, setup_ui))
-        .add_systems(Startup, icon_render::setup_icon_render.after(setup_ui).after(setup_scene));
+        .add_systems(Startup, (setup_scene, setup_ui));
     #[cfg(feature = "player")]
     app.add_systems(Startup, player::setup_player.after(setup_scene).after(setup_ui));
-    app.add_systems(Update, icon_render::update_icon_render
-            .run_if(resource_exists::<icon_render::IconRenderState>))
-        .add_systems(Update, (
+    app.add_systems(Update, (
             animate_node_width, update_hovered_cell,
             update_ghost_and_highlight.after(update_hovered_cell),
             animate_scale.after(update_ghost_and_highlight).after(move_bots).after(apply_bot_formation),
@@ -257,48 +254,17 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
     let f = fonts.add(Font::try_from_bytes(font_bytes).unwrap());
     commands.insert_resource(GameFont(f.clone()));
 
-    let ph = |images: &mut Assets<Image>| icon_render::create_placeholder(images);
-    let ph4 = |images: &mut Assets<Image>| [ph(images), ph(images), ph(images), ph(images)];
-    let phv = |images: &mut Assets<Image>, n: usize| (0..n).map(|_| ph(images)).collect::<Vec<_>>();
     let delete_icon = create_delete_icon(&mut images);
-
-    let floor_icon = ph(&mut images);
-    let source_icon = ph(&mut images);
-    let goal_icon = ph(&mut images);
-    let turn_icon = ph(&mut images);
-    let turnbut_icon = ph(&mut images);
-    let teleport_icon = ph(&mut images);
-    let teleportbut_icon = ph(&mut images);
-    let bounce_icon = ph(&mut images);
-    let bouncebot_icon = ph(&mut images);
-    let door_icon = ph(&mut images);
-    let switch_icon = ph(&mut images);
-    let switchbut_icon = ph(&mut images);
-    let painter_icon = ph(&mut images);
-    let arrow_icon = ph(&mut images);
-    let arrowbut_icon = ph(&mut images);
-
-    commands.insert_resource(InventoryIcons {
-        floor: floor_icon.clone(), source: source_icon.clone(),
-        goal: goal_icon.clone(), turn: turn_icon.clone(), delete: delete_icon.clone(),
-        source_dir_icons: ph4(&mut images), source_color_icons: phv(&mut images, NUM_COLORS * 4),
-        goal_color_icons: phv(&mut images, NUM_COLORS),
-        turn_dir_icons: ph4(&mut images), turn_color_icons: phv(&mut images, NUM_TURN_COLORS * 4),
-        turnbut: turnbut_icon.clone(), turnbut_dir_icons: ph4(&mut images),
-        turnbut_color_icons: phv(&mut images, NUM_COLORS * 4),
-        teleport: teleport_icon.clone(), teleport_color_icons: phv(&mut images, NUM_TELEPORT_COLORS),
-        teleportbut: teleportbut_icon.clone(), teleportbut_color_icons: phv(&mut images, NUM_COLORS),
-        bounce: bounce_icon.clone(), bounce_color_icons: phv(&mut images, NUM_BOUNCE_COLORS),
-        bouncebot: bouncebot_icon.clone(), bouncebot_color_icons: phv(&mut images, NUM_COLORS),
-        door: door_icon.clone(), door_open: ph(&mut images), door_closed: ph(&mut images),
-        switch: switch_icon.clone(), switch_color_icons: phv(&mut images, NUM_SWITCH_COLORS),
-        switchbut: switchbut_icon.clone(), switchbut_color_icons: phv(&mut images, NUM_COLORS),
-        painter: painter_icon.clone(), painter_color_icons: phv(&mut images, NUM_COLORS),
-        arrow: arrow_icon.clone(), arrow_dir_icons: ph4(&mut images),
-        arrow_color_icons: phv(&mut images, NUM_ARROW_COLORS * 4),
-        arrowbut: arrowbut_icon.clone(), arrowbut_dir_icons: ph4(&mut images),
-        arrowbut_color_icons: phv(&mut images, NUM_COLORS * 4),
-    });
+    let icons = icon_render::build_inventory_icons(&mut images, delete_icon.clone());
+    let floor_icon = icons.floor.clone(); let source_icon = icons.source.clone();
+    let goal_icon = icons.goal.clone(); let turn_icon = icons.turn.clone();
+    let turnbut_icon = icons.turnbut.clone(); let teleport_icon = icons.teleport.clone();
+    let teleportbut_icon = icons.teleportbut.clone(); let bounce_icon = icons.bounce.clone();
+    let bouncebot_icon = icons.bouncebot.clone(); let door_icon = icons.door.clone();
+    let switch_icon = icons.switch.clone(); let switchbut_icon = icons.switchbut.clone();
+    let painter_icon = icons.painter.clone(); let arrow_icon = icons.arrow.clone();
+    let arrowbut_icon = icons.arrowbut.clone();
+    commands.insert_resource(icons);
 
     // Top controls (editor only)
     if !cfg!(feature = "player") {

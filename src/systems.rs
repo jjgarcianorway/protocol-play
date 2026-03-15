@@ -393,6 +393,7 @@ pub fn sync_ui_play_mode(
     mut inv: Query<&mut UiBottomAnim, With<InventoryContainer>>,
     test_inv: Query<Entity, With<TestInventoryContainer>>,
     top_bar: Query<Entity, With<TopControlsBar>>,
+    test_top: Query<Entity, With<TestTopButtons>>,
 ) {
     if !play_mode.is_changed() { return; }
     let playing = matches!(*play_mode, PlayMode::Playing | PlayMode::TestPlaying);
@@ -412,8 +413,8 @@ pub fn sync_ui_play_mode(
             commands.entity(e).insert(UiBottomAnim { target: INV_SLIDE_SHOW, despawn_at_target: false });
         }
     }
-    // Top bar
-    for e in &top_bar {
+    // Top bar (editor + player nav)
+    for e in top_bar.iter().chain(test_top.iter()) {
         if playing {
             commands.entity(e).insert(UiTopAnim { target: TOP_SLIDE_HIDE, despawn_at_target: false });
         } else {

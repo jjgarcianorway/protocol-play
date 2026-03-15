@@ -30,6 +30,9 @@ impl Direction {
         }
     }
 
+    pub fn short(self) -> &'static str {
+        match self { Direction::North => "n", Direction::East => "e", Direction::South => "s", Direction::West => "w" }
+    }
     pub fn all() -> [Direction; 4] {
         [Direction::North, Direction::East, Direction::South, Direction::West]
     }

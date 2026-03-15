@@ -4,7 +4,7 @@ A game built with [Bevy 0.18](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.23.0** — Chapter title overlays, smooth background color transitions between chapters
+**v0.24.0** — 3D rendered inventory icons, rainbow color order, camera centering in play mode
 
 ### Bot Game (Editor + Player)
 - **149 campaign levels** across 13 chapters, each introducing a new mechanic

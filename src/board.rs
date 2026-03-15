@@ -298,9 +298,19 @@ pub fn adapt_camera(
     let half_fov_v = fov / 2.0;
     let half_fov_h = (half_fov_v.tan() * aspect).atan();
     let dist_h = radius / half_fov_h.sin();
-    let playing = matches!(*play_mode, PlayMode::Playing | PlayMode::TestPlaying);
-    // During play: no UI compensation (inventory and top bar are hidden)
-    let (inv_px, top_px) = if playing { (0.0, 0.0) } else {
+    let is_player = cfg!(feature = "player");
+    let top_nav = TOP_SLIDE_SHOW + 30.0; // player nav bar height
+    // UI compensation: account for visible UI elements to center the board
+    let (inv_px, top_px) = if *play_mode == PlayMode::TestPlaying {
+        (0.0, 0.0) // everything hidden during simulation → fully centered
+    } else if *play_mode == PlayMode::Playing {
+        if is_player { (0.0, top_nav) } else { (0.0, 0.0) } // completed: nav bar only
+    } else if is_player {
+        // Player TestEditing: test inventory at bottom + nav bar at top
+        let vw = window.width() / 100.0;
+        (SLOT_HEIGHT_VW * vw + INVENTORY_PAD_VW * 2.0 * vw + COUNT_FONT + SLOT_BORDER_PX * 2.0 + INV_SLIDE_SHOW,
+         top_nav)
+    } else {
         let vw = window.width() / 100.0;
         let exp_px = expansion.iter().next()
             .map(|n| match n.height { Val::Vw(v) => v * vw, _ => 0.0 })
@@ -320,8 +330,10 @@ pub fn adapt_camera(
     let shift = shift_px / window.height() * distance * 2.0 * (fov / 2.0).tan() / elev_sin;
     let look_at = Vec3::new(0.0, -shift, 0.0);
     let target = Transform::from_translation(look_at + dir * distance).looking_at(look_at, Vec3::Y);
-    // Smooth cinematic lerp
-    let speed = CAMERA_ZOOM_SPEED * time.delta_secs();
+    // Faster lerp during simulation (board centers), smooth otherwise
+    let sim = *play_mode == PlayMode::TestPlaying;
+    let base_speed = if sim { CAMERA_ZOOM_SPEED * 2.5 } else { CAMERA_ZOOM_SPEED };
+    let speed = base_speed * time.delta_secs();
     transform.translation = transform.translation.lerp(target.translation, speed);
     transform.rotation = transform.rotation.slerp(target.rotation, speed);
     Ok(())
