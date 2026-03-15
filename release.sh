@@ -24,14 +24,13 @@ echo "  Bumped Cargo.toml to $VERSION"
 sed -i "s/^\*\*v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\*\*.*$/\*\*$TAG\*\* — $DESC/" README.md
 echo "  Updated README.md status"
 
-# 3. Regenerate campaign levels
-echo "  Regenerating campaign levels..."
+# 3. Campaign levels (keep existing, only generate missing)
+echo "  Checking campaign levels..."
 cargo build --release --bin generate-campaign 2>&1 | grep -E "^(error|warning:.*generate)" || true
-rm -f campaign_levels/*.json
 ./target/release/generate-campaign
 rm -f levels/*.json
 cp campaign_levels/*.json levels/
-echo "  Campaign levels regenerated"
+echo "  Campaign levels ready"
 
 # 4. Build all binaries
 echo "  Building all binaries..."

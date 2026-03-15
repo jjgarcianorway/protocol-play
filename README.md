@@ -4,7 +4,7 @@ A game built with [Bevy 0.18](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.21.0** — Smarter level generator, varied messages, purposeful hole placement
+**v0.22.0** — Improved generator: minimal solutions, smarter confusion tiles, level seed preservation
 
 ### Bot Game (Editor + Player)
 - **149 campaign levels** across 13 chapters, each introducing a new mechanic

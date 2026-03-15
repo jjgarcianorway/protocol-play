@@ -28,19 +28,21 @@ use types::*;
 use level_gen_algo::*;
 
 fn main() {
+    let force = std::env::args().any(|a| a == "--force");
     let chapters = campaign_chapters();
     let out_dir = std::path::PathBuf::from("campaign_levels");
     let _ = std::fs::create_dir_all(&out_dir);
-    let mut total = 0u32;
-    let mut failed = 0u32;
+    let (mut total, mut kept, mut failed) = (0u32, 0u32, 0u32);
     for (ci, chapter) in chapters.iter().enumerate() {
         println!("\n=== Chapter {}: {} ===", ci + 1, chapter.name);
         for (li, level) in chapter.levels.iter().enumerate() {
             let (num, ch_num) = (li + 1, ci + 1);
             let filename = format!("{:02}_{:02}_{}", ch_num, num, sanitize(&level.name));
+            let path = out_dir.join(format!("{filename}.json"));
             print!("  [{ch_num}-{num:02}] {} ({}x{}, diff={}, bots={})... ",
                 level.name, level.config.board_size, level.config.board_size,
                 level.config.difficulty, level.config.num_bots);
+            if !force && path.exists() { println!("KEPT"); kept += 1; total += 1; continue; }
             let attempts = if level.config.num_bots >= 8 { 200000 }
                 else if level.config.num_bots >= 6 { 100000 }
                 else if level.config.num_bots >= 4 { 50000 } else { 20000 };
@@ -53,7 +55,7 @@ fn main() {
                         tiles, solution, seed: Some(seed), difficulty: Some(rating),
                     };
                     let json = serde_json::to_string_pretty(&data).unwrap();
-                    std::fs::write(out_dir.join(format!("{filename}.json")), json).unwrap();
+                    std::fs::write(&path, json).unwrap();
                     println!("OK (diff={rating})");
                     total += 1;
                 }
@@ -61,7 +63,7 @@ fn main() {
             }
         }
     }
-    println!("\n=== Done: {total} levels generated, {failed} failed ===");
+    println!("\n=== Done: {total} levels ({kept} kept, {} new), {failed} failed ===", total - kept);
 }
 
 fn generate_level(config: &GenConfig, max_attempts: usize)
@@ -103,7 +105,7 @@ fn cfg(board: u32, bots: u32, diff: u32, weights: [u32; GEN_NUM_WEIGHTS]) -> Gen
     GenConfig {
         board_size: board, num_bots: bots, difficulty: diff, weights,
         hole_percent: 20, hole_placement: HolePlacement::Both,
-        unique_solution: false, inventory_target: (board * 3 / 2).max(2).min(15),
+        unique_solution: false, inventory_target: board.max(2).min(12),
         door_chains: 0, path_sharing: false, confusion_tiles: false,
         required_tile: None,
     }

@@ -3,20 +3,131 @@
   "board_size": 6,
   "tiles": [
     [
+      2,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      4,
+      "Floor",
+      false
+    ],
+    [
+      5,
+      2,
+      {
+        "Door": false
+      },
+      false
+    ],
+    [
+      1,
+      2,
+      {
+        "ColorSwitchBut": 3
+      },
+      false
+    ],
+    [
+      1,
+      5,
+      {
+        "Door": false
+      },
+      false
+    ],
+    [
+      1,
+      0,
+      {
+        "Door": false
+      },
+      false
+    ],
+    [
       4,
       2,
-      "Floor",
+      {
+        "ColorSwitchBut": 2
+      },
       false
     ],
     [
+      0,
       3,
-      3,
-      "Floor",
+      {
+        "ColorSwitchBut": 1
+      },
+      false
+    ],
+    [
+      5,
+      5,
+      {
+        "Source": [
+          1,
+          "West"
+        ]
+      },
+      false
+    ],
+    [
+      2,
+      2,
+      {
+        "Goal": 0
+      },
       false
     ],
     [
       0,
       0,
+      {
+        "Source": [
+          0,
+          "South"
+        ]
+      },
+      false
+    ],
+    [
+      4,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      5,
+      {
+        "ColorSwitch": 1
+      },
+      false
+    ],
+    [
+      4,
+      0,
+      {
+        "Door": false
+      },
+      false
+    ],
+    [
+      3,
+      3,
+      {
+        "TurnBut": [
+          3,
+          "South"
+        ]
+      },
+      false
+    ],
+    [
+      2,
+      3,
       {
         "Source": [
           2,
@@ -27,82 +138,52 @@
     ],
     [
       2,
-      2,
-      {
-        "Door": false
-      },
-      false
-    ],
-    [
-      1,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      5,
-      2,
-      {
-        "ColorSwitchBut": 4
-      },
-      false
-    ],
-    [
-      5,
-      0,
-      {
-        "Source": [
-          3,
-          "South"
-        ]
-      },
-      false
-    ],
-    [
-      4,
-      5,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      5,
-      5,
-      {
-        "Door": false
-      },
-      false
-    ],
-    [
-      0,
-      2,
-      "Empty",
-      false
-    ],
-    [
-      3,
       4,
       "Floor",
       false
     ],
     [
-      3,
+      2,
       0,
       "Empty",
       false
     ],
     [
-      2,
+      3,
       0,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      5,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      2,
       {
         "Turn": [
+          0,
+          "North"
+        ]
+      },
+      true
+    ],
+    [
+      5,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      4,
+      5,
+      {
+        "TurnBut": [
           2,
-          "South"
+          "North"
         ]
       },
       false
@@ -114,21 +195,7 @@
       false
     ],
     [
-      0,
       1,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      1,
-      {
-        "Goal": 3
-      },
-      false
-    ],
-    [
-      2,
       3,
       {
         "Goal": 2
@@ -142,26 +209,20 @@
       false
     ],
     [
-      3,
-      1,
-      "Floor",
-      false
-    ],
-    [
       4,
-      3,
+      4,
       "Floor",
       false
     ],
     [
+      0,
       1,
-      5,
       "Floor",
       false
     ],
     [
       3,
-      5,
+      1,
       "Floor",
       false
     ],
@@ -172,70 +233,18 @@
       false
     ],
     [
-      1,
+      3,
       2,
       {
-        "Goal": 1
+        "ColorSwitchBut": 1
       },
       false
     ],
     [
-      4,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      0,
       3,
-      "Floor",
-      false
-    ],
-    [
-      1,
       4,
       {
-        "Turn": [
-          1,
-          "North"
-        ]
-      },
-      true
-    ],
-    [
-      2,
-      4,
-      "Switch",
-      true
-    ],
-    [
-      4,
-      4,
-      {
-        "Source": [
-          1,
-          "West"
-        ]
-      },
-      false
-    ],
-    [
-      0,
-      4,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      5,
-      1,
-      {
-        "Turn": [
+        "TurnBut": [
           3,
           "West"
         ]
@@ -243,41 +252,51 @@
       false
     ],
     [
-      4,
+      0,
+      5,
+      {
+        "Door": false
+      },
+      false
+    ],
+    [
+      5,
       1,
       "Floor",
       false
     ],
     [
-      2,
-      5,
-      "Floor",
+      4,
+      3,
+      {
+        "Goal": 1
+      },
       false
     ],
-    [
-      0,
-      5,
-      "Floor",
-      false
-    ]
-  ],
-  "solution": [
     [
       1,
       4,
       {
         "Turn": [
-          1,
+          2,
+          "North"
+        ]
+      },
+      false
+    ]
+  ],
+  "solution": [
+    [
+      0,
+      2,
+      {
+        "Turn": [
+          0,
           "North"
         ]
       }
-    ],
-    [
-      2,
-      4,
-      "Switch"
     ]
   ],
-  "seed": 16452087826612018055,
-  "difficulty": 83
+  "seed": 851623648259596225,
+  "difficulty": 79
 }

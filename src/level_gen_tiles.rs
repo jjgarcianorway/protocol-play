@@ -1,30 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-
 use rand::Rng;
 use std::collections::{HashMap, HashSet};
 use crate::constants::*;
 use crate::types::*;
-
 // === Helpers ===
 pub fn is_floor(grid: &HashMap<(u32, u32), TileKind>, pos: (u32, u32)) -> bool {
     matches!(grid.get(&pos), Some(TileKind::Floor))
 }
-
 pub fn in_bounds(c: i32, r: i32, size: u32) -> bool {
     c >= 0 && r >= 0 && c < size as i32 && r < size as i32
 }
-
 pub fn try_exit(grid: &HashMap<(u32, u32), TileKind>, col: i32, row: i32, dir: Direction, size: u32) -> bool {
     let (dc, dr) = dir.grid_delta();
     in_bounds(col + dc, row + dr, size) && !grid.contains_key(&((col + dc) as u32, (row + dr) as u32))
 }
-
 pub fn shuffle<T>(v: &mut Vec<T>, rng: &mut impl Rng) {
     for i in (1..v.len()).rev() { let j = rng.gen_range(0..=i); v.swap(i, j); }
 }
-
 fn but_color(ci: usize) -> usize { (ci + 1) % NUM_COLORS }
-
 pub fn possible_turns(bot_dir: Direction) -> Vec<(Direction, Direction)> {
     Direction::all().iter().filter_map(|&td| bot_dir.turn_exit(td).map(|exit| (td, exit))).collect()
 }
@@ -73,7 +66,6 @@ pub fn pick_start(
     }
     best.map(|(c, r, d, _)| (c, r, d))
 }
-
 // Goal placement with look-back: try current pos, then scan path history
 pub fn try_place_goal_lookback(
     grid: &mut HashMap<(u32, u32), TileKind>, col: i32, row: i32, ci: usize,
@@ -88,7 +80,6 @@ pub fn try_place_goal_lookback(
     }
     false
 }
-
 // Backtrack-and-redirect: scan back for a Floor tile to place a Turn/Arrow
 pub fn try_backtrack_redirect(
     grid: &mut HashMap<(u32, u32), TileKind>, solution: &mut HashSet<(u32, u32)>,
@@ -117,7 +108,6 @@ pub fn try_backtrack_redirect(
     }
     false
 }
-
 // === Turn ===
 fn try_turn_at(
     grid: &mut HashMap<(u32, u32), TileKind>, solution: &mut HashSet<(u32, u32)>,
@@ -139,7 +129,6 @@ fn try_turn_at(
     }
     false
 }
-
 // === Arrow ===
 fn try_arrow_at(
     grid: &mut HashMap<(u32, u32), TileKind>, solution: &mut HashSet<(u32, u32)>,
@@ -289,9 +278,18 @@ pub fn add_confusion_tiles(
 ) {
     let sol_kinds: Vec<TileKind> = tiles.iter().filter(|t| t.3).map(|t| t.2).collect();
     if sol_kinds.is_empty() { return; }
+    // Prefer floor tiles adjacent to non-floor (path) tiles — creates plausible false paths
+    let non_floor: HashSet<(u32, u32)> = tiles.iter()
+        .filter(|t| !matches!(t.2, TileKind::Floor | TileKind::Empty)).map(|t| (t.0, t.1)).collect();
     let floor_idxs: Vec<usize> = tiles.iter().enumerate()
         .filter(|(_, t)| !t.3 && matches!(t.2, TileKind::Floor)).map(|(i, _)| i).collect();
     if floor_idxs.is_empty() { return; }
+    // Score floors by adjacency to path: adjacent tiles first, then random
+    let adj_idxs: Vec<usize> = floor_idxs.iter().copied().filter(|&i| {
+        let (c, r) = (tiles[i].0 as i32, tiles[i].1 as i32);
+        [(0,1),(0,-1),(1,0),(-1,0)].iter()
+            .any(|&(dc, dr)| non_floor.contains(&((c+dc) as u32, (r+dr) as u32)))
+    }).collect();
     let all: Vec<_> = tiles.iter().map(|t| (t.0, t.1, t.2)).collect();
     let count = rng.gen_range(1..=3u32).min(floor_idxs.len() as u32);
     let mut used: HashSet<usize> = HashSet::new();
@@ -299,7 +297,9 @@ pub fn add_confusion_tiles(
         if used.len() >= count as usize { break; }
         let template = sol_kinds[rng.gen_range(0..sol_kinds.len())];
         let Some(ct) = confusion_variant(template, rng) else { continue };
-        let avail: Vec<_> = floor_idxs.iter().filter(|i| !used.contains(i)).copied().collect();
+        // Pick from adjacent tiles 80% of the time, fall back to any floor
+        let pool: &[usize] = if !adj_idxs.is_empty() && rng.gen_bool(0.8) { &adj_idxs } else { &floor_idxs };
+        let avail: Vec<_> = pool.iter().filter(|i| !used.contains(i)).copied().collect();
         if avail.is_empty() { break; }
         let idx = avail[rng.gen_range(0..avail.len())];
         let (c, r) = (tiles[idx].0, tiles[idx].1);

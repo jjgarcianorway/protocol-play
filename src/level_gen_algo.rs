@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-
 use bevy::prelude::*;
 use rand::Rng;
 use std::collections::{HashMap, HashSet};
@@ -7,7 +6,6 @@ use crate::constants::*;
 use crate::types::*;
 use crate::level_gen_sim::simulate_headless;
 use crate::level_gen_tiles::*;
-
 // === Configuration ===
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum HolePlacement { Edges, Middle, Both }
@@ -43,7 +41,6 @@ pub struct GenConfig {
     pub confusion_tiles: bool,
     pub required_tile: Option<fn(&TileKind) -> bool>,
 }
-
 // === Generator state ===
 pub enum GenPhase {
     Idle,
@@ -59,7 +56,6 @@ pub struct GeneratorState { pub phase: GenPhase }
 impl Default for GeneratorState {
     fn default() -> Self { Self { phase: GenPhase::Idle } }
 }
-
 // === Core generation ===
 pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(u32, u32, TileKind, bool)>, u32)> {
     let size = config.board_size;
@@ -154,11 +150,9 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
             }
         }
 
-        if !goal_placed {
-            if !try_place_goal_lookback(&mut grid, col, row, current_color, &path_history) {
-                return None;
-            }
-        }
+        if !goal_placed
+            && !try_place_goal_lookback(&mut grid, col, row, current_color, &path_history)
+        { return None; }
         if turns == 0 { return None; }
         bot_floor_paths.push(floor_path);
     }
@@ -213,30 +207,36 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
     for &(c, r) in &solution_positions { without.push((c, r, TileKind::Floor)); } // must fail
     if simulate_headless(size, &without) { return None; }
 
-    if config.inventory_target > 0 { // Inventory slider: bake in excess solution tiles
-        let target = config.inventory_target as usize;
+    // Minimal solution: strip every non-essential solution tile
+    {
         let mut sol_vec: Vec<(u32, u32)> = solution_positions.iter().copied().collect();
-        if sol_vec.len() > target {
-            shuffle(&mut sol_vec, rng);
-            let mut inventory: HashSet<(u32, u32)> = solution_positions.clone();
-            for &pos in &sol_vec {
-                if inventory.len() <= target { break; }
-                inventory.remove(&pos);
-                let mut stripped: Vec<_> = tiles.iter().map(|(c, r, k, _)| (*c, *r, *k)).collect();
-                for t in &mut stripped {
-                    if inventory.contains(&(t.0, t.1)) { t.2 = TileKind::Floor; }
-                }
-                if simulate_headless(size, &stripped) {
-                    inventory.insert(pos);
-                }
-            }
-            for t in &mut tiles { t.3 = inventory.contains(&(t.0, t.1)); }
+        shuffle(&mut sol_vec, rng);
+        let mut essential: HashSet<(u32, u32)> = solution_positions.clone();
+        for &pos in &sol_vec {
+            essential.remove(&pos);
+            let test: Vec<_> = tiles.iter().map(|(c, r, k, _)| {
+                if essential.contains(&(*c, *r)) { (*c, *r, TileKind::Floor) } else { (*c, *r, *k) }
+            }).collect();
+            if simulate_headless(size, &test) { essential.insert(pos); } // still needed
+        }
+        for t in &mut tiles { t.3 = essential.contains(&(t.0, t.1)); }
+    }
+    // Inventory slider: if still too many solution tiles, bake excess into the board
+    if config.inventory_target > 0 {
+        let inv_count = tiles.iter().filter(|t| t.3).count();
+        let tgt = config.inventory_target as usize;
+        if inv_count > tgt {
+            let mut si: Vec<usize> = tiles.iter().enumerate()
+                .filter(|(_, t)| t.3).map(|(i, _)| i).collect();
+            shuffle(&mut si, rng);
+            let mut baked = 0;
+            for &idx in &si { if inv_count - baked <= tgt { break; } tiles[idx].3 = false; baked += 1; }
         }
     }
 
-    if config.unique_solution { // Unique solution check
+    if config.unique_solution {
         let inv: Vec<(u32, u32)> = tiles.iter()
-            .filter(|(_, _, _, sol)| *sol).map(|(c, r, _, _)| (*c, *r)).collect();
+            .filter(|(_, _, _, s)| *s).map(|(c, r, _, _)| (*c, *r)).collect();
         if !inv.is_empty() {
             let floors: Vec<(u32, u32)> = tiles.iter()
                 .filter(|(_, _, k, sol)| !sol && matches!(k, TileKind::Floor))
