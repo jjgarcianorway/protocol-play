@@ -29,31 +29,24 @@ use level_gen_ui::*;
 use level_gen_interact::*;
 
 fn main() {
-    // Change CWD to the executable's directory so assets/textures/ and level files
-    // are found regardless of where the binary is launched from.
-    if let Some(exe_dir) = std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.to_path_buf())) {
-        let _ = std::env::set_current_dir(&exe_dir);
+    // Change CWD to exe directory so assets/textures/ and levels are found regardless of launch dir
+    if let Some(d) = std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.to_path_buf())) {
+        let _ = std::env::set_current_dir(&d);
     }
 
-    #[cfg(feature = "gathering")]
-    {
+    #[cfg(feature = "gathering")] {
         let mut app = App::new();
         app.add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window { title: "The Gathering".into(), ..default() }), ..default()
-        }));
+            primary_window: Some(Window { title: "The Gathering".into(), ..default() }), ..default() }));
         app.set_error_handler(bevy::ecs::error::warn);
-        gathering::build_app(&mut app);
-        app.run();
-        return;
+        gathering::build_app(&mut app); app.run(); return;
     }
-
     gen_textures::ensure_textures();
     let title = if cfg!(feature = "player") { "protocol: play (player)" } else { "protocol: play" };
     let mut app = App::new();
     app.set_error_handler(bevy::ecs::error::warn);
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window { title: title.into(), ..default() }), ..default()
-        }))
+            primary_window: Some(Window { title: title.into(), ..default() }), ..default() }))
         .insert_resource(ClearColor(Color::srgb(CLEAR_COLOR.0, CLEAR_COLOR.1, CLEAR_COLOR.2)))
         .insert_resource(GlobalAmbientLight { color: Color::srgb(AMBIENT_COLOR.0, AMBIENT_COLOR.1, AMBIENT_COLOR.2), brightness: AMBIENT_BRIGHTNESS, ..default() })
         .insert_resource(BoardSize(3))
@@ -71,8 +64,8 @@ fn main() {
     #[cfg(feature = "player")]
     app.add_systems(Startup, player::setup_player.after(setup_scene).after(setup_ui));
     app.add_systems(Update, icon_render::update_icon_render
-            .run_if(resource_exists::<icon_render::IconRenderState>));
-    app.add_systems(Update, (
+            .run_if(resource_exists::<icon_render::IconRenderState>))
+        .add_systems(Update, (
             animate_node_width, update_hovered_cell,
             update_ghost_and_highlight.after(update_hovered_cell),
             animate_scale.after(update_ghost_and_highlight).after(move_bots).after(apply_bot_formation),
@@ -87,8 +80,7 @@ fn main() {
             check_simulation_result.after(move_bots),
             spawn_simulation_overlay.after(check_simulation_result),
             adapt_camera, sync_ui_play_mode,
-        ));
-    #[cfg(not(feature = "player"))]
+        )); #[cfg(not(feature = "player"))]
     app.add_systems(Update, (
             button_interaction, inventory_interaction,
             update_inventory_visuals.after(inventory_interaction),
@@ -125,7 +117,6 @@ fn main() {
       app.add_systems(Update, player::cleanup_stale_inventory); }
     app.run();
 }
-
 fn setup_scene(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -401,4 +392,9 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
             });
     });
     }
+    // Version label — always visible in bottom-right corner
+    commands.spawn(Node { position_type: PositionType::Absolute, right: Val::Px(6.0),
+        bottom: Val::Px(4.0), ..default() })
+        .with_child((Text::new(format!("v{}", env!("CARGO_PKG_VERSION"))),
+            gf(VERSION_FONT, &f), TextColor(Color::srgba(1.0, 1.0, 1.0, 0.25))));
 }

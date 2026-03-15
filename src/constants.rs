@@ -225,8 +225,9 @@ pub const PAINT_TRANSITION_SPEED: f32 = 2.0; // color transitions per second
 pub const CRUSH_DURATION: f32 = 0.4;
 pub const CRUSH_EXPAND: f32 = 1.5;
 
-// Status bar
+// Status bar & version
 pub const STATUS_FONT: f32 = 15.0;
+pub const VERSION_FONT: f32 = 11.0;
 pub const STATUS_FADE_SPEED: f32 = 6.0;
 
 // Cursor & scrollbar
