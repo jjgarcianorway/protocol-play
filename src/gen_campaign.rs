@@ -105,7 +105,7 @@ fn cfg(board: u32, bots: u32, diff: u32, weights: [u32; GEN_NUM_WEIGHTS]) -> Gen
     GenConfig {
         board_size: board, num_bots: bots, difficulty: diff, weights,
         hole_percent: 20, hole_placement: HolePlacement::Both,
-        unique_solution: false, inventory_target: board.max(2).min(12),
+        unique_solution: false, inventory_target: 0, // set per-level in make_level
         door_chains: 0, path_sharing: false, confusion_tiles: false,
         required_tile: None,
     }
@@ -136,16 +136,19 @@ fn ch_w(ch: usize, pos: usize) -> [u32; GEN_NUM_WEIGHTS] {
 fn make_level(ch: usize, pos: usize, name: &str, board: u32, bots: u32, diff: u32) -> Level {
     let mut c = cfg(board, bots, diff, ch_w(ch, pos));
     if ch >= 2 { c.path_sharing = true; }
-    c.confusion_tiles = ch >= 3 && (pos >= 3 || ch >= 13);
+    c.confusion_tiles = ch >= 2 && pos >= 2; // confusion tiles from chapter 2 onwards
     if ch >= 10 { c.door_chains = match pos { 0..=2=>1, 3..=5=>2, 6..=8=>3, _=>4 }; }
-    let hole_base = if ch <= 2 { 5 } else if ch <= 6 { 10 } else { 15 };
-    let pct = hole_base + pos as u32;
+    let hole_base = if ch <= 2 { 8 } else if ch <= 6 { 15 } else { 20 };
+    let pct = hole_base + pos as u32 * 2;
     match pos % 3 {
         0 => { c.hole_placement = HolePlacement::Edges; c.hole_percent = pct; }
         1 => { c.hole_placement = HolePlacement::Middle; c.hole_percent = pct; }
         _ => { c.hole_percent = pct; }
     }
-    if matches!(ch, 2|4|6|8|12) { c.inventory_target = (2 + pos as u32).min(10); }
+    // More inventory tiles to place — scales with position and board size
+    let inv_min = 2 + (pos as u32 / 2); // 2-6 based on position
+    let inv_max = board.min(10);
+    c.inventory_target = inv_min.max(3).min(inv_max);
     // Intro levels must contain the chapter's new mechanic
     if pos == 0 {
         c.required_tile = match ch {

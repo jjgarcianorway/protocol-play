@@ -323,17 +323,17 @@ pub fn adapt_camera(
     let usable_fov_v = fov * (usable_h / window.height());
     let half_usable_v = usable_fov_v / 2.0;
     let dist_usable_v = radius / half_usable_v.sin();
-    let distance = dist_usable_v.max(dist_h) * CAMERA_MARGIN;
+    // When playing (no UI), use a larger margin so the full board fits on screen
+    let margin = if inv_px == 0.0 && top_px == 0.0 { 1.15 } else { CAMERA_MARGIN };
+    let distance = dist_usable_v.max(dist_h) * margin;
     let dir = camera_direction();
     let shift_px = (inv_px - top_px) / 2.0;
     let elev_sin = CAMERA_ELEVATION.to_radians().sin();
     let shift = shift_px / window.height() * distance * 2.0 * (fov / 2.0).tan() / elev_sin;
     let look_at = Vec3::new(0.0, -shift, 0.0);
     let target = Transform::from_translation(look_at + dir * distance).looking_at(look_at, Vec3::Y);
-    // Faster lerp during simulation (board centers), smooth otherwise
-    let sim = *play_mode == PlayMode::TestPlaying;
-    let base_speed = if sim { CAMERA_ZOOM_SPEED * 2.5 } else { CAMERA_ZOOM_SPEED };
-    let speed = base_speed * time.delta_secs();
+    // Slow cinematic lerp
+    let speed = CAMERA_ZOOM_SPEED * time.delta_secs();
     transform.translation = transform.translation.lerp(target.translation, speed);
     transform.rotation = transform.rotation.slerp(target.rotation, speed);
     Ok(())

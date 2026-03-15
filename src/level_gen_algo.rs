@@ -72,9 +72,12 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
     let bot_scale = if config.num_bots <= 2 { 1.0 } else { (2.5 / nb).max(0.4) };
     let cell_budget = total_cells * 2 / (config.num_bots.max(2) as usize + 1);
 
+    // Spread colors apart to avoid similar adjacent colors in rainbow order
+    let color_step = NUM_COLORS / config.num_bots.max(1) as usize;
+    let color_step = color_step.max(2); // at least 2 apart
     let color_offset: usize = rng.gen_range(0..NUM_COLORS);
     for bot_idx in 0..config.num_bots {
-        let ci = (bot_idx as usize + color_offset) % NUM_COLORS;
+        let ci = (bot_idx as usize * color_step + color_offset) % NUM_COLORS;
         let (sc, sr, sd) = pick_start(size, rng, &grid)?;
         grid.insert((sc, sr), TileKind::Source(ci, sd));
 
@@ -208,12 +211,15 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
     for &(c, r) in &solution_positions { without.push((c, r, TileKind::Floor)); } // must fail
     if simulate_headless(size, &without) { return None; }
 
-    // Minimal solution: strip every non-essential solution tile
+    // Strip solution tiles down to inventory_target (not to absolute minimum).
+    // This keeps enough tiles for the player to have a satisfying puzzle.
     {
+        let tgt = if config.inventory_target > 0 { config.inventory_target as usize } else { 1 };
         let mut sol_vec: Vec<(u32, u32)> = solution_positions.iter().copied().collect();
         shuffle(&mut sol_vec, rng);
         let mut essential: HashSet<(u32, u32)> = solution_positions.clone();
         for &pos in &sol_vec {
+            if essential.len() <= tgt { break; } // keep at least target tiles
             essential.remove(&pos);
             let test: Vec<_> = tiles.iter().map(|(c, r, k, _)| {
                 if essential.contains(&(*c, *r)) { (*c, *r, TileKind::Floor) } else { (*c, *r, *k) }
@@ -221,18 +227,6 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
             if simulate_headless(size, &test) { essential.insert(pos); } // still needed
         }
         for t in &mut tiles { t.3 = essential.contains(&(t.0, t.1)); }
-    }
-    // Inventory slider: if still too many solution tiles, bake excess into the board
-    if config.inventory_target > 0 {
-        let inv_count = tiles.iter().filter(|t| t.3).count();
-        let tgt = config.inventory_target as usize;
-        if inv_count > tgt {
-            let mut si: Vec<usize> = tiles.iter().enumerate()
-                .filter(|(_, t)| t.3).map(|(i, _)| i).collect();
-            shuffle(&mut si, rng);
-            let mut baked = 0;
-            for &idx in &si { if inv_count - baked <= tgt { break; } tiles[idx].3 = false; baked += 1; }
-        }
     }
 
     if config.unique_solution {

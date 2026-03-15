@@ -4,47 +4,7 @@
   "tiles": [
     [
       0,
-      3,
-      {
-        "Goal": 8
-      },
-      false
-    ],
-    [
-      0,
       1,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      0,
-      {
-        "Goal": 0
-      },
-      false
-    ],
-    [
-      2,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      3,
       "Floor",
       false
     ],
@@ -52,65 +12,35 @@
       3,
       3,
       {
-        "Arrow": [
-          8,
-          "West"
-        ]
+        "Goal": 7
       },
       false
     ],
     [
-      1,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      3,
       2,
-      "Floor",
+      0,
+      {
+        "Goal": 2
+      },
       false
     ],
     [
       0,
-      2,
+      3,
       {
         "Source": [
-          0,
+          2,
           "North"
         ]
       },
       false
     ],
     [
-      3,
-      1,
-      {
-        "Source": [
-          8,
-          "South"
-        ]
-      },
-      false
-    ],
-    [
-      1,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      2,
-      "Floor",
-      false
-    ],
-    [
       0,
       0,
       {
         "Arrow": [
-          0,
+          2,
           "East"
         ]
       },
@@ -118,8 +48,78 @@
     ],
     [
       2,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      3,
+      {
+        "Arrow": [
+          7,
+          "East"
+        ]
+      },
+      true
+    ],
+    [
+      1,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      3,
       2,
       "Floor",
+      false
+    ],
+    [
+      3,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      1,
+      {
+        "Source": [
+          7,
+          "South"
+        ]
+      },
       false
     ]
   ],
@@ -129,12 +129,22 @@
       0,
       {
         "Arrow": [
-          0,
+          2,
+          "East"
+        ]
+      }
+    ],
+    [
+      1,
+      3,
+      {
+        "Arrow": [
+          7,
           "East"
         ]
       }
     ]
   ],
-  "seed": 4200505092410124618,
+  "seed": 3279620907504002205,
   "difficulty": 39
 }

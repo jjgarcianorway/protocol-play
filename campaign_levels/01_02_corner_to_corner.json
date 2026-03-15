@@ -3,12 +3,12 @@
   "board_size": 4,
   "tiles": [
     [
-      3,
-      0,
+      1,
+      1,
       {
         "Turn": [
           6,
-          "South"
+          "East"
         ]
       },
       true
@@ -20,50 +20,7 @@
       false
     ],
     [
-      3,
       1,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      0,
-      {
-        "Source": [
-          6,
-          "East"
-        ]
-      },
-      false
-    ],
-    [
-      2,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      0,
-      {
-        "Goal": 7
-      },
-      false
-    ],
-    [
-      1,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      3,
       3,
       {
         "Goal": 6
@@ -71,14 +28,49 @@
       false
     ],
     [
+      0,
       1,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      3,
       3,
       "Floor",
       false
     ],
     [
       1,
-      1,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      0,
+      {
+        "Turn": [
+          1,
+          "East"
+        ]
+      },
+      true
+    ],
+    [
+      2,
+      0,
       "Floor",
       false
     ],
@@ -87,37 +79,45 @@
       3,
       {
         "Source": [
-          7,
+          1,
           "North"
         ]
       },
       false
     ],
     [
-      0,
-      0,
+      3,
+      1,
       {
-        "Turn": [
-          7,
-          "East"
+        "Source": [
+          6,
+          "West"
         ]
       },
       false
     ],
     [
+      1,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      2,
+      "Floor",
+      false
+    ],
+    [
       3,
-      2,
-      "Floor",
+      0,
+      {
+        "Goal": 1
+      },
       false
     ],
     [
-      0,
       2,
-      "Floor",
-      false
-    ],
-    [
-      0,
       1,
       "Floor",
       false
@@ -125,16 +125,26 @@
   ],
   "solution": [
     [
-      3,
-      0,
+      1,
+      1,
       {
         "Turn": [
           6,
-          "South"
+          "East"
+        ]
+      }
+    ],
+    [
+      0,
+      0,
+      {
+        "Turn": [
+          1,
+          "East"
         ]
       }
     ]
   ],
-  "seed": 4153958144678015415,
+  "seed": 5894857645405431891,
   "difficulty": 39
 }

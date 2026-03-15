@@ -46,8 +46,6 @@ struct IconQueue {
     done: bool,
 }
 
-/// Thinner tile height for icon rendering (50% of game tiles)
-const ICON_TILE_HEIGHT: f32 = TILE_HEIGHT * 0.5;
 
 fn main() {
     gen_textures::ensure_textures();
@@ -82,11 +80,11 @@ fn setup_icon_scene(
     mut images: ResMut<Assets<Image>>,
     board_size: Res<BoardSize>,
 ) {
-    // Use thinner floor mesh for icon rendering
+    // Same tile height as the real game
     let floor_texture = create_tile_texture(&mut images, TILE_TEX_SIZE, TILE_TEX_BORDER);
     let floor_material = materials.add(StandardMaterial { base_color_texture: Some(floor_texture.clone()),
         base_color: Color::srgb(FLOOR_TINT.0, FLOOR_TINT.1, FLOOR_TINT.2), perceptual_roughness: 0.6, ..default() });
-    let floor_mesh = meshes.add(Cuboid::new(1.0, ICON_TILE_HEIGHT, 1.0));
+    let floor_mesh = meshes.add(Cuboid::new(1.0, TILE_HEIGHT, 1.0));
     let ghost_floor_material = materials.add(StandardMaterial {
         base_color_texture: Some(floor_texture), base_color: Color::srgba(1.0, 1.0, 1.0, GHOST_ALPHA),
         alpha_mode: AlphaMode::Blend, ..default() });
@@ -193,7 +191,6 @@ fn setup_icon_scene(
             low_frequency_boost_curvature: 0.7, high_pass_frequency: 1.0, ..default() },
         Transform::from_translation(camera_direction() * 5.0).looking_at(Vec3::ZERO, Vec3::Y)));
 
-    // Floor icon generated after screenshots (see icon_step done handler)
 
     let items = build_icon_list();
     println!("Generating {} icon PNGs...", items.len());
@@ -212,12 +209,13 @@ fn icon_camera(
     let Ok((mut transform, projection)) = cameras.single_mut() else { return };
     let aspect = window.width() / window.height();
     let fov = match projection { Projection::Perspective(p) => p.fov, _ => return };
+    // Exact same camera as the real game — just framing a 1x1 board
     let radius = board_bounding_radius(board_size.0);
     let half_fov_v = fov / 2.0;
     let half_fov_h = (half_fov_v.tan() * aspect).atan();
     let dist_h = radius / half_fov_h.sin();
     let dist_v = radius / half_fov_v.sin();
-    let distance = dist_v.max(dist_h) * 0.90; // wider margin than game to avoid cropping
+    let distance = dist_v.max(dist_h) * CAMERA_MARGIN;
     let dir = camera_direction();
     let target = Transform::from_translation(dir * distance).looking_at(Vec3::ZERO, Vec3::Y);
     transform.translation = target.translation;
@@ -229,25 +227,11 @@ fn icon_step(
     mut queue: ResMut<IconQueue>,
     assets: Res<GameAssets>,
     board_size: Res<BoardSize>,
-    mut clear_color: ResMut<ClearColor>,
 ) {
     if queue.done { return; }
     if queue.index >= queue.items.len() && queue.current_tiles.is_empty() {
-        // Generate floor icon with matching background from a real screenshot
-        let s = ICON_SIZE;
-        if let Ok(ref_img) = image::open("assets/icons/source_0_n.png") {
-            let ref_rgba = ref_img.to_rgba8();
-            let bg = ref_rgba.get_pixel(0, 0).0; // corner = background color
-            let mut floor_icon = image::RgbaImage::from_pixel(s, s, image::Rgba(bg));
-            let border = 4u32;
-            let margin = (s as f32 * 0.15) as u32;
-            for y in margin..s-margin { for x in margin..s-margin {
-                let (lx, ly, tw) = (x - margin, y - margin, s - 2 * margin);
-                let on_edge = lx < border || lx >= tw - border || ly < border || ly >= tw - border;
-                floor_icon.put_pixel(x, y, image::Rgba(if on_edge { TILE_DARK } else { TILE_GRAY }));
-            }}
-            let _ = floor_icon.save("assets/icons/floor.png");
-        }
+        // Wait extra frames for the last screenshot observer to fire
+        if queue.wait_frames > 0 { queue.wait_frames -= 1; return; }
         println!("\nDone! Generated {} icons in assets/icons/", queue.items.len());
         queue.done = true;
         std::process::exit(0);
@@ -279,15 +263,11 @@ fn icon_step(
         queue.current_tiles.clear();
         let idx = queue.index - 1;
         print!("\r  [{}/{}] {}                    ", queue.index, queue.items.len(), queue.items[idx].0);
+        // If this was the last tile, wait extra frames for screenshot to save
+        if queue.index >= queue.items.len() { queue.wait_frames = 5; }
     }
     if queue.index < queue.items.len() {
         let kind = queue.items[queue.index].1;
-        // Use dark background for Floor so the tile is visible
-        if matches!(kind, TileKind::Floor) {
-            clear_color.0 = Color::srgb(0.15, 0.15, 0.18);
-        } else {
-            clear_color.0 = Color::srgb(CLEAR_COLOR.0, CLEAR_COLOR.1, CLEAR_COLOR.2);
-        }
         let entity = spawn_tile_at_scale(&mut commands, 0, 0, board_size.0, kind, &assets, Vec3::ONE);
         queue.current_tiles.push(entity);
         queue.index += 1;
@@ -301,7 +281,6 @@ fn build_icon_list() -> Vec<(String, TileKind)> {
     let mut push = |k: TileKind| { q.push((icon_render::tile_filename(k), k)); };
 
     // Colored variants first (textures warm up during these)
-    push(TileKind::Floor);
     for d in Direction::all() { push(TileKind::Source(0, d)); }
     for ci in 0..NUM_COLORS { for d in Direction::all() { push(TileKind::Source(ci, d)); } }
     for ci in 0..NUM_COLORS { push(TileKind::Goal(ci)); }
@@ -347,5 +326,6 @@ fn build_icon_list() -> Vec<(String, TileKind)> {
     push(TileKind::ArrowBut(NUM_COLORS, Direction::North));
     push(TileKind::ColorSwitch(NUM_COLORS));
     push(TileKind::ColorSwitchBut(NUM_COLORS));
+    push(TileKind::Floor); // last — needs all GPU resources loaded
     q
 }
