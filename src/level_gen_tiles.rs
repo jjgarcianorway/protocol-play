@@ -45,6 +45,16 @@ pub fn pick_start(
         let (c, r) = empty[rng.gen_range(0..empty.len())];
         let mut dirs = Direction::all().to_vec();
         shuffle(&mut dirs, rng);
+        // Prefer directions pointing toward the board center
+        let (cx, cy) = (size as f32 / 2.0 - c as f32, size as f32 / 2.0 - r as f32);
+        dirs.sort_by(|a, b| {
+            let (da, db) = (a.grid_delta(), b.grid_delta());
+            let dot_a = da.0 as f32 * cx + da.1 as f32 * cy;
+            let dot_b = db.0 as f32 * cx + db.1 as f32 * cy;
+            dot_b.partial_cmp(&dot_a).unwrap_or(std::cmp::Ordering::Equal)
+        });
+        // Add some randomness: 40% chance to swap top two choices
+        if dirs.len() >= 2 && rng.gen_bool(0.4) { dirs.swap(0, 1); }
         for d in &dirs {
             let (dc, dr) = d.grid_delta();
             let (nc, nr) = (c as i32 + dc, r as i32 + dr);

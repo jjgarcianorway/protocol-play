@@ -2,7 +2,7 @@
 #![allow(clippy::too_many_arguments, clippy::type_complexity, clippy::collapsible_if)]
 
 mod constants; mod types; mod textures; mod gen_textures; mod board;
-mod ui_helpers; mod slot_ui; mod inventory; mod systems; mod simulation;
+mod ui_helpers; mod slot_ui; mod inventory; mod systems; mod simulation; mod messages;
 mod bot_formation; mod mat_helpers; mod test_mode; mod level_io; mod save_dialog;
 mod level_gen_sim; mod level_gen_tiles; mod level_gen_algo; mod level_gen_ui; mod level_gen_interact;
 mod icon_render;

@@ -5,6 +5,7 @@ use crate::constants::*;
 use crate::types::*;
 use crate::ui_helpers::*;
 use crate::board::tile_world_pos;
+use crate::messages::{pick_error_msg, pick_success_msg};
 
 // === Simulation types (moved from types.rs for line budget) ===
 #[derive(Clone, Copy, PartialEq)] #[allow(dead_code)]
@@ -101,20 +102,13 @@ pub fn play_stop_interaction(
         commands.remove_resource::<PlayTimer>();
         for (e, _, kind, _) in tiles.iter() { if matches!(*kind, TileKind::Empty) { commands.entity(e).insert(TargetScale(Vec3::ONE)); } }
         for (col, row, was_open) in door_states.0.drain(..) {
-            for (_, coord, mut kind, children) in &mut tiles {
-                if coord.col == col && coord.row == row {
-                    if let TileKind::Door(ref mut open) = *kind { if *open != was_open {
-                        *open = was_open;
-                        let mat = if was_open { assets.door_open_material.clone() }
-                            else { assets.door_closed_material.clone() };
-                        if let Some(children) = children {
-                            for child in children.iter() {
-                                if let Ok(mut m) = mat_q.get_mut(child) { m.0 = mat.clone(); }
-                            }
-                        }
-                    }} break;
-                }
-            }
+            if let Some((_, _, mut kind, children)) = tiles.iter_mut()
+                .find(|(_, c, _, _)| c.col == col && c.row == row)
+            { if let TileKind::Door(ref mut open) = *kind { if *open != was_open {
+                *open = was_open;
+                let mat = if was_open { assets.door_open_material.clone() } else { assets.door_closed_material.clone() };
+                if let Some(ch) = children { for c in ch.iter() { if let Ok(mut m) = mat_q.get_mut(c) { m.0 = mat.clone(); } } }
+            }}}
         }
     }
     Ok(())
@@ -285,7 +279,7 @@ pub fn toggle_doors(
             && !matches!(mov.phase, BotPhase::Falling(_) | BotPhase::Stopped | BotPhase::Crushing(_))
         {
             mov.phase = BotPhase::Crushing(0.0); mov.speed = 0.0;
-            if sim_result.result.is_none() { sim_result.result = Some(SimResult::Error("Bot was crushed by a door!")); }
+            if sim_result.result.is_none() { sim_result.result = Some(SimResult::Error(pick_error_msg(true))); }
         }
     }}
 }
@@ -299,8 +293,7 @@ pub fn check_simulation_result(
     for mov in &bots { count += 1; match mov.phase {
         BotPhase::Falling(_) | BotPhase::Crushing(_) => {
             if sim_result.result.is_none() {
-                let msg = if matches!(mov.phase, BotPhase::Crushing(_)) { "Bot was crushed by a door!" } else { "Bot fell off the board!" };
-                sim_result.result = Some(SimResult::Error(msg));
+                sim_result.result = Some(SimResult::Error(pick_error_msg(matches!(mov.phase, BotPhase::Crushing(_)))));
             } return;
         }
         BotPhase::Spinning => {
@@ -326,11 +319,7 @@ pub fn spawn_simulation_overlay(
     let bot_count = bots.iter().count();
     let (msg, color, btn_text): (String, Color, &str) = match &sim_result.result {
         Some(SimResult::Error(s)) => (s.to_string(), rgb(SIM_ERROR_COLOR), "Stop"),
-        Some(SimResult::Success) if in_test && pieces_left > 0 =>
-            ("Solved with pieces to spare!".into(), rgb(SIM_SUCCESS_COLOR), "Continue"),
-        Some(SimResult::Success) if bot_count == 1 =>
-            ("Bot reached its goal!".into(), rgb(SIM_SUCCESS_COLOR), "Continue"),
-        Some(SimResult::Success) => ("All bots reached their goals!".into(), rgb(SIM_SUCCESS_COLOR), "Continue"),
+        Some(SimResult::Success) => (pick_success_msg(bot_count, pieces_left, in_test), rgb(SIM_SUCCESS_COLOR), "Continue"),
         None => return,
     };
     let stats = sim_result.stats_lines.clone();

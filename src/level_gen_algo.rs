@@ -60,7 +60,6 @@ impl Default for GeneratorState {
     fn default() -> Self { Self { phase: GenPhase::Idle } }
 }
 
-
 // === Core generation ===
 pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(u32, u32, TileKind, bool)>, u32)> {
     let size = config.board_size;
@@ -138,7 +137,14 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
 
             if steps > 1 && steps < target - 1 {
                 let straight_bonus = (straight_run as f32 * 0.12).min(0.4);
-                let chance = (base_chance + straight_bonus).min(0.95);
+                // Structural bonus: prefer placing mechanics at board features
+                let near_edge = (col == 0 || col == size as i32 - 1 || row == 0 || row == size as i32 - 1) as u8 as f32 * 0.15;
+                let near_center = {
+                    let cx = (col as f32 - (size as f32 - 1.0) / 2.0).abs() / (size as f32 / 2.0);
+                    let cy = (row as f32 - (size as f32 - 1.0) / 2.0).abs() / (size as f32 / 2.0);
+                    if cx < 0.3 && cy < 0.3 { 0.1 } else { 0.0 }
+                };
+                let chance = (base_chance + straight_bonus + near_edge + near_center).min(0.95);
                 if rng.gen_bool(chance as f64) {
                     if try_mechanic(&mut grid, &mut solution_positions,
                         &mut col, &mut row, &mut dir, size, rng, &config.weights, &mut teleport_num,
@@ -157,39 +163,57 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
         bot_floor_paths.push(floor_path);
     }
 
+    // Reject if paths cover less than 15% of the board (too concentrated)
+    let total_floor: usize = bot_floor_paths.iter().map(|p| p.len()).sum();
+    let coverage = total_floor as f32 / (size * size) as f32;
+    if coverage < 0.15 && size >= 5 { return None; }
+
     // === Door chain interactions ===
     if config.door_chains > 0 && config.weights[8] > 0 {
         place_door_chains(&mut grid, &mut solution_positions, &bot_floor_paths, rng, config.door_chains as usize);
     }
 
-    // Fill remaining positions
-    for r in 0..size {
-        for c in 0..size {
-            if !grid.contains_key(&(c, r)) {
-                let eligible = config.hole_placement.is_eligible(c, r, size);
-                let hole = eligible && config.hole_percent > 0
-                    && rng.gen_range(0u32..100) < config.hole_percent;
-                grid.insert((c, r), if hole { TileKind::Empty } else { TileKind::Floor });
-            }
+    // Purposeful hole placement — score cells by edge proximity and path distance
+    let empties: Vec<(u32, u32)> = (0..size).flat_map(|r| (0..size).map(move |c| (c, r)))
+        .filter(|p| !grid.contains_key(p)).collect();
+    if config.hole_percent > 0 && !empties.is_empty() {
+        let path_cells: HashSet<(u32, u32)> = grid.keys().copied().collect();
+        let mut scored: Vec<(u32, u32, f32)> = empties.iter().map(|&(c, r)| {
+            if !config.hole_placement.is_eligible(c, r, size) { return (c, r, -1.0); }
+            let edge_dist = (c.min(size - 1 - c).min(r).min(size - 1 - r)) as f32;
+            let min_path_dist = path_cells.iter()
+                .map(|&(pc, pr)| (c as i32 - pc as i32).unsigned_abs() + (r as i32 - pr as i32).unsigned_abs())
+                .min().unwrap_or(size) as f32;
+            (c, r, (1.0 / (edge_dist + 1.0)) * 0.3 + (min_path_dist / size as f32) * 0.7)
+        }).collect();
+        scored.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
+        let target_holes = (empties.len() as u32 * config.hole_percent / 100) as usize;
+        let mut holes_placed = 0;
+        for &(c, r, score) in &scored {
+            if holes_placed >= target_holes { break; }
+            if score < 0.0 { continue; }
+            let threshold = 0.3 + score * 0.5;
+            if rng.gen_bool((threshold as f64).clamp(0.1, 0.9)) {
+                grid.insert((c, r), TileKind::Empty); holes_placed += 1;
+            } else { grid.insert((c, r), TileKind::Floor); }
         }
     }
+    for r in 0..size { for c in 0..size {
+        if !grid.contains_key(&(c, r)) { grid.insert((c, r), TileKind::Floor); }
+    }}
 
     let mut tiles: Vec<(u32, u32, TileKind, bool)> = grid.iter()
         .map(|(&(c, r), &k)| (c, r, k, solution_positions.contains(&(c, r))))
         .collect();
 
-    // Verify: with all tiles should succeed
     let all: Vec<_> = tiles.iter().map(|(c, r, k, _)| (*c, *r, *k)).collect();
-    if !simulate_headless(size, &all) { return None; }
-
-    // Without solution tiles should fail
+    if !simulate_headless(size, &all) { return None; } // must succeed with all tiles
     let mut without: Vec<_> = tiles.iter()
         .filter(|(_, _, _, sol)| !sol).map(|(c, r, k, _)| (*c, *r, *k)).collect();
-    for &(c, r) in &solution_positions { without.push((c, r, TileKind::Floor)); }
+    for &(c, r) in &solution_positions { without.push((c, r, TileKind::Floor)); } // must fail
     if simulate_headless(size, &without) { return None; }
 
-    // Inventory slider: bake in excess solution tiles
-    if config.inventory_target > 0 {
+    if config.inventory_target > 0 { // Inventory slider: bake in excess solution tiles
         let target = config.inventory_target as usize;
         let mut sol_vec: Vec<(u32, u32)> = solution_positions.iter().copied().collect();
         if sol_vec.len() > target {
@@ -210,8 +234,7 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
         }
     }
 
-    // Unique solution check
-    if config.unique_solution {
+    if config.unique_solution { // Unique solution check
         let inv: Vec<(u32, u32)> = tiles.iter()
             .filter(|(_, _, _, sol)| *sol).map(|(c, r, _, _)| (*c, *r)).collect();
         if !inv.is_empty() {
@@ -234,26 +257,38 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
         }
     }
 
-    if config.confusion_tiles {
-        add_confusion_tiles(&mut tiles, size, rng, simulate_headless);
-    }
-
+    if config.confusion_tiles { add_confusion_tiles(&mut tiles, size, rng, simulate_headless); }
     let rating = rate_difficulty(&tiles, config.num_bots, size);
     Some((tiles, rating))
 }
 
-// === Door chain placement (multi-switch + cascading interactions) ===
+// === Door chain placement — prefer path crossing points ===
 fn place_door_chains(
     grid: &mut HashMap<(u32, u32), TileKind>, solution: &mut HashSet<(u32, u32)>,
     bot_paths: &[Vec<(u32, u32)>], rng: &mut impl Rng, chain_count: usize,
 ) {
     let nb = bot_paths.len();
+    let path_sets: Vec<HashSet<(u32, u32)>> = bot_paths.iter()
+        .map(|p| p.iter().copied().collect()).collect();
     for _ in 0..chain_count {
-        if nb >= 2 && rng.gen_bool(0.7) {
+        if nb >= 2 {
             let a = rng.gen_range(0..nb);
             let b = (a + 1 + rng.gen_range(0..nb - 1)) % nb;
-            if try_place_switch_door(grid, solution, &bot_paths[a], &bot_paths[b], rng, true)
-                && rng.gen_bool(0.3) { // 30%: extra switch on another bot (multi-switch!)
+            // Find positions where bot paths are close (within 3 cells)
+            let mut cross_pairs: Vec<((u32, u32), (u32, u32))> = Vec::new();
+            for &sp in &path_sets[a] { for &dp in &path_sets[b] {
+                let dist = (sp.0 as i32 - dp.0 as i32).unsigned_abs()
+                    + (sp.1 as i32 - dp.1 as i32).unsigned_abs();
+                if dist <= 3 && is_floor(grid, sp) && is_floor(grid, dp) && sp != dp {
+                    cross_pairs.push((sp, dp));
+                }
+            }}
+            if !cross_pairs.is_empty() {
+                let &(sp, dp) = &cross_pairs[rng.gen_range(0..cross_pairs.len())];
+                grid.insert(sp, TileKind::Switch); grid.insert(dp, TileKind::Door(false));
+                solution.insert(sp);
+            } else if try_place_switch_door(grid, solution, &bot_paths[a], &bot_paths[b], rng, true)
+                && rng.gen_bool(0.3) {
                 let e = rng.gen_range(0..nb);
                 let end = (bot_paths[e].len() * 3 / 5).max(1);
                 let fl: Vec<_> = bot_paths[e][..end].iter()
@@ -290,12 +325,8 @@ fn try_place_switch_door(
 
 // === Difficulty rating ===
 fn rate_difficulty(tiles: &[(u32, u32, TileKind, bool)], num_bots: u32, board_size: u32) -> u32 {
-    let mut mechanics = 0u32;
-    let mut type_set = 0u32;
-    let mut has_but = false;
-    let mut door_count = 0u32;
-    let mut switch_count = 0u32;
-    let mut inv_count = 0u32;
+    let (mut mechanics, mut type_set, mut has_but) = (0u32, 0u32, false);
+    let (mut door_count, mut switch_count, mut inv_count) = (0u32, 0u32, 0u32);
     let cells = (board_size * board_size) as f32;
     for (_, _, k, sol) in tiles {
         if *sol { inv_count += 1; }
@@ -316,6 +347,11 @@ fn rate_difficulty(tiles: &[(u32, u32, TileKind, bool)], num_bots: u32, board_si
             _ => {}
         }
     }
+    // Path efficiency: levels where each solution tile matters more
+    let sol_count = tiles.iter().filter(|(_, _, _, s)| *s).count() as f32;
+    let path_tiles = tiles.iter().filter(|(_, _, k, _)| !matches!(k, TileKind::Floor | TileKind::Empty)).count() as f32;
+    let efficiency_bonus = if sol_count > 0.0 && path_tiles > 0.0 {
+        (path_tiles / sol_count / 3.0).min(1.0) * 5.0 } else { 0.0 };
     let diversity = type_set.count_ones();
     let density = (mechanics as f32 / cells * 150.0).min(25.0);
     // Door chains: multiple switch/door pairs = exponential complexity
@@ -326,7 +362,8 @@ fn rate_difficulty(tiles: &[(u32, u32, TileKind, bool)], num_bots: u32, board_si
         + chain_bonus
         + ((num_bots - 1) as f32 * 8.0).min(20.0)
         + (mechanics as f32 * 1.0).min(10.0)
-        + (inv_count as f32 * 0.5).min(7.0);
+        + (inv_count as f32 * 0.5).min(7.0)
+        + efficiency_bonus;
     (score as u32).min(100)
 }
 

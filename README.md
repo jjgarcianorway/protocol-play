@@ -4,7 +4,7 @@ A game built with [Bevy 0.18](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.20.6** — Rename binary to protocol-play-player, fix CWD for asset loading, render-to-texture icons
+**v0.21.0** — Smarter level generator, varied messages, purposeful hole placement
 
 ### Bot Game (Editor + Player)
 - **149 campaign levels** across 13 chapters, each introducing a new mechanic

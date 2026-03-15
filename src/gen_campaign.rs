@@ -11,6 +11,7 @@ mod slot_ui;
 mod inventory;
 mod systems;
 mod simulation;
+mod messages;
 mod bot_formation;
 mod mat_helpers;
 mod test_mode;

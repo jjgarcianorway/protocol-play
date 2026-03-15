@@ -6,6 +6,7 @@ use crate::ui_helpers::*;
 use crate::board::spawn_tile;
 use crate::test_mode::{group_tiles, spawn_test_inventory};
 use crate::simulation::SimulationResult;
+use crate::messages::{pick_creative_msg, pick_congrats, format_time, format_attempts, format_resets};
 #[path = "player_progress.rs"] mod player_progress;
 use player_progress::*;
 
@@ -132,33 +133,38 @@ fn load_level(
     let level = &player_levels.levels[player_levels.current];
     board_size.0 = level.board_size.clamp(MIN_BOARD_SIZE, MAX_BOARD_SIZE);
 
-    *stats = LevelStats { editing_time: progress.stats.editing_time,
-        play_count: progress.stats.play_count, reset_count: progress.stats.reset_count,
-        last_stats_write: 0.0 };
-
-    if progress.completed {
-        let mut board_tiles: Vec<(u32, u32, TileKind)> = Vec::new();
+    let s = &progress.stats;
+    *stats = LevelStats { editing_time: s.editing_time, play_count: s.play_count,
+        reset_count: s.reset_count, last_stats_write: 0.0 };
+    let parse_tiles = |marks_as_empty: bool| -> (Vec<(u32, u32, TileKind)>, Vec<TileKind>) {
+        let (mut bt, mut mk) = (Vec::new(), Vec::new());
         for &(col, row, kind, is_marked) in &level.tiles {
             if col >= board_size.0 || row >= board_size.0 { continue; }
-            board_tiles.push((col, row, if is_marked { TileKind::Empty } else { kind }));
+            if is_marked && marks_as_empty { mk.push(kind); bt.push((col, row, TileKind::Empty)); }
+            else { bt.push((col, row, if is_marked { TileKind::Empty } else { kind })); }
         }
-        let mut grid = std::collections::HashSet::new();
-        for &(col, row, _) in &board_tiles { grid.insert((col, row)); }
+        let grid: std::collections::HashSet<_> = bt.iter().map(|&(c, r, _)| (c, r)).collect();
         for row in 0..board_size.0 { for col in 0..board_size.0 {
-            if !grid.contains(&(col, row)) { board_tiles.push((col, row, TileKind::Empty)); }
+            if !grid.contains(&(col, row)) { bt.push((col, row, TileKind::Empty)); }
         }}
-        let placed_set: std::collections::HashSet<(u32, u32)> = progress.board_state.as_ref()
+        (bt, mk)
+    };
+    let apply_saved = |bt: &mut Vec<(u32, u32, TileKind)>, saved: &Option<Vec<(u32, u32, TileKind)>>| {
+        if let Some(s) = saved { for &(sc, sr, sk) in s {
+            if let Some(t) = bt.iter_mut().find(|(c, r, _)| *c == sc && *r == sr) { t.2 = sk; }
+        }}
+    };
+
+    if progress.completed {
+        let (mut board_tiles, _) = parse_tiles(false);
+        let placed_set: std::collections::HashSet<_> = progress.board_state.as_ref()
             .map(|bs| bs.iter().map(|&(c, r, _)| (c, r)).collect()).unwrap_or_default();
-        if let Some(ref saved) = progress.board_state {
-            for &(sc, sr, sk) in saved {
-                if let Some(bt) = board_tiles.iter_mut().find(|(c, r, _)| *c == sc && *r == sr) { bt.2 = sk; }
-            }
-        }
+        apply_saved(&mut board_tiles, &progress.board_state);
         for &(col, row, kind) in &board_tiles {
             let e = spawn_tile(commands, col, row, board_size.0, kind, assets);
             if placed_set.contains(&(col, row)) {
-                commands.entity(e).with_children(|parent| {
-                    parent.spawn((Mesh3d(assets.marker_mesh.clone()), MeshMaterial3d(assets.marker_material.clone()),
+                commands.entity(e).with_children(|p| {
+                    p.spawn((Mesh3d(assets.marker_mesh.clone()), MeshMaterial3d(assets.marker_material.clone()),
                         Transform::from_translation(Vec3::new(0.0, FLOOR_TOP_Y + MARKER_Y_OFFSET, 0.0))));
                 });
             }
@@ -171,32 +177,14 @@ fn load_level(
         return;
     }
 
-    let (mut board_tiles, mut marked_kinds) = (Vec::new(), Vec::new());
-    for &(col, row, kind, is_marked) in &level.tiles {
-        if col >= board_size.0 || row >= board_size.0 { continue; }
-        if is_marked { marked_kinds.push(kind); board_tiles.push((col, row, TileKind::Empty)); }
-        else { board_tiles.push((col, row, kind)); }
-    }
-    let mut grid = std::collections::HashSet::new();
-    for &(col, row, _) in &board_tiles { grid.insert((col, row)); }
-    for row in 0..board_size.0 { for col in 0..board_size.0 {
-        if !grid.contains(&(col, row)) { board_tiles.push((col, row, TileKind::Empty)); }
-    }}
-
+    let (mut board_tiles, marked_kinds) = parse_tiles(true);
     let default_inv = group_tiles(marked_kinds.into_iter());
     commands.insert_resource(SavedTestState { tiles: board_tiles.clone(), inventory: default_inv.clone() });
-    if let Some(ref saved) = progress.board_state {
-        for &(sc, sr, sk) in saved {
-            if let Some(bt) = board_tiles.iter_mut().find(|(c, r, _)| *c == sc && *r == sr) { bt.2 = sk; }
-        }
-    }
-
+    apply_saved(&mut board_tiles, &progress.board_state);
     for &(col, row, kind) in &board_tiles { spawn_tile(commands, col, row, board_size.0, kind, assets); }
-
     test_inv.items = progress.inventory_state.clone().unwrap_or(default_inv);
     test_inv.selected = None; test_inv.remove_mode = false;
     selected_tool.0 = Tool::Floor;
-
     spawn_test_inventory(commands, test_inv, icons, first_load, font);
     spawn_player_buttons(commands, font, player_levels, progress, first_load);
     *play_mode = PlayMode::TestEditing;
@@ -254,8 +242,9 @@ fn spawn_congrats(commands: &mut Commands, f: &Handle<Font>, progress: &PlayerPr
             align_items: AlignItems::Center, row_gap: Val::Px(SIM_CARD_GAP), ..default() },
             BackgroundColor(rgb(SIM_CARD_BG)),
         )).with_children(|card| {
-            card.spawn((Text::new("Congratulations!"), gf(SIM_MSG_FONT, f), TextColor(rgb(SIM_SUCCESS_COLOR))));
-            card.spawn((Text::new("All levels completed!"), gf(DIALOG_TITLE_FONT, f), tc));
+            let (ct, cm) = pick_congrats();
+            card.spawn((Text::new(ct), gf(SIM_MSG_FONT, f), TextColor(rgb(SIM_SUCCESS_COLOR))));
+            card.spawn((Text::new(cm), gf(DIALOG_TITLE_FONT, f), tc));
             card.spawn((Text::new(format!("Total time: {}:{:02}", secs / 60, secs % 60)), bf.clone(), tc));
             card.spawn((Text::new(format!("Total attempts: {ta}")), bf.clone(), tc));
             if tr > 0 { card.spawn((Text::new(format!("Total resets: {tr}")), bf, tc)); }
@@ -305,10 +294,8 @@ pub fn update_player_stats(
     }
     if changed || stats.editing_time - stats.last_stats_write >= STATS_WRITE_INTERVAL {
         stats.last_stats_write = stats.editing_time;
-        let live = ProgressStats { editing_time: stats.editing_time,
-            play_count: stats.play_count, reset_count: stats.reset_count };
-        save_stats_summary(&progress.save_dir, &progress.filenames,
-            &levels.levels, &progress.data, levels.current, &live);
+        let live = ProgressStats { editing_time: stats.editing_time, play_count: stats.play_count, reset_count: stats.reset_count };
+        save_stats_summary(&progress.save_dir, &progress.filenames, &levels.levels, &progress.data, levels.current, &live);
     }
 }
 
@@ -363,8 +350,7 @@ pub fn handle_level_complete(
         .filter(|(_, c, k)| !matches!(k, TileKind::Empty) && !saved_set.contains(&(c.col, c.row)))
         .map(|(_, c, k)| (c.col, c.row, *k)).collect();
     let creative = is_creative_solution(&levels.levels[idx].solution, &placed);
-    progress.data[idx].completed = true; progress.data[idx].creative_solution = creative;
-    progress.data[idx].inventory_state = None;
+    progress.data[idx].completed = true; progress.data[idx].creative_solution = creative; progress.data[idx].inventory_state = None;
     progress.data[idx].stats = ProgressStats { editing_time: stats.editing_time, play_count: stats.play_count, reset_count: stats.reset_count };
     save_one(&progress, idx);
     append_stats_log(&progress.save_dir, &progress.filenames[idx], &levels.levels[idx].name, &progress.data[idx].stats, creative);
@@ -378,23 +364,14 @@ pub fn handle_level_complete(
     if first_unsolved(&progress.data).is_none() { spawn_congrats(&mut commands, &font.0, &progress); }
 }
 
-/// Belt-and-suspenders cleanup: ensure no duplicate TestInventoryContainer
-/// entities linger after level transitions (deferred commands can cause overlap).
 pub fn cleanup_stale_inventory(
-    mut commands: Commands,
-    containers: Query<Entity, With<TestInventoryContainer>>,
+    mut commands: Commands, containers: Query<Entity, With<TestInventoryContainer>>,
     play_mode: Res<PlayMode>,
 ) {
     let entities: Vec<Entity> = containers.iter().collect();
-    if entities.len() <= 1 { return; }
-    // Keep only the last (newest) container, despawn the rest
-    for &e in &entities[..entities.len() - 1] {
-        commands.entity(e).despawn();
-    }
-    // If in Playing mode (completed level), no inventory should exist
-    if *play_mode == PlayMode::Playing {
-        for e in &containers { commands.entity(e).despawn(); }
-    }
+    if entities.len() <= 1 && *play_mode != PlayMode::Playing { return; }
+    let keep = if *play_mode == PlayMode::Playing { 0 } else { 1 };
+    for &e in &entities[..entities.len().saturating_sub(keep)] { commands.entity(e).despawn(); }
 }
 
 pub fn populate_stats(
@@ -408,12 +385,9 @@ pub fn populate_stats(
     if !matches!(sim_result.result, Some(crate::simulation::SimResult::Success)) { return; }
     if sim_result.overlay_spawned || !sim_result.stats_lines.is_empty() { return; }
 
-    let secs = stats.editing_time as u64;
-    sim_result.stats_lines.push(format!("Time: {}:{:02}", secs / 60, secs % 60));
-    sim_result.stats_lines.push(format!("Attempts: {}", stats.play_count));
-    if stats.reset_count > 0 {
-        sim_result.stats_lines.push(format!("Resets: {}", stats.reset_count));
-    }
+    sim_result.stats_lines.push(format_time(stats.editing_time as u64));
+    sim_result.stats_lines.push(format_attempts(stats.play_count));
+    if stats.reset_count > 0 { sim_result.stats_lines.push(format_resets(stats.reset_count)); }
 
     let saved_set: std::collections::HashSet<(u32, u32)> = saved_test.tiles.iter()
         .filter(|(_, _, k)| !matches!(k, TileKind::Empty)).map(|(c, r, _)| (*c, *r)).collect();
@@ -421,6 +395,6 @@ pub fn populate_stats(
         .filter(|(c, k)| !matches!(k, TileKind::Empty) && !saved_set.contains(&(c.col, c.row)))
         .map(|(c, k)| (c.col, c.row, *k)).collect();
     if is_creative_solution(&levels.levels[levels.current].solution, &placed) {
-        sim_result.stats_lines.push("Creative solution!".into());
+        sim_result.stats_lines.push(pick_creative_msg().into());
     }
 }
