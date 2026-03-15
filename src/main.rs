@@ -109,12 +109,13 @@ fn main() {
             gen_apply_result, update_generator,
         ));
     #[cfg(feature = "player")]
-    { app.add_systems(Update, (handle_test_tile_click.after(update_hovered_cell),
+    { app.insert_resource(player::ChapterState { bg_target: Color::srgb(CLEAR_COLOR.0, CLEAR_COLOR.1, CLEAR_COLOR.2), current: usize::MAX });
+      app.add_systems(Update, (handle_test_tile_click.after(update_hovered_cell),
         test_inventory_interaction, reset_test_interaction, update_status_bar));
       app.add_systems(Update, (player::player_nav_interaction, player::update_player_stats));
       app.add_systems(Update, (player::auto_save_progress, player::handle_level_complete));
       app.add_systems(Update, player::populate_stats.before(spawn_simulation_overlay));
-      app.add_systems(Update, player::cleanup_stale_inventory); }
+      app.add_systems(Update, (player::cleanup_stale_inventory, player::animate_bg_color, player::animate_chapter_title)); }
     app.run();
 }
 fn setup_scene(
@@ -392,7 +393,6 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
             });
     });
     }
-    // Version label — always visible in bottom-right corner
     commands.spawn(Node { position_type: PositionType::Absolute, right: Val::Px(6.0),
         bottom: Val::Px(4.0), ..default() })
         .with_child((Text::new(format!("v{}", env!("CARGO_PKG_VERSION"))),

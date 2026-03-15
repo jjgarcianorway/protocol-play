@@ -268,6 +268,25 @@ pub const CHAPTER_COLORS: [(f32, f32, f32); 13] = [
     (0.82, 0.92, 0.88), // Ch12: Mint
     (0.80, 0.80, 0.85), // Ch13: Steel grey
 ];
+#[cfg(feature = "player")]
+pub const CHAPTER_NAMES: [&str; 13] = [
+    "Turns", "Turn Tiles", "Arrows", "Arrow Tiles", "Teleports", "Teleport Tiles",
+    "Bounce", "Bounce Tiles", "Painters", "Doors & Switches", "Color Switches",
+    "Color Switch Tiles", "Grand Mastery",
+];
+#[cfg(feature = "player")]
+pub const BG_FADE_SPEED: f32 = 3.0;
+#[cfg(feature = "player")]
+pub const CHAPTER_NUM_FONT: f32 = 18.0;
+#[cfg(feature = "player")]
+pub const CHAPTER_NAME_FONT: f32 = 32.0;
+#[cfg(feature = "player")]
+pub const CHAPTER_TITLE_FADE: f32 = 0.8;
+#[cfg(feature = "player")]
+pub const CHAPTER_TITLE_HOLD: f32 = 1.5;
+#[cfg(feature = "player")]
+pub const CHAPTER_TITLE_BG_ALPHA: f32 = 0.5;
+
 pub const AMBIENT_COLOR: (f32, f32, f32) = (0.75, 0.82, 0.90);
 pub const AMBIENT_BRIGHTNESS: f32 = 250.0;
 pub const BLOOM_INTENSITY: f32 = 0.15;
