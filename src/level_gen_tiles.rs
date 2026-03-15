@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#![allow(dead_code)]
 use rand::Rng;
 use std::collections::{HashMap, HashSet};
 use crate::constants::*;
 use crate::types::*;
+use crate::level_gen_sim::simulate_headless;
 // === Helpers ===
 pub fn is_floor(grid: &HashMap<(u32, u32), TileKind>, pos: (u32, u32)) -> bool {
     matches!(grid.get(&pos), Some(TileKind::Floor))
@@ -274,7 +276,6 @@ fn try_painter_at(
 // === Confusion tiles: red herrings for inventory ===
 pub fn add_confusion_tiles(
     tiles: &mut Vec<(u32, u32, TileKind, bool)>, size: u32, rng: &mut impl Rng,
-    sim: fn(u32, &[(u32, u32, TileKind)]) -> bool,
 ) {
     let sol_kinds: Vec<TileKind> = tiles.iter().filter(|t| t.3).map(|t| t.2).collect();
     if sol_kinds.is_empty() { return; }
@@ -302,14 +303,13 @@ pub fn add_confusion_tiles(
         let avail: Vec<_> = pool.iter().filter(|i| !used.contains(i)).copied().collect();
         if avail.is_empty() { break; }
         let idx = avail[rng.gen_range(0..avail.len())];
-        let (c, r) = (tiles[idx].0, tiles[idx].1);
         let mut test_full = all.clone();
-        for t in &mut test_full { if t.0 == c && t.1 == r { t.2 = ct; } }
-        if !sim(size, &test_full) { continue; }
+        test_full[idx].2 = ct;
+        if !simulate_headless(size, &test_full) { continue; }
         let mut test_strip: Vec<_> = tiles.iter()
             .map(|t| (t.0, t.1, if t.3 { TileKind::Floor } else { t.2 })).collect();
-        for t in &mut test_strip { if t.0 == c && t.1 == r { t.2 = ct; } }
-        if sim(size, &test_strip) { continue; }
+        test_strip[idx].2 = ct;
+        if simulate_headless(size, &test_strip) { continue; }
         tiles[idx].2 = ct;
         tiles[idx].3 = true;
         used.insert(idx);

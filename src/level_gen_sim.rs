@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#![allow(dead_code)]
 
 use std::collections::HashMap;
 use crate::constants::*;
@@ -16,6 +17,27 @@ fn in_bounds(c: i32, r: i32, size: u32) -> bool {
 pub fn simulate_headless(size: u32, tiles: &[(u32, u32, TileKind)]) -> bool {
     let mut grid: HashMap<(u32, u32), TileKind> = tiles.iter()
         .map(|(c, r, k)| ((*c, *r), *k)).collect();
+    // Pre-build teleport partner lookup for O(1) teleport resolution
+    let mut tp_map: HashMap<(u32, u32), (u32, u32)> = HashMap::new();
+    for (i, &(c, r, k)) in tiles.iter().enumerate() {
+        let (co, num, is_but) = match k {
+            TileKind::Teleport(co, n) => (co, n, false),
+            TileKind::TeleportBut(co, n) => (co, n, true),
+            _ => continue,
+        };
+        for &(c2, r2, k2) in &tiles[i+1..] {
+            let partner = if is_but {
+                matches!(k2, TileKind::TeleportBut(co2, n2) if co2 == co && n2 == num)
+            } else {
+                matches!(k2, TileKind::Teleport(co2, n2) if co2 == co && n2 == num)
+            };
+            if partner {
+                tp_map.insert((c, r), (c2, r2));
+                tp_map.insert((c2, r2), (c, r));
+                break;
+            }
+        }
+    }
     let mut bots: Vec<SimBot> = Vec::new();
     for (&(c, r), kind) in &grid {
         if let TileKind::Source(ci, dir) = kind {
@@ -67,17 +89,15 @@ pub fn simulate_headless(size: u32, tiles: &[(u32, u32, TileKind)]) -> bool {
                 Some(TileKind::Switch) => { bot.switch_pending = true; }
                 Some(TileKind::ColorSwitch(ci)) if ci == bot.color => { bot.switch_pending = true; }
                 Some(TileKind::ColorSwitchBut(ci)) if ci != bot.color => { bot.switch_pending = true; }
-                Some(TileKind::Teleport(co, num)) if co == NUM_COLORS || co == bot.color => {
-                    if let Some((&p, _)) = grid.iter().find(|(pos, k)|
-                        matches!(k, TileKind::Teleport(c, n) if *c == co && *n == num)
-                        && **pos != (nc as u32, nr as u32))
-                    { bot.col = p.0 as i32; bot.row = p.1 as i32; }
+                Some(TileKind::Teleport(co, _)) if co == NUM_COLORS || co == bot.color => {
+                    if let Some(&p) = tp_map.get(&(nc as u32, nr as u32)) {
+                        bot.col = p.0 as i32; bot.row = p.1 as i32;
+                    }
                 }
-                Some(TileKind::TeleportBut(co, num)) if co != bot.color => {
-                    if let Some((&p, _)) = grid.iter().find(|(pos, k)|
-                        matches!(k, TileKind::TeleportBut(c, n) if *c == co && *n == num)
-                        && **pos != (nc as u32, nr as u32))
-                    { bot.col = p.0 as i32; bot.row = p.1 as i32; }
+                Some(TileKind::TeleportBut(co, _)) if co != bot.color => {
+                    if let Some(&p) = tp_map.get(&(nc as u32, nr as u32)) {
+                        bot.col = p.0 as i32; bot.row = p.1 as i32;
+                    }
                 }
                 _ => {}
             }

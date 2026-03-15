@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#![allow(dead_code)]
 use bevy::prelude::*;
 use rand::Rng;
 use std::collections::{HashMap, HashSet};
@@ -39,7 +40,7 @@ pub struct GenConfig {
     pub door_chains: u32,
     pub path_sharing: bool,
     pub confusion_tiles: bool,
-    pub required_tile: Option<fn(&TileKind) -> bool>,
+    #[allow(dead_code)] pub required_tile: Option<fn(&TileKind) -> bool>,
 }
 // === Generator state ===
 pub enum GenPhase {
@@ -257,7 +258,7 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
         }
     }
 
-    if config.confusion_tiles { add_confusion_tiles(&mut tiles, size, rng, simulate_headless); }
+    if config.confusion_tiles { add_confusion_tiles(&mut tiles, size, rng); }
     let rating = rate_difficulty(&tiles, config.num_bots, size);
     Some((tiles, rating))
 }

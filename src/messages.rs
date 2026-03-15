@@ -27,12 +27,14 @@ pub fn pick_success_msg(bot_count: usize, pieces_left: usize, in_test: bool) -> 
         "All bots home safe.", "Perfectly routed!"]).into()
 }
 
+#[cfg(feature = "player")]
 pub fn pick_creative_msg() -> &'static str {
     pick(&["Creative solution!", "You found a path the designer didn't plan!",
         "Unexpected approach — not the intended route!", "Your own way — and it works!",
         "Original solution discovered!"])
 }
 
+#[cfg(feature = "player")]
 pub fn pick_congrats() -> (&'static str, &'static str) {
     let pairs = [
         ("Congratulations!", "All levels completed!"),
@@ -43,11 +45,13 @@ pub fn pick_congrats() -> (&'static str, &'static str) {
     pairs[rand::thread_rng().gen_range(0..pairs.len())]
 }
 
+#[cfg(feature = "player")]
 pub fn format_time(secs: u64) -> String {
     if secs >= 60 { format!("{}:{:02} of puzzle thinking", secs / 60, secs % 60) }
     else { format!("{} seconds — that was quick!", secs) }
 }
 
+#[cfg(feature = "player")]
 pub fn format_attempts(play_count: u32) -> String {
     match play_count {
         1 => "First try!".into(), 2 => "Solved on the second attempt.".into(),
@@ -56,6 +60,7 @@ pub fn format_attempts(play_count: u32) -> String {
     }
 }
 
+#[cfg(feature = "player")]
 pub fn format_resets(reset_count: u32) -> String {
     match reset_count {
         1 => "1 fresh start along the way.".into(),

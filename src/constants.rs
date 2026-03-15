@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#![allow(dead_code)]
 
 // === Camera ===
 pub const CAMERA_ELEVATION: f32 = 30.0;
@@ -54,8 +55,6 @@ pub const LABEL_FONT: f32 = 16.0;
 pub const COUNT_FONT: f32 = 14.0;
 pub const DIALOG_TITLE_FONT: f32 = 20.0;
 pub const DIALOG_BODY_FONT: f32 = 16.0;
-pub const TEX_SIZE: u32 = 256;
-pub const TEX_BORDER: u32 = 12;
 pub const TILE_TEX_SIZE: u32 = 1024;
 pub const TILE_TEX_BORDER: u32 = 16;
 pub const PLAY_BTN_SIZE: f32 = 52.0;
@@ -69,7 +68,6 @@ pub const BTN_MARGIN: f32 = 2.0;
 pub const TEXT_BTN_PAD: (f32, f32) = (14.0, 8.0);
 pub const TEXT_BTN_LEFT_MARGIN: f32 = 12.0;
 pub const BTN_SIDE_MARGIN: f32 = 8.0;
-pub const COUNT_TEXT_ALPHA: f32 = 0.7;
 pub const DISABLED_BTN_ALPHA: f32 = 0.25;
 
 // Marker/highlight textures
@@ -189,7 +187,6 @@ pub const TILE_DARK: [u8; 4] = [28, 32, 45, 255];
 pub const SYMBOL_STROKE: [u8; 4] = [38, 42, 55, 255];
 pub const STROKE_EXPAND: f32 = 0.025;
 pub const TURN_CENTER_BRIGHTNESS: f32 = 0.35;
-pub const ICON_WHITE: [u8; 4] = [100, 100, 100, 255];
 pub const ICON_DARK_BG: [u8; 4] = [22, 26, 38, 255];
 pub const ISO_SIDE_COLOR: [u8; 4] = [35, 40, 55, 255];
 pub const ISO_BOTTOM_COLOR: [u8; 4] = [20, 24, 36, 255];
@@ -243,13 +240,18 @@ pub const DELETE_BTN_COLOR: (f32, f32, f32) = (0.6, 0.25, 0.25);
 pub const DELETE_BTN_HOVER: (f32, f32, f32) = (0.8, 0.2, 0.2);
 
 // Player navigation
+#[cfg(feature = "player")]
 pub const LEVEL_NAME_FONT: f32 = 15.0;
+#[cfg(feature = "player")]
 pub const LEVEL_NAME_MIN_W: f32 = 280.0;
+#[cfg(feature = "player")]
 pub const NAV_ARROW_FONT: f32 = 20.0;
+#[cfg(feature = "player")]
 pub const STATS_WRITE_INTERVAL: f32 = 10.0;
 
 // Visual quality
 pub const CLEAR_COLOR: (f32, f32, f32) = (0.78, 0.90, 0.86);
+#[cfg(feature = "player")]
 pub const CHAPTER_COLORS: [(f32, f32, f32); 13] = [
     (0.78, 0.90, 0.86), // Ch1: Light teal (default)
     (0.85, 0.82, 0.92), // Ch2: Lavender
@@ -309,6 +311,7 @@ pub const GEN_PRESET_PAD: (f32, f32) = (8.0, 5.0);
 pub const GEN_PRESET_FONT: f32 = 12.0;
 pub const GEN_DIALOG_MAX_H: f32 = 90.0; // max height in vh%
 pub const GEN_BEST_TOLERANCE: u32 = 10; // accept if within this range of target difficulty
+pub const GEN_CAMPAIGN_ATTEMPTS: [usize; 4] = [20000, 50000, 100000, 200000]; // by bot tier
 pub const GEN_PULSE_SPEED: f32 = 3.0;
 pub const GEN_PULSE_MIN: f32 = 0.3;
 pub const GEN_PULSE_MAX: f32 = 0.8;

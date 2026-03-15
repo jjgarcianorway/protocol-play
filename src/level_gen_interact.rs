@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#![allow(dead_code)]
 
 use bevy::prelude::*;
 use rand::Rng;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#![allow(clippy::too_many_arguments, clippy::type_complexity, clippy::collapsible_if)]
+#![allow(clippy::too_many_arguments, clippy::type_complexity, clippy::collapsible_if, unused_imports, unreachable_code)]
 
 mod constants; mod types; mod textures; mod gen_textures; mod board;
 mod ui_helpers; mod slot_ui; mod inventory; mod systems; mod simulation; mod messages;

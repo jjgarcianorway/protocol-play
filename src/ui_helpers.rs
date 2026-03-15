@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#![allow(dead_code)]
 
 use bevy::prelude::*;
 use crate::constants::*;
@@ -45,13 +46,9 @@ pub fn slot_node_sized(w: f32, h: f32) -> Node {
     }
 }
 
-pub fn slot_node() -> Node { slot_node_sized(SLOT_VW, SLOT_HEIGHT_VW) }
-
 pub fn icon_node_sized(s: f32) -> Node {
     Node { width: Val::Vw(s), height: Val::Vw(s), ..default() }
 }
-
-pub fn icon_node() -> Node { icon_node_sized(ICON_VW) }
 
 pub fn text_btn_node() -> Node {
     Node { padding: UiRect::axes(Val::Px(TEXT_BTN_PAD.0), Val::Px(TEXT_BTN_PAD.1)), ..default() }

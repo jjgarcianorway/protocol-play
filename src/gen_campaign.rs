@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Campaign level generator — standalone binary that produces all levels for the game.
+#![allow(dead_code, unused_imports)]
 
 mod constants;
 mod types;
@@ -43,9 +44,8 @@ fn main() {
                 level.name, level.config.board_size, level.config.board_size,
                 level.config.difficulty, level.config.num_bots);
             if !force && path.exists() { println!("KEPT"); kept += 1; total += 1; continue; }
-            let attempts = if level.config.num_bots >= 8 { 200000 }
-                else if level.config.num_bots >= 6 { 100000 }
-                else if level.config.num_bots >= 4 { 50000 } else { 20000 };
+            let tier = ((level.config.num_bots.saturating_sub(1)) / 2).min(3) as usize;
+            let attempts = GEN_CAMPAIGN_ATTEMPTS[tier];
             match generate_level(&level.config, attempts) {
                 Some((tiles, rating, seed)) => {
                     let solution: Vec<_> = tiles.iter()
