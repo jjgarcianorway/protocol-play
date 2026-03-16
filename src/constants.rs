@@ -4,7 +4,7 @@
 // === Camera ===
 pub const CAMERA_ELEVATION: f32 = 30.0;
 pub const CAMERA_AZIMUTH: f32 = 45.0;
-pub const CAMERA_MARGIN: f32 = 0.72;
+pub const CAMERA_MARGIN: f32 = 1.05;
 pub const CAMERA_ZOOM_SPEED: f32 = 1.5;
 pub const TOP_SLIDE_HIDE: f32 = -100.0;
 

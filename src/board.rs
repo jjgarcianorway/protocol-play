@@ -289,32 +289,53 @@ pub fn adapt_camera(
 ) -> Result {
     let window = windows.single()?;
     let (mut transform, projection) = cameras.single_mut()?;
-    let aspect = window.width() / window.height();
+    let (w, h) = (window.width(), window.height());
+    let aspect = w / h;
     let fov = match projection {
         Projection::Perspective(p) => p.fov,
         _ => return Ok(()),
     };
     let radius = board_bounding_radius(board_size.0);
-    let half_fov_v = fov / 2.0;
-    let half_fov_h = (half_fov_v.tan() * aspect).atan();
-    let dist_h = radius / half_fov_h.sin();
     let playing = matches!(*play_mode, PlayMode::Playing | PlayMode::TestPlaying);
-    let vw = window.width() / 100.0;
-    let inv_h = SLOT_HEIGHT_VW * vw + INVENTORY_PAD_VW * 2.0 * vw + COUNT_FONT
-        + SLOT_BORDER_PX * 2.0 + INV_SLIDE_SHOW;
-    // When playing: center at screen center (no shift). When editing: shift up for inventory.
-    let shift_px = if playing { 0.0 } else { inv_h / 2.0 };
-    let base_dist = radius / half_fov_v.sin();
-    let elev_sin = CAMERA_ELEVATION.to_radians().sin();
-    let shift = shift_px / window.height() * base_dist * 2.0 * half_fov_v.tan() / elev_sin;
-    let look_at = Vec3::new(0.0, -shift, 0.0);
-    let usable_h = if playing { window.height() } else { (window.height() - inv_h).max(100.0) };
-    let usable_fov = fov * (usable_h / window.height());
-    let dist_v = radius / (usable_fov / 2.0).sin();
+
+    // UI pixel heights
+    let vw = w / 100.0;
+    let is_player = cfg!(feature = "player");
+    let (top_px, bot_px) = if playing {
+        (0.0, 0.0)
+    } else if is_player {
+        let inv = SLOT_HEIGHT_VW * vw + INVENTORY_PAD_VW * 2.0 * vw
+            + COUNT_FONT + SLOT_BORDER_PX * 2.0 + INV_SLIDE_SHOW;
+        (TOP_SLIDE_SHOW + 30.0, inv)
+    } else {
+        let exp = expansion.iter().next()
+            .map(|n| match n.height { Val::Vw(v) => v * vw, _ => 0.0 }).unwrap_or(0.0);
+        let inv = SLOT_HEIGHT_VW * vw + INVENTORY_PAD_VW * 2.0 * vw
+            + COUNT_FONT + SLOT_BORDER_PX * 2.0 + INV_SLIDE_SHOW + exp;
+        (TOP_BTN_SIZE + TOP_SLIDE_SHOW, inv)
+    };
+
+    // Usable viewport (between top and bottom UI)
+    let usable_h = (h - top_px - bot_px).max(100.0);
+
+    // Camera distance: fit board in usable vertical space AND full horizontal space
+    let usable_fov_v = fov * (usable_h / h);
+    let half_fov_h = (fov.tan() / 2.0 * aspect).atan(); // horizontal half-FOV
+    let dist_v = radius / (usable_fov_v / 2.0).sin();
+    let dist_h = radius / half_fov_h.sin();
     let distance = dist_v.max(dist_h) * CAMERA_MARGIN;
+
+    // Vertical centering: place board at center of usable area
+    // Usable center is offset from screen center by (bot_px - top_px) / 2 pixels downward
+    // Convert pixel offset to world-Y using the projection math
+    let offset_px = (bot_px - top_px) / 2.0;
+    let px_to_world = distance * 2.0 * (fov / 2.0).tan() / h;
+    let elev_sin = CAMERA_ELEVATION.to_radians().sin();
+    let look_y = offset_px * px_to_world / elev_sin;
+    let look_at = Vec3::new(0.0, look_y, 0.0);
+
     let dir = camera_direction();
     let target = Transform::from_translation(look_at + dir * distance).looking_at(look_at, Vec3::Y);
-    // Slow cinematic lerp
     let speed = CAMERA_ZOOM_SPEED * time.delta_secs();
     transform.translation = transform.translation.lerp(target.translation, speed);
     transform.rotation = transform.rotation.slerp(target.rotation, speed);
