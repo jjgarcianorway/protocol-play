@@ -328,7 +328,7 @@ pub fn adapt_camera(
 
     // Vertical position: angular offset from camera (consistent at any distance/resolution)
     // Negative = board appears higher on screen
-    let look_y = if playing { -0.08 * distance } else { -0.06 * distance };
+    let look_y = if playing { -0.065 * distance } else { -0.06 * distance };
     let look_at = Vec3::new(0.0, look_y, 0.0);
 
     let dir = camera_direction();

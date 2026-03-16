@@ -19,7 +19,7 @@ pub fn try_exit(grid: &HashMap<(u32, u32), TileKind>, col: i32, row: i32, dir: D
 pub fn shuffle<T>(v: &mut Vec<T>, rng: &mut impl Rng) {
     for i in (1..v.len()).rev() { let j = rng.gen_range(0..=i); v.swap(i, j); }
 }
-fn but_color(ci: usize) -> usize { (ci + 1) % NUM_COLORS }
+fn but_color(ci: usize) -> usize { (ci + 3) % NUM_COLORS } // offset by 3 to pick a plausible other-bot color
 pub fn possible_turns(bot_dir: Direction) -> Vec<(Direction, Direction)> {
     Direction::all().iter().filter_map(|&td| bot_dir.turn_exit(td).map(|exit| (td, exit))).collect()
 }

@@ -113,11 +113,11 @@ pub const SOURCE_COLORS: [(f32, f32, f32); NUM_COLORS] = [
     (0.902, 0.098, 0.294),  // 0 Red        #E6194B
     (0.235, 0.706, 0.294),  // 1 Green      #3CB44B
     (1.000, 0.882, 0.098),  // 2 Yellow     #FFE119
-    (0.263, 0.388, 0.847),  // 3 Blue       #4363D8
+    (0.150, 0.250, 0.700),  // 3 Blue       #2640B3 (darker)
     (0.961, 0.510, 0.192),  // 4 Orange     #F58231
     (0.569, 0.118, 0.706),  // 5 Purple     #911EB4
     (0.259, 0.831, 0.957),  // 6 Cyan       #42D4F4
-    (0.941, 0.196, 0.902),  // 7 Magenta    #F032E6
+    (1.000, 0.500, 0.650),  // 7 Pink       #FF80A6 (lighter, less magenta)
     (0.749, 0.937, 0.271),  // 8 Lime       #BFEF45
 ];
 
@@ -330,7 +330,7 @@ pub const GEN_PRESET_PAD: (f32, f32) = (8.0, 5.0);
 pub const GEN_PRESET_FONT: f32 = 12.0;
 pub const GEN_DIALOG_MAX_H: f32 = 90.0; // max height in vh%
 pub const GEN_BEST_TOLERANCE: u32 = 10; // accept if within this range of target difficulty
-pub const GEN_CAMPAIGN_ATTEMPTS: [usize; 4] = [50000, 100000, 200000, 400000]; // by bot tier
+pub const GEN_CAMPAIGN_ATTEMPTS: [usize; 4] = [50000, 100000, 300000, 600000]; // by bot tier
 pub const GEN_PULSE_SPEED: f32 = 3.0;
 pub const GEN_PULSE_MIN: f32 = 0.3;
 pub const GEN_PULSE_MAX: f32 = 0.8;

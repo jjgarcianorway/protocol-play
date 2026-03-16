@@ -185,7 +185,9 @@ pub fn move_bots(
                 let sy = (1.0 - *p).max(0.0); let sxz = 1.0 + *p * (CRUSH_EXPAND - 1.0);
                 transform.translation = Vec3::new(mov.col as f32 - half, bot_y * sy, mov.row as f32 - half);
                 transform.scale = Vec3::new(sxz, sy, sxz); target_scale.0 = transform.scale; continue; }
-            BotPhase::Spinning => { let bounce = (time.elapsed_secs() * BOT_BOUNCE_SPEED).sin().abs() * BOT_BOUNCE_HEIGHT;
+            BotPhase::Spinning => { // Phase offset per bot so they don't all sync
+                let phase_offset = (mov.col as f32 * 1.7 + mov.row as f32 * 2.3) % std::f32::consts::TAU;
+                let bounce = ((time.elapsed_secs() * BOT_BOUNCE_SPEED + phase_offset).sin().abs()) * BOT_BOUNCE_HEIGHT;
                 transform.translation = Vec3::new(mov.col as f32 - half, bot_y + bounce, mov.row as f32 - half); continue; }
             BotPhase::TeleportShrink { target_col, target_row } => {
                 if transform.scale.x < TELEPORT_SHRINK_DONE {
