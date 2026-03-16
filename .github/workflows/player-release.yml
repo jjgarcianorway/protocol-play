@@ -19,13 +19,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-msvc
-      - name: Build player and icon generator
-        run: |
-          cargo build --release --features player --target x86_64-pc-windows-msvc
-          cargo build --release --bin generate-icons --target x86_64-pc-windows-msvc
-      - name: Generate textures and icons
-        run: target\x86_64-pc-windows-msvc\release\generate-icons.exe
-        shell: cmd
+      - name: Build player
+        run: cargo build --release --features player --target x86_64-pc-windows-msvc
       - name: Package
         run: |
           mkdir bundle
@@ -48,12 +43,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-apple-darwin
-      - name: Build player and icon generator
-        run: |
-          cargo build --release --features player --target aarch64-apple-darwin
-          cargo build --release --bin generate-icons --target aarch64-apple-darwin
-      - name: Generate textures and icons
-        run: ./target/aarch64-apple-darwin/release/generate-icons
+      - name: Build player
+        run: cargo build --release --features player --target aarch64-apple-darwin
       - name: Package
         run: |
           mkdir -p bundle/assets
@@ -75,12 +66,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev
-      - name: Build player and icon generator
-        run: |
-          cargo build --release --features player
-          cargo build --release --bin generate-icons
-      - name: Generate textures and icons
-        run: ./target/release/generate-icons
+      - name: Build player
+        run: cargo build --release --features player
       - name: Package
         run: |
           mkdir -p bundle/assets
