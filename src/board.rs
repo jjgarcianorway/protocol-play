@@ -295,8 +295,10 @@ pub fn adapt_camera(
         Projection::Perspective(p) => p.fov,
         _ => return Ok(()),
     };
-    let radius = board_bounding_radius(board_size.0);
     let playing = matches!(*play_mode, PlayMode::Playing | PlayMode::TestPlaying);
+    let half_fov_v = fov / 2.0;
+    let half_fov_h = (half_fov_v.tan() * aspect).atan();
+    let radius = board_bounding_radius(board_size.0);
 
     // UI pixel heights
     let vw = w / 100.0;
@@ -304,9 +306,8 @@ pub fn adapt_camera(
     let (top_px, bot_px) = if playing {
         (0.0, 0.0)
     } else if is_player {
-        let inv = SLOT_HEIGHT_VW * vw + INVENTORY_PAD_VW * 2.0 * vw
-            + COUNT_FONT + SLOT_BORDER_PX * 2.0 + INV_SLIDE_SHOW;
-        (TOP_SLIDE_SHOW + 30.0, inv)
+        let inv = SLOT_HEIGHT_VW * vw + INVENTORY_PAD_VW * 2.0 * vw + INV_SLIDE_SHOW;
+        (h * 0.04, inv + h * 0.03)
     } else {
         let exp = expansion.iter().next()
             .map(|n| match n.height { Val::Vw(v) => v * vw, _ => 0.0 }).unwrap_or(0.0);
@@ -315,23 +316,19 @@ pub fn adapt_camera(
         (TOP_BTN_SIZE + TOP_SLIDE_SHOW, inv)
     };
 
-    // Usable viewport (between top and bottom UI)
+    // Usable viewport between UI elements
     let usable_h = (h - top_px - bot_px).max(100.0);
 
-    // Camera distance: fit board in usable vertical space AND full horizontal space
-    let usable_fov_v = fov * (usable_h / h);
-    let half_fov_h = (fov.tan() / 2.0 * aspect).atan(); // horizontal half-FOV
-    let dist_v = radius / (usable_fov_v / 2.0).sin();
+    // Distance: horizontal uses full radius, vertical uses reduced (isometric foreshortening)
+    let radius_v = radius * 0.7; // vertical extent is ~70% of bounding sphere
+    let usable_fov_v = half_fov_v * (usable_h / h);
+    let dist_v = radius_v / usable_fov_v.sin();
     let dist_h = radius / half_fov_h.sin();
     let distance = dist_v.max(dist_h) * CAMERA_MARGIN;
 
-    // Vertical centering: place board at center of usable area
-    // Usable center is offset from screen center by (bot_px - top_px) / 2 pixels downward
-    // Convert pixel offset to world-Y using the projection math
-    let offset_px = (bot_px - top_px) / 2.0;
-    let px_to_world = distance * 2.0 * (fov / 2.0).tan() / h;
-    let elev_sin = CAMERA_ELEVATION.to_radians().sin();
-    let look_y = offset_px * px_to_world / elev_sin;
+    // Vertical position: angular offset from camera (consistent at any distance/resolution)
+    // Negative = board appears higher on screen
+    let look_y = if playing { -0.08 * distance } else { -0.06 * distance };
     let look_at = Vec3::new(0.0, look_y, 0.0);
 
     let dir = camera_direction();

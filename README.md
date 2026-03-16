@@ -4,7 +4,7 @@ A game built with [Bevy 0.18](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.27.1** — Balanced difficulty curve, no pre-solved bots, yellow placement markers
+**v0.28.0** — Camera positioning, icon fixes, generator tuning, yellow placement markers
 
 ### Bot Game (Editor + Player)
 - **149 campaign levels** across 13 chapters, each introducing a new mechanic

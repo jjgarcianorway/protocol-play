@@ -63,7 +63,7 @@ pub fn setup_player(
             let stem = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
             match std::fs::read_to_string(&path) {
                 Ok(json) => match serde_json::from_str::<LevelData>(&json) {
-                    Ok(level) => { info!("Loaded: {}", path.display()); levels.push(level); filenames.push(stem); }
+                    Ok(level) => { levels.push(level); filenames.push(stem); }
                     Err(e) => { warn!("Skipping {} (parse error: {e})", path.display()); }
                 },
                 Err(e) => { warn!("Skipping {} (read error: {e})", path.display()); }
