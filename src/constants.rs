@@ -103,22 +103,22 @@ pub const NUM_BOUNCE_COLORS: usize = NUM_COLORS + 1;
 pub const NUM_SWITCH_COLORS: usize = NUM_COLORS + 1;
 pub const NUM_ARROW_COLORS: usize = NUM_COLORS + 1;
 
-// Colors in rainbow order: red → orange → yellow → green → blue → pink → purple
+// Colors in rainbow order: red → orange → yellow → green → blue → magenta → purple
 pub const COLOR_NAMES: [&str; NUM_COLORS] = [
-    "Red", "Orange", "Gold", "Lime",
-    "Green", "Cyan", "Blue", "Pink", "Purple",
+    "Red", "Orange", "Yellow", "Lime",
+    "Green", "Cyan", "Blue", "Magenta", "Purple",
 ];
 
 pub const SOURCE_COLORS: [(f32, f32, f32); NUM_COLORS] = [
-    (0.827, 0.271, 0.271),  // 0 Red         (211, 69, 69)
-    (0.827, 0.506, 0.271),  // 1 Orange      (211, 129, 69)
-    (0.827, 0.651, 0.271),  // 2 Gold        (211, 166, 69)
-    (0.400, 0.820, 0.300),  // 3 Lime        (102, 209, 77)
-    (0.271, 0.827, 0.584),  // 4 Green       (69, 211, 149)
-    (0.271, 0.757, 0.827),  // 5 Cyan        (69, 193, 211)
-    (0.271, 0.478, 0.827),  // 6 Blue        (69, 122, 211)
-    (0.827, 0.271, 0.557),  // 7 Pink        (211, 69, 142)
-    (0.600, 0.340, 0.900),  // 8 Purple      (153, 87, 230)
+    (0.902, 0.098, 0.294),  // 0 Red         #E6194B
+    (0.961, 0.510, 0.192),  // 1 Orange      #F58231
+    (1.000, 0.882, 0.098),  // 2 Yellow      #FFE119
+    (0.749, 0.937, 0.271),  // 3 Lime        #BFEF45
+    (0.235, 0.706, 0.294),  // 4 Green       #3CB44B
+    (0.259, 0.831, 0.957),  // 5 Cyan        #42D4F4
+    (0.263, 0.388, 0.847),  // 6 Blue        #4363D8
+    (0.941, 0.196, 0.902),  // 7 Magenta     #F032E6
+    (0.569, 0.118, 0.706),  // 8 Purple      #911EB4
 ];
 
 // UI colors
