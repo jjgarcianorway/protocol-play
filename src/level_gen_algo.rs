@@ -135,10 +135,12 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
             straight_run += 1;
             path_history.push((col, row, dir));
 
-            // Minimum straight run before placing a mechanic — spreads tiles apart
-            let min_straight = 2 + (diff * 2.0) as u32; // 2 (easy) to 4 (hard)
-            if steps > 1 && steps < target - 1 && straight_run >= min_straight {
-                let straight_bonus = ((straight_run - min_straight) as f32 * 0.15).min(0.4);
+            // Straight run range before placing a mechanic — based on board size + randomization
+            let min_gap = 1 + (size / 3) as u32; // 2 (3x3) to 4 (12x12)
+            let max_gap = min_gap + 1 + (diff * 2.0) as u32; // adds 1-3 based on difficulty
+            let gap_target = rng.gen_range(min_gap..=max_gap);
+            if steps > 1 && steps < target - 1 && straight_run >= gap_target {
+                let straight_bonus = ((straight_run - gap_target) as f32 * 0.12).min(0.35);
                 let near_edge = (col == 0 || col == size as i32 - 1 || row == 0 || row == size as i32 - 1) as u8 as f32 * 0.15;
                 let near_center = {
                     let cx = (col as f32 - (size as f32 - 1.0) / 2.0).abs() / (size as f32 / 2.0);
@@ -209,8 +211,24 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
     if !simulate_headless(size, &all) { return None; } // must succeed with all tiles
     let mut without: Vec<_> = tiles.iter()
         .filter(|(_, _, _, sol)| !sol).map(|(c, r, k, _)| (*c, *r, *k)).collect();
-    for &(c, r) in &solution_positions { without.push((c, r, TileKind::Floor)); } // must fail
-    if simulate_headless(size, &without) { return None; }
+    for &(c, r) in &solution_positions { without.push((c, r, TileKind::Floor)); }
+    if simulate_headless(size, &without) { return None; } // must fail overall
+    // Reject if ANY individual bot is already solved without inventory tiles
+    // (every bot must need at least one placed tile)
+    let sources: Vec<(u32, u32, usize, Direction)> = without.iter()
+        .filter_map(|(c, r, k)| if let TileKind::Source(ci, d) = k { Some((*c, *r, *ci, *d)) } else { None })
+        .collect();
+    if sources.len() > 1 {
+        for &(sc, sr, _, _) in &sources {
+            // Test with only this one source (remove all others)
+            let single: Vec<_> = without.iter().map(|(c, r, k)| {
+                if let TileKind::Source(_, _) = k {
+                    if *c == sc && *r == sr { (*c, *r, *k) } else { (*c, *r, TileKind::Floor) }
+                } else { (*c, *r, *k) }
+            }).collect();
+            if simulate_headless(size, &single) { return None; } // this bot is pre-solved
+        }
+    }
 
     // Strip solution tiles down to inventory_target (not to absolute minimum).
     // This keeps enough tiles for the player to have a satisfying puzzle.

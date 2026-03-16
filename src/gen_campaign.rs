@@ -136,23 +136,27 @@ fn ch_w(ch: usize, pos: usize) -> [u32; GEN_NUM_WEIGHTS] {
 fn make_level(ch: usize, pos: usize, name: &str, board: u32, bots: u32, diff: u32) -> Level {
     let mut c = cfg(board, bots, diff, ch_w(ch, pos));
     if ch >= 2 { c.path_sharing = true; }
-    // Confusion tiles: from level 3 onwards, more in later chapters
-    c.confusion_tiles = pos >= 2 || ch >= 5;
+    // Confusion tiles: intro levels (0-1) never, mid-levels sometimes, late always
+    c.confusion_tiles = if pos <= 1 { false } else if pos <= 4 { ch >= 3 } else { true };
     if ch >= 10 { c.door_chains = match pos { 0..=2=>1, 3..=5=>2, 6..=8=>3, _=>4 }; }
-    // Holes: scale aggressively with chapter and position
-    let hole_base = if ch <= 2 { 10 } else if ch <= 6 { 18 } else { 25 };
-    let pct = hole_base + pos as u32 * 3;
+    // Holes: gentle start, ramp up
+    let hole_base = if ch <= 2 { 5 } else if ch <= 6 { 12 } else { 18 };
+    let pct = hole_base + pos as u32 * 2;
     match pos % 3 {
         0 => { c.hole_placement = HolePlacement::Edges; c.hole_percent = pct; }
         1 => { c.hole_placement = HolePlacement::Middle; c.hole_percent = pct; }
         _ => { c.hole_percent = pct; }
     }
-    // Inventory tiles: scale with position, min 2 for intro, up to board-2
-    let inv_min = if pos <= 1 { 2 } else { 3 + (pos as u32 / 2) }; // intro: 2, then 3-7
-    let inv_max = (board - 1).min(10);
-    c.inventory_target = inv_min.max(2).min(inv_max);
-    // Unique solutions for boss levels (pos >= 8) — makes them trickier
-    c.unique_solution = pos >= 8;
+    // Inventory: intro (1-2), learning (2-3), challenge (3-5), boss (4-6)
+    let inv = match pos {
+        0 => 1, 1 => 2,             // intro: teach new mechanic with minimal tiles
+        2..=4 => 2 + pos as u32 / 2, // learning: 3
+        5..=7 => 3 + pos as u32 / 2, // challenge: 4-5
+        _ => 4 + pos as u32 / 3,     // boss: 5-7
+    };
+    c.inventory_target = inv.min((board - 1).min(8));
+    // Unique solutions only for final boss levels — prevents guessing
+    c.unique_solution = pos >= 9;
     // Intro levels must contain the chapter's new mechanic
     if pos == 0 {
         c.required_tile = match ch {
