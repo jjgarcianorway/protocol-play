@@ -319,16 +319,16 @@ pub fn adapt_camera(
     // Usable viewport between UI elements
     let usable_h = (h - top_px - bot_px).max(100.0);
 
-    // Distance: horizontal uses full radius, vertical uses reduced (isometric foreshortening)
-    let radius_v = radius * 0.7; // vertical extent is ~70% of bounding sphere
+    // Distance: vertical uses reduced radius (isometric foreshortening)
+    // Play mode needs more vertical room (no UI to constrain, board must fit fully)
+    let rv = if playing { radius * 0.85 } else { radius * 0.7 };
     let usable_fov_v = half_fov_v * (usable_h / h);
-    let dist_v = radius_v / usable_fov_v.sin();
+    let dist_v = rv / usable_fov_v.sin();
     let dist_h = radius / half_fov_h.sin();
     let distance = dist_v.max(dist_h) * CAMERA_MARGIN;
 
-    // Vertical position: angular offset from camera (consistent at any distance/resolution)
-    // Negative = board appears higher on screen
-    let look_y = if playing { -0.065 * distance } else { -0.06 * distance };
+    // Vertical position: board slightly above center
+    let look_y = -0.06 * distance;
     let look_at = Vec3::new(0.0, look_y, 0.0);
 
     let dir = camera_direction();
