@@ -72,9 +72,9 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
     let bot_scale = if config.num_bots <= 2 { 1.0 } else { (2.5 / nb).max(0.4) };
     let cell_budget = total_cells * 2 / (config.num_bots.max(2) as usize + 1);
 
-    // Spread colors apart to avoid similar adjacent colors in rainbow order
-    let color_step = NUM_COLORS / config.num_bots.max(1) as usize;
-    let color_step = color_step.max(2); // at least 2 apart
+    // Spread colors apart — skip enough to avoid similar pairs (e.g. orange/gold)
+    let ideal_step = NUM_COLORS / config.num_bots.max(1) as usize;
+    let color_step = if config.num_bots <= 3 { ideal_step.max(3) } else { ideal_step.max(2) };
     let color_offset: usize = rng.gen_range(0..NUM_COLORS);
     for bot_idx in 0..config.num_bots {
         let ci = (bot_idx as usize * color_step + color_offset) % NUM_COLORS;
@@ -269,6 +269,12 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
                 if simulate_headless(size, &modified) { return None; }
             }
         }
+    }
+
+    // Reject if required_tile is set but not in inventory (must be placeable, not baked in)
+    if let Some(req) = config.required_tile {
+        let has_required_in_inv = tiles.iter().any(|(_, _, k, sol)| *sol && req(k));
+        if !has_required_in_inv { return None; }
     }
 
     if config.confusion_tiles { add_confusion_tiles(&mut tiles, size, rng); }

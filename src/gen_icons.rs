@@ -209,15 +209,18 @@ fn icon_camera(
     let Ok((mut transform, projection)) = cameras.single_mut() else { return };
     let aspect = window.width() / window.height();
     let fov = match projection { Projection::Perspective(p) => p.fov, _ => return };
-    // Exact same camera as the real game — just framing a 1x1 board
+    // Same camera math as the real game (adapt_camera in board.rs)
     let radius = board_bounding_radius(board_size.0);
+    let radius_v = radius * 0.7; // isometric foreshortening
     let half_fov_v = fov / 2.0;
     let half_fov_h = (half_fov_v.tan() * aspect).atan();
+    let dist_v = radius_v / (half_fov_v).sin();
     let dist_h = radius / half_fov_h.sin();
-    let dist_v = radius / half_fov_v.sin();
     let distance = dist_v.max(dist_h) * CAMERA_MARGIN;
     let dir = camera_direction();
-    let target = Transform::from_translation(dir * distance).looking_at(Vec3::ZERO, Vec3::Y);
+    let look_y = -0.06 * distance; // same offset as game stop mode
+    let look_at = Vec3::new(0.0, look_y, 0.0);
+    let target = Transform::from_translation(look_at + dir * distance).looking_at(look_at, Vec3::Y);
     transform.translation = target.translation;
     transform.rotation = target.rotation;
 }

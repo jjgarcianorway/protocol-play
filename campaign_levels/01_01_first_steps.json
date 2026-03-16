@@ -3,8 +3,8 @@
   "board_size": 3,
   "tiles": [
     [
-      0,
       1,
+      2,
       "Floor",
       false
     ],
@@ -20,8 +20,32 @@
       false
     ],
     [
+      1,
+      0,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      1,
+      "Floor",
+      false
+    ],
+    [
       0,
       0,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      1,
       {
         "Source": [
           5,
@@ -48,30 +72,6 @@
         "Goal": 5
       },
       false
-    ],
-    [
-      1,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      1,
-      "Floor",
-      false
     ]
   ],
   "solution": [
@@ -86,6 +86,6 @@
       }
     ]
   ],
-  "seed": 11938833375249368510,
+  "seed": 13370466196267434821,
   "difficulty": 37
 }

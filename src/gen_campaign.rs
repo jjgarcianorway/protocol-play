@@ -74,7 +74,7 @@ fn generate_level(config: &GenConfig, max_attempts: usize)
     let mut best: Option<(Vec<(u32, u32, TileKind, bool)>, u32)> = None;
     for _ in 0..max_attempts {
         if let Some((tiles, rating)) = generate_attempt(config, &mut rng) {
-            // If a required tile type is specified, reject attempts without it
+            // Required tile must exist — in inventory for early chapters, on board for complex ones
             if let Some(req) = config.required_tile {
                 if !tiles.iter().any(|(_, _, k, _)| req(k)) { continue; }
             }
@@ -138,7 +138,7 @@ fn make_level(ch: usize, pos: usize, name: &str, board: u32, bots: u32, diff: u3
     if ch >= 2 { c.path_sharing = true; }
     // Confusion tiles: intro levels (0-1) never, mid-levels sometimes, late always
     c.confusion_tiles = if pos <= 1 { false } else if pos <= 4 { ch >= 3 } else { true };
-    if ch >= 10 { c.door_chains = match pos { 0..=2=>1, 3..=5=>2, 6..=8=>3, _=>4 }; }
+    if ch >= 10 { c.door_chains = match pos { 0..=2=>1, 3..=5=>2, 6..=8=>3, _=>4 }.max(1); }
     // Holes: gentle start, ramp up
     let hole_base = if ch <= 2 { 5 } else if ch <= 6 { 12 } else { 18 };
     let pct = hole_base + pos as u32 * 2;
@@ -148,8 +148,9 @@ fn make_level(ch: usize, pos: usize, name: &str, board: u32, bots: u32, diff: u3
         _ => { c.hole_percent = pct; }
     }
     // Inventory: intro (1-2), learning (2-3), challenge (3-5), boss (4-6)
+    // Chapters with complex mechanics (doors/switches) need more intro tiles
     let inv = match pos {
-        0 => 1, 1 => 2,             // intro: teach new mechanic with minimal tiles
+        0 => if ch >= 10 { 2 } else { 1 }, 1 => 2,
         2..=4 => 2 + pos as u32 / 2, // learning: 3
         5..=7 => 3 + pos as u32 / 2, // challenge: 4-5
         _ => 4 + pos as u32 / 3,     // boss: 5-7
