@@ -4,7 +4,7 @@ A game built with [Bevy 0.18](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.26.1** — Proper camera math: fits any aspect ratio, centers in usable viewport
+**v0.27.0** — Yellow markers on placed tiles, unique solutions, better difficulty progression
 
 ### Bot Game (Editor + Player)
 - **149 campaign levels** across 13 chapters, each introducing a new mechanic

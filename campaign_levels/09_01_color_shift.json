@@ -10,70 +10,48 @@
     ],
     [
       3,
-      0,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      0,
-      "Floor",
-      false
-    ],
-    [
       4,
-      4,
+      {
+        "Goal": 3
+      },
+      false
+    ],
+    [
+      0,
+      0,
       {
         "Source": [
-          2,
-          "North"
-        ]
-      },
-      false
-    ],
-    [
-      4,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      4,
-      0,
-      {
-        "Arrow": [
-          2,
-          "West"
+          3,
+          "East"
         ]
       },
       false
     ],
     [
       0,
-      2,
+      1,
       "Empty",
       false
     ],
     [
       4,
-      1,
+      3,
       "Floor",
       false
     ],
     [
-      3,
+      2,
+      0,
+      {
+        "Arrow": [
+          3,
+          "South"
+        ]
+      },
+      false
+    ],
+    [
+      1,
       3,
       {
         "Painter": 5
@@ -81,20 +59,130 @@
       true
     ],
     [
+      0,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      0,
+      {
+        "Arrow": [
+          6,
+          "South"
+        ]
+      },
+      true
+    ],
+    [
+      4,
+      4,
+      {
+        "Source": [
+          0,
+          "North"
+        ]
+      },
+      false
+    ],
+    [
+      1,
+      2,
+      {
+        "Goal": 0
+      },
+      false
+    ],
+    [
+      3,
+      3,
+      {
+        "Painter": 3
+      },
+      true
+    ],
+    [
+      4,
+      2,
+      {
+        "Arrow": [
+          0,
+          "West"
+        ]
+      },
+      false
+    ],
+    [
+      2,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      4,
+      1,
+      "Empty",
+      false
+    ],
+    [
       3,
       2,
       "Floor",
       false
     ],
     [
+      1,
+      1,
+      {
+        "Painter": 6
+      },
+      true
+    ],
+    [
+      1,
+      0,
+      "Floor",
+      false
+    ],
+    [
       4,
+      0,
+      {
+        "Source": [
+          6,
+          "West"
+        ]
+      },
+      false
+    ],
+    [
       3,
+      1,
       "Floor",
       false
     ],
     [
       0,
-      0,
+      4,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      4,
       {
         "Goal": 3
       },
@@ -102,126 +190,44 @@
     ],
     [
       2,
-      4,
-      {
-        "Arrow": [
-          5,
-          "North"
-        ]
-      },
-      true
-    ],
-    [
-      0,
       1,
       "Floor",
       false
-    ],
-    [
-      2,
-      1,
-      {
-        "Goal": 5
-      },
-      false
-    ],
-    [
-      2,
-      0,
-      {
-        "Painter": 3
-      },
-      false
-    ],
-    [
-      3,
-      4,
-      {
-        "Goal": 5
-      },
-      false
-    ],
-    [
-      2,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      1,
-      {
-        "Source": [
-          8,
-          "East"
-        ]
-      },
-      false
-    ],
-    [
-      0,
-      4,
-      {
-        "Source": [
-          5,
-          "East"
-        ]
-      },
-      false
-    ],
-    [
-      1,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      1,
-      {
-        "Arrow": [
-          8,
-          "South"
-        ]
-      },
-      true
     ]
   ],
   "solution": [
     [
-      3,
+      1,
       3,
       {
         "Painter": 5
       }
     ],
     [
-      2,
-      4,
+      3,
+      0,
       {
         "Arrow": [
-          5,
-          "North"
+          6,
+          "South"
         ]
       }
     ],
     [
       3,
+      3,
+      {
+        "Painter": 3
+      }
+    ],
+    [
+      1,
       1,
       {
-        "Arrow": [
-          8,
-          "South"
-        ]
+        "Painter": 6
       }
     ]
   ],
-  "seed": 6681752558810739646,
-  "difficulty": 64
+  "seed": 12338926102059653845,
+  "difficulty": 67
 }

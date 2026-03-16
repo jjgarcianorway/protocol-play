@@ -3,232 +3,233 @@
   "board_size": 6,
   "tiles": [
     [
-      4,
-      3,
-      "Floor",
-      false
-    ],
-    [
-      5,
       0,
-      {
-        "Source": [
-          8,
-          "West"
-        ]
-      },
-      false
-    ],
-    [
       3,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      0,
-      4,
       {
-        "Arrow": [
-          6,
-          "East"
+        "Teleport": [
+          3,
+          0
         ]
       },
       true
     ],
     [
-      5,
-      5,
+      1,
+      0,
       {
-        "Source": [
-          1,
-          "West"
+        "Teleport": [
+          5,
+          0
+        ]
+      },
+      false
+    ],
+    [
+      3,
+      4,
+      "Floor",
+      false
+    ],
+    [
+      4,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      4,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      0,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      4,
+      0,
+      {
+        "Teleport": [
+          3,
+          0
         ]
       },
       false
     ],
     [
       1,
-      4,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      3,
+      1,
       {
-        "Goal": 8
-      },
-      false
-    ],
-    [
-      3,
-      5,
-      {
-        "Arrow": [
-          4,
-          "West"
+        "Teleport": [
+          7,
+          0
         ]
       },
-      true
-    ],
-    [
-      0,
-      1,
-      "Floor",
       false
     ],
     [
-      0,
+      2,
       3,
-      "Floor",
-      false
-    ],
-    [
-      5,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      4,
-      4,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      5,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      4,
-      0,
       {
         "Goal": 1
       },
       false
     ],
     [
-      3,
-      3,
+      0,
+      5,
       {
         "Source": [
-          4,
+          5,
+          "East"
+        ]
+      },
+      false
+    ],
+    [
+      5,
+      0,
+      {
+        "Source": [
+          7,
           "South"
         ]
       },
       false
     ],
     [
-      2,
-      4,
-      {
-        "Goal": 6
-      },
+      0,
+      1,
+      "Floor",
       false
     ],
     [
-      0,
+      3,
       2,
       "Floor",
       false
     ],
     [
-      0,
+      2,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      4,
+      4,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      3,
+      "Floor",
+      false
+    ],
+    [
+      3,
       5,
       {
-        "Goal": 4
+        "Teleport": [
+          5,
+          0
+        ]
       },
       false
     ],
     [
-      2,
+      1,
+      3,
+      "Floor",
+      false
+    ],
+    [
       0,
+      4,
       {
-        "Arrow": [
-          8,
-          "South"
+        "Teleport": [
+          1,
+          0
+        ]
+      },
+      false
+    ],
+    [
+      5,
+      3,
+      {
+        "Teleport": [
+          1,
+          0
         ]
       },
       true
     ],
     [
-      1,
-      2,
-      "Floor",
-      false
-    ],
-    [
       4,
       5,
       {
-        "Turn": [
-          1,
-          "North"
+        "Goal": 3
+      },
+      false
+    ],
+    [
+      5,
+      2,
+      {
+        "Teleport": [
+          7,
+          0
         ]
       },
       false
     ],
     [
-      4,
       1,
+      4,
       "Floor",
       false
     ],
     [
       1,
-      0,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      4,
+      1,
       "Floor",
       false
     ],
     [
       2,
-      5,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      3,
-      "Empty",
-      false
-    ],
-    [
-      3,
       0,
       "Floor",
       false
     ],
     [
       5,
-      3,
+      5,
       "Floor",
       false
     ],
     [
-      3,
-      4,
-      "Floor",
+      2,
+      1,
+      "Empty",
+      false
+    ],
+    [
+      1,
+      5,
+      {
+        "Goal": 7
+      },
       false
     ],
     [
@@ -236,7 +237,7 @@
       0,
       {
         "Source": [
-          6,
+          3,
           "South"
         ]
       },
@@ -244,25 +245,44 @@
     ],
     [
       5,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      1,
-      "Floor",
-      false
-    ],
-    [
       4,
+      {
+        "Source": [
+          1,
+          "West"
+        ]
+      },
+      false
+    ],
+    [
       2,
+      5,
       "Floor",
       false
     ],
     [
       5,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      2,
       4,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      0,
+      {
+        "Goal": 5
+      },
+      false
+    ],
+    [
+      3,
+      1,
       "Floor",
       false
     ]
@@ -270,35 +290,25 @@
   "solution": [
     [
       0,
-      4,
-      {
-        "Arrow": [
-          6,
-          "East"
-        ]
-      }
-    ],
-    [
       3,
-      5,
       {
-        "Arrow": [
-          4,
-          "West"
+        "Teleport": [
+          3,
+          0
         ]
       }
     ],
     [
-      2,
-      0,
+      5,
+      3,
       {
-        "Arrow": [
-          8,
-          "South"
+        "Teleport": [
+          1,
+          0
         ]
       }
     ]
   ],
-  "seed": 17704675189426524626,
-  "difficulty": 57
+  "seed": 8268098979995292034,
+  "difficulty": 66
 }

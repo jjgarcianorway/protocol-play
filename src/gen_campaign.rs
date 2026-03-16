@@ -136,19 +136,23 @@ fn ch_w(ch: usize, pos: usize) -> [u32; GEN_NUM_WEIGHTS] {
 fn make_level(ch: usize, pos: usize, name: &str, board: u32, bots: u32, diff: u32) -> Level {
     let mut c = cfg(board, bots, diff, ch_w(ch, pos));
     if ch >= 2 { c.path_sharing = true; }
-    c.confusion_tiles = pos >= 3; // confusion tiles in all chapters from level 4 onwards
+    // Confusion tiles: from level 3 onwards, more in later chapters
+    c.confusion_tiles = pos >= 2 || ch >= 5;
     if ch >= 10 { c.door_chains = match pos { 0..=2=>1, 3..=5=>2, 6..=8=>3, _=>4 }; }
-    let hole_base = if ch <= 2 { 8 } else if ch <= 6 { 15 } else { 20 };
-    let pct = hole_base + pos as u32 * 2;
+    // Holes: scale aggressively with chapter and position
+    let hole_base = if ch <= 2 { 10 } else if ch <= 6 { 18 } else { 25 };
+    let pct = hole_base + pos as u32 * 3;
     match pos % 3 {
         0 => { c.hole_placement = HolePlacement::Edges; c.hole_percent = pct; }
         1 => { c.hole_placement = HolePlacement::Middle; c.hole_percent = pct; }
         _ => { c.hole_percent = pct; }
     }
-    // More inventory tiles to place — scales with position and board size
-    let inv_min = 2 + (pos as u32 / 2); // 2-6 based on position
-    let inv_max = board.min(10);
-    c.inventory_target = inv_min.max(3).min(inv_max);
+    // Inventory tiles: scale with position, min 2 for intro, up to board-2
+    let inv_min = if pos <= 1 { 2 } else { 3 + (pos as u32 / 2) }; // intro: 2, then 3-7
+    let inv_max = (board - 1).min(10);
+    c.inventory_target = inv_min.max(2).min(inv_max);
+    // Unique solutions for boss levels (pos >= 8) — makes them trickier
+    c.unique_solution = pos >= 8;
     // Intro levels must contain the chapter's new mechanic
     if pos == 0 {
         c.required_tile = match ch {

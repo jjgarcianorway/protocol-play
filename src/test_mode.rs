@@ -118,7 +118,7 @@ fn set_tool_from_kind(k: TileKind, tool: &mut ResMut<SelectedTool>, inv: &mut Re
     }; tool.0 = t; inv.direction = dir; inv.color_index = ci;
 }
 
-fn add_marker(commands: &mut Commands, entity: Entity, assets: &GameAssets) {
+pub fn add_marker(commands: &mut Commands, entity: Entity, assets: &GameAssets) {
     commands.entity(entity).insert(InventoryMarker).with_children(|parent| {
         parent.spawn((
             Mesh3d(assets.marker_mesh.clone()), MeshMaterial3d(assets.marker_material.clone()),
@@ -403,7 +403,8 @@ pub fn handle_test_tile_click(
         let idx = test_inv.items.iter().position(|(k, _)| *k == tile_kind).unwrap();
         test_inv.selected = Some(idx);
         commands.entity(entity).despawn();
-        crate::board::spawn_tile_at_scale(&mut commands, col, row, board_size.0, tile_kind, &assets, Vec3::ZERO);
+        let placed = crate::board::spawn_tile_at_scale(&mut commands, col, row, board_size.0, tile_kind, &assets, Vec3::ZERO);
+        add_marker(&mut commands, placed, &assets); // yellow marker on player-placed tiles
         test_inv.items[idx].1 -= 1;
         if test_inv.items[idx].1 == 0 {
             test_inv.items.remove(idx);
