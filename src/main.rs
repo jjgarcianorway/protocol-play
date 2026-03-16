@@ -44,7 +44,7 @@ fn main() {
     gen_textures::ensure_textures();
     let title = if cfg!(feature = "player") { "protocol: play (player)" } else { "protocol: play" };
     let mut app = App::new();
-    app.set_error_handler(bevy::ecs::error::warn);
+    app.set_error_handler(bevy::ecs::error::ignore);
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window { title: title.into(), ..default() }), ..default() }))
         .insert_resource(ClearColor(Color::srgb(CLEAR_COLOR.0, CLEAR_COLOR.1, CLEAR_COLOR.2)))
