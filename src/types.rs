@@ -314,6 +314,7 @@ pub enum InventorySlot {
 #[derive(Component)] pub struct PlayButtonImage;
 #[derive(Component)] pub struct GhostSymbolOverlay;
 #[derive(Component)] pub struct StatusBarText;
+#[derive(Component)] pub struct VersionLabel;
 
 // === Test mode types ===
 #[derive(Component)] pub struct InventoryMarker;

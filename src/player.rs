@@ -392,3 +392,15 @@ pub fn populate_stats(
         sim_result.stats_lines.push(pick_creative_msg().into());
     }
 }
+
+pub fn update_version_label(
+    levels: Res<PlayerLevels>,
+    mut label: Query<&mut Text, With<VersionLabel>>,
+) {
+    if !levels.is_changed() || levels.levels.is_empty() { return; }
+    let level = &levels.levels[levels.current];
+    let seed = level.seed.map(|s| format!("{:08X}", s)).unwrap_or_default();
+    for mut text in &mut label {
+        **text = format!("v{} · {seed}", env!("CARGO_PKG_VERSION"));
+    }
+}

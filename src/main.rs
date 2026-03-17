@@ -112,7 +112,7 @@ fn main() {
       app.add_systems(Update, (player::player_nav_interaction, player::update_player_stats));
       app.add_systems(Update, (player::auto_save_progress, player::handle_level_complete));
       app.add_systems(Update, player::populate_stats.before(spawn_simulation_overlay));
-      app.add_systems(Update, (player::cleanup_stale_inventory, player::animate_bg_color, player::animate_chapter_title)); }
+      app.add_systems(Update, (player::cleanup_stale_inventory, player::animate_bg_color, player::animate_chapter_title, player::update_version_label)); }
     app.run();
 }
 fn setup_scene(
@@ -362,5 +362,5 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
     commands.spawn(Node { position_type: PositionType::Absolute, right: Val::Px(6.0),
         bottom: Val::Px(4.0), ..default() })
         .with_child((Text::new(format!("v{}", env!("CARGO_PKG_VERSION"))),
-            gf(VERSION_FONT, &f), TextColor(Color::srgba(1.0, 1.0, 1.0, 0.25))));
+            gf(VERSION_FONT, &f), TextColor(Color::srgba(1.0, 1.0, 1.0, 0.35)), VersionLabel));
 }
