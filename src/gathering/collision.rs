@@ -46,6 +46,9 @@ pub fn check_collisions(
             hit_flash.timer = HIT_FLASH_DURATION;
             commands.entity(entity).insert(HitCooldown(0.5));
 
+            // Feature #3: Spawn damage direction indicator
+            spawn_damage_direction(&mut commands, ship_pos, ast_pos);
+
             if state.life <= 0.0 {
                 state.life = 0.0;
                 state.alive = false;
@@ -53,6 +56,68 @@ pub fn check_collisions(
         }
     }
     Ok(())
+}
+
+fn spawn_damage_direction(commands: &mut Commands, ship_pos: Vec2, ast_pos: Vec2) {
+    let diff = ast_pos - ship_pos;
+    // Determine which edge to show the indicator on
+    let (left, top, width, height) = if diff.x.abs() > diff.y.abs() {
+        if diff.x > 0.0 {
+            // Hit from right
+            (Val::Auto, Val::Percent(20.0), Val::Px(DAMAGE_DIR_WIDTH), Val::Percent(60.0))
+        } else {
+            // Hit from left
+            (Val::Px(0.0), Val::Percent(20.0), Val::Px(DAMAGE_DIR_WIDTH), Val::Percent(60.0))
+        }
+    } else if diff.y > 0.0 {
+        // Hit from top
+        (Val::Percent(20.0), Val::Px(0.0), Val::Percent(60.0), Val::Px(DAMAGE_DIR_WIDTH))
+    } else {
+        // Hit from bottom
+        (Val::Percent(20.0), Val::Auto, Val::Percent(60.0), Val::Px(DAMAGE_DIR_WIDTH))
+    };
+
+    let mut node = Node {
+        position_type: PositionType::Absolute,
+        left,
+        top,
+        width,
+        height,
+        border_radius: BorderRadius::all(Val::Px(4.0)),
+        ..default()
+    };
+    // Position right edge
+    if diff.x > 0.0 && diff.x.abs() > diff.y.abs() {
+        node.right = Val::Px(0.0);
+    }
+    // Position bottom edge
+    if diff.y < 0.0 && diff.y.abs() >= diff.x.abs() {
+        node.bottom = Val::Px(0.0);
+    }
+
+    commands.spawn((
+        DamageDirectionIndicator { timer: DAMAGE_DIR_FADE_TIME },
+        node,
+        BackgroundColor(Color::srgba(1.0, 0.1, 0.05, DAMAGE_DIR_ALPHA)),
+        ZIndex(9),
+    ));
+}
+
+pub fn update_damage_direction(
+    mut commands: Commands,
+    mut query: Query<(Entity, &mut DamageDirectionIndicator, &mut BackgroundColor)>,
+    time: Res<Time>,
+) {
+    let dt = time.delta_secs();
+    for (entity, mut indicator, mut bg) in query.iter_mut() {
+        indicator.timer -= dt;
+        if indicator.timer <= 0.0 {
+            commands.entity(entity).despawn();
+            continue;
+        }
+        let alpha = (indicator.timer / DAMAGE_DIR_FADE_TIME) * DAMAGE_DIR_ALPHA;
+        bg.0 = Color::srgba(1.0, 0.1, 0.05, alpha);
+    }
 }
 
 pub fn tick_hit_cooldowns(

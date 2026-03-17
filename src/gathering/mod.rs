@@ -13,6 +13,7 @@ mod hud;
 mod game_over;
 mod stats;
 mod pause;
+mod warnings;
 
 use bevy::prelude::*;
 use bevy::post_process::bloom::Bloom;
@@ -38,6 +39,8 @@ pub fn build_app(app: &mut App) {
         .insert_resource(game_over::IntroFade::default())
         .insert_resource(HitFlash::default())
         .insert_resource(Paused::default())
+        .insert_resource(CrystalChain::default())
+        .insert_resource(game_over::TryAgainTriggered::default())
         .insert_resource(best)
         .init_state::<GatheringState>()
         .add_systems(Startup, setup_gathering)
@@ -61,6 +64,7 @@ pub fn build_app(app: &mut App) {
         ))
         .add_systems(Update, (
             difficulty::update_difficulty,
+            difficulty::update_background_color.after(difficulty::update_difficulty),
             background::scroll_stars,
             hud::update_hud,
             hud::update_game_time,
@@ -69,6 +73,7 @@ pub fn build_app(app: &mut App) {
             try_again_interaction,
             game_over::try_again_hover,
             game_over::update_intro_fade,
+            game_over::try_again_cleanup.after(try_again_interaction),
             spawn_game_over_screen.after(check_game_over).after(try_again_interaction),
             ship::restore_cursor.run_if(|s: Res<State<GatheringState>>| *s.get() == GatheringState::GameOver),
             ship::update_shield_bubble,
@@ -77,6 +82,13 @@ pub fn build_app(app: &mut App) {
             pause::toggle_pause,
             pause::resume_button_interaction,
             pause::resume_button_hover,
+        ))
+        .add_systems(Update, (
+            warnings::update_warning_indicators,
+            ship::update_magnet_ring,
+            collision::update_damage_direction,
+            ship::spawn_damage_particles,
+            ship::move_damage_particles,
         ));
 }
 

@@ -12,6 +12,34 @@ pub struct NebulaLayer;
 #[derive(Component)]
 pub struct NebulaLight;
 
+/// Feature #8: Bias crystal X position toward asteroid-dense areas.
+fn bias_crystal_x(
+    asteroid_q: &Query<&Transform, With<Asteroid>>,
+    bounds: &ViewBounds,
+    rng: &mut impl Rng,
+) -> f32 {
+    let base_x = rng.gen_range(-bounds.half_width * 0.7..bounds.half_width * 0.7);
+
+    // Find densest asteroid cluster x-position
+    let positions: Vec<f32> = asteroid_q.iter().map(|t| t.translation.x).collect();
+    if positions.is_empty() {
+        return base_x;
+    }
+
+    // Simple average of asteroid x positions as cluster center
+    let avg_x: f32 = positions.iter().sum::<f32>() / positions.len() as f32;
+    let bias_range = bounds.half_width * CRYSTAL_ASTEROID_BIAS;
+    let biased_x = avg_x + rng.gen_range(-bias_range..bias_range);
+    let biased_x = biased_x.clamp(-bounds.half_width * 0.7, bounds.half_width * 0.7);
+
+    // 60% chance to use biased position, 40% random
+    if rng.gen_range(0.0..1.0_f32) < 0.6 {
+        biased_x
+    } else {
+        base_x
+    }
+}
+
 pub fn spawn_crystals(
     mut commands: Commands,
     time: Res<Time>,
@@ -20,6 +48,7 @@ pub fn spawn_crystals(
     assets: Res<GatheringAssets>,
     state: Res<ShipState>,
     paused: Res<Paused>,
+    asteroid_q: Query<&Transform, With<Asteroid>>,
 ) {
     if !state.alive || paused.0 { return; }
     timer.0.tick(time.delta());
@@ -31,7 +60,9 @@ pub fn spawn_crystals(
     let value_t = (value - CRYSTAL_MIN_VALUE) as f32
         / (CRYSTAL_MAX_VALUE - CRYSTAL_MIN_VALUE) as f32;
     let radius = CRYSTAL_MIN_RADIUS + value_t * (CRYSTAL_MAX_RADIUS - CRYSTAL_MIN_RADIUS);
-    let x = rng.gen_range(-bounds.half_width * 0.7..bounds.half_width * 0.7);
+
+    // Feature #8: Bias crystal X toward asteroid clusters
+    let x = bias_crystal_x(&asteroid_q, &bounds, &mut rng);
     let y = bounds.half_height + ASTEROID_SPAWN_BUFFER + radius;
 
     let rot_axis = Vec3::new(
@@ -231,11 +262,20 @@ pub fn absorb_crystals(
     mut commands: Commands,
     font: Res<GatheringFont>,
     cameras: Query<(&Camera, &GlobalTransform)>,
+    mut chain: ResMut<CrystalChain>,
 ) -> Result {
     if !state.alive || paused.0 { return Ok(()); }
     let ship_tf = ship_q.single()?;
     let ship_pos = ship_tf.translation.truncate();
     let dt = time.delta_secs();
+
+    // Feature #5: Tick chain timer
+    if chain.timer > 0.0 {
+        chain.timer -= dt;
+        if chain.timer <= 0.0 {
+            chain.multiplier = 1.0;
+        }
+    }
 
     for (mut cloud, tf, _entity) in crystal_q.iter_mut() {
         let cloud_pos = tf.translation.truncate();
@@ -244,23 +284,43 @@ pub fn absorb_crystals(
             let absorb = CRYSTAL_ABSORB_RATE * dt;
             let absorbed_fraction = absorb.min(cloud.remaining);
             cloud.remaining -= absorbed_fraction;
-            let crystals_gained = (cloud.value as f32 * absorbed_fraction) as u64;
+            let base_crystals = (cloud.value as f32 * absorbed_fraction) as u64;
+            let crystals_gained = (base_crystals as f32 * chain.multiplier) as u64;
             state.crystals += crystals_gained;
 
             // Spawn floating text when cloud is fully absorbed
             if cloud.remaining <= 0.01 && crystals_gained > 0 {
                 let total_k = cloud.value / 1000;
-                let label = format!("+{}K", total_k);
+                let label = if chain.multiplier > 1.0 {
+                    format!("+{}K x{:.1}!", total_k, chain.multiplier)
+                } else {
+                    format!("+{}K", total_k)
+                };
                 // Project cloud position to screen
                 if let Ok((camera, cam_gt)) = cameras.single() {
                     if let Ok(vp) = camera.world_to_viewport(cam_gt, tf.translation) {
-                        spawn_floating_text(&mut commands, &font.0, &label, vp);
+                        spawn_floating_text(
+                            &mut commands, &font.0, &label, vp,
+                            chain.multiplier > 1.0,
+                        );
                     }
                 }
+                // Advance chain
+                advance_chain(&mut chain);
             }
         }
     }
     Ok(())
+}
+
+fn advance_chain(chain: &mut CrystalChain) {
+    chain.timer = CHAIN_TIMEOUT;
+    // Step up to next multiplier tier
+    let current_idx = CHAIN_MULTIPLIERS.iter()
+        .position(|&m| (m - chain.multiplier).abs() < 0.01)
+        .unwrap_or(0);
+    let next_idx = (current_idx + 1).min(CHAIN_MULTIPLIERS.len() - 1);
+    chain.multiplier = CHAIN_MULTIPLIERS[next_idx];
 }
 
 fn spawn_floating_text(
@@ -268,20 +328,27 @@ fn spawn_floating_text(
     font: &Handle<Font>,
     text: &str,
     screen_pos: Vec2,
+    is_chain: bool,
 ) {
+    let color = if is_chain {
+        Color::srgb(CHAIN_TEXT_COLOR.0, CHAIN_TEXT_COLOR.1, CHAIN_TEXT_COLOR.2)
+    } else {
+        Color::srgb(FLOAT_TEXT_COLOR.0, FLOAT_TEXT_COLOR.1, FLOAT_TEXT_COLOR.2)
+    };
+    let font_size = if is_chain { FLOAT_TEXT_FONT + 4.0 } else { FLOAT_TEXT_FONT };
     commands.spawn((
         FloatingText { lifetime: FLOAT_TEXT_LIFETIME, max_lifetime: FLOAT_TEXT_LIFETIME },
         Node {
             position_type: PositionType::Absolute,
-            left: Val::Px(screen_pos.x - 40.0),
+            left: Val::Px(screen_pos.x - 50.0),
             top: Val::Px(screen_pos.y - 20.0),
             ..default()
         },
         ZIndex(15),
     )).with_child((
         Text::new(text),
-        TextFont { font: font.clone(), font_size: FLOAT_TEXT_FONT, ..default() },
-        TextColor(Color::srgb(FLOAT_TEXT_COLOR.0, FLOAT_TEXT_COLOR.1, FLOAT_TEXT_COLOR.2)),
+        TextFont { font: font.clone(), font_size, ..default() },
+        TextColor(color),
     ));
 }
 

@@ -217,3 +217,48 @@ pub const SHIELD_BUBBLE_EMISSIVE: f32 = 2.0;
 pub const SHIELD_BUBBLE_COLOR: (f32, f32, f32) = (0.4, 0.7, 1.0);
 pub const SHIELD_BUBBLE_PULSE_SPEED: f32 = 2.0;
 pub const SHIELD_BUBBLE_PULSE_AMOUNT: f32 = 0.03;
+
+// Warning indicators (screen-edge asteroid approach)
+pub const WARNING_LEAD_TIME: f32 = 3.0;
+pub const WARNING_ARROW_SIZE: f32 = 20.0;
+pub const WARNING_ARROW_COLOR: (f32, f32, f32) = (1.0, 0.2, 0.15);
+pub const WARNING_MARGIN_PX: f32 = 8.0;
+
+// Magnet range ring
+pub const MAGNET_RING_ALPHA: f32 = 0.08;
+pub const MAGNET_RING_NEARBY_MULT: f32 = 2.0;
+pub const MAGNET_RING_FADE_SPEED: f32 = 4.0;
+
+// Damage direction indicator
+pub const DAMAGE_DIR_FADE_TIME: f32 = 0.5;
+pub const DAMAGE_DIR_WIDTH: f32 = 80.0;
+pub const DAMAGE_DIR_ALPHA: f32 = 0.6;
+
+// Background color shift with difficulty
+pub const CLEAR_COLOR_WARM: (f32, f32, f32) = (0.04, 0.02, 0.06);
+
+// Crystal chain bonus
+pub const CHAIN_TIMEOUT: f32 = 5.0;
+pub const CHAIN_MULTIPLIERS: [f32; 4] = [1.0, 1.2, 1.5, 2.0];
+pub const CHAIN_TEXT_COLOR: (f32, f32, f32) = (1.0, 0.85, 0.2);
+
+// Ship damage smoke/sparks
+pub const SMOKE_PARTICLE_SIZE: f32 = 0.15;
+pub const SMOKE_LIFETIME: f32 = 0.8;
+pub const SMOKE_SPEED: f32 = 1.5;
+pub const SMOKE_COLOR: (f32, f32, f32, f32) = (0.15, 0.12, 0.1, 0.5);
+pub const SPARK_DAMAGE_SIZE: f32 = 0.06;
+pub const SPARK_DAMAGE_LIFETIME: f32 = 0.4;
+pub const SPARK_DAMAGE_SPEED: f32 = 4.0;
+pub const SPARK_DAMAGE_COLOR: (f32, f32, f32) = (1.0, 0.6, 0.1);
+pub const SMOKE_BASE_RATE: f32 = 5.0;
+pub const SPARK_DAMAGE_BASE_RATE: f32 = 3.0;
+
+// Asteroid size scaling with difficulty
+pub const ASTEROID_EARLY_MIN_R: f32 = 0.8;
+pub const ASTEROID_EARLY_MAX_R: f32 = 2.5;
+pub const ASTEROID_LATE_MIN_R: f32 = 2.0;
+pub const ASTEROID_LATE_MAX_R: f32 = 5.0;
+
+// Crystal placement bias toward asteroids
+pub const CRYSTAL_ASTEROID_BIAS: f32 = 0.3;

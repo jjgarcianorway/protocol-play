@@ -181,23 +181,20 @@ pub fn try_again_hover(
     }
 }
 
+/// Shared marker: set to true by try_again button press, consumed by cleanup system.
+#[derive(Resource, Default)]
+pub struct TryAgainTriggered(pub bool);
+
 pub fn try_again_interaction(
     interaction_q: Query<&Interaction, (Changed<Interaction>, With<TryAgainButton>)>,
     mut next_state: ResMut<NextState<GatheringState>>,
     mut state: ResMut<ShipState>,
     mut shake: ResMut<ScreenShake>,
     mut fade: ResMut<FadeTimer>,
-    game_over_q: Query<Entity, With<GameOverScreen>>,
-    mut fade_bg_q: Query<&mut BackgroundColor, With<FadeOverlay>>,
-    asteroid_q: Query<Entity, With<Asteroid>>,
-    crystal_q: Query<Entity, With<CrystalCloud>>,
-    particle_q: Query<Entity, With<CrystalParticle>>,
-    spark_q: Query<Entity, With<Spark>>,
-    engine_q: Query<Entity, With<EngineParticle>>,
-    float_q: Query<Entity, With<FloatingText>>,
     mut difficulty: ResMut<Difficulty>,
     mut hit_flash: ResMut<HitFlash>,
-    mut commands: Commands,
+    mut chain: ResMut<CrystalChain>,
+    mut triggered: ResMut<TryAgainTriggered>,
 ) {
     for interaction in interaction_q.iter() {
         if *interaction != Interaction::Pressed { continue; }
@@ -206,16 +203,42 @@ pub fn try_again_interaction(
         *fade = FadeTimer::default();
         *difficulty = Difficulty::default();
         *hit_flash = HitFlash::default();
+        *chain = CrystalChain::default();
+        triggered.0 = true;
         next_state.set(GatheringState::Running);
-        for entity in game_over_q.iter() { commands.entity(entity).despawn(); }
-        for mut bg in fade_bg_q.iter_mut() {
-            bg.0 = Color::srgba(0.0, 0.0, 0.0, 0.0);
-        }
-        for entity in asteroid_q.iter() { commands.entity(entity).despawn(); }
-        for entity in crystal_q.iter() { commands.entity(entity).despawn(); }
-        for entity in particle_q.iter() { commands.entity(entity).despawn(); }
-        for entity in spark_q.iter() { commands.entity(entity).despawn(); }
-        for entity in engine_q.iter() { commands.entity(entity).despawn(); }
-        for entity in float_q.iter() { commands.entity(entity).despawn(); }
     }
+}
+
+pub fn try_again_cleanup(
+    mut triggered: ResMut<TryAgainTriggered>,
+    game_over_q: Query<Entity, With<GameOverScreen>>,
+    mut fade_bg_q: Query<&mut BackgroundColor, With<FadeOverlay>>,
+    asteroid_q: Query<Entity, With<Asteroid>>,
+    crystal_q: Query<Entity, With<CrystalCloud>>,
+    particle_q: Query<Entity, With<CrystalParticle>>,
+    spark_q: Query<Entity, With<Spark>>,
+    engine_q: Query<Entity, With<EngineParticle>>,
+    float_q: Query<Entity, With<FloatingText>>,
+    smoke_q: Query<Entity, With<DamageSmoke>>,
+    dspark_q: Query<Entity, With<DamageSpark>>,
+    warning_q: Query<Entity, With<WarningIndicator>>,
+    damage_dir_q: Query<Entity, With<DamageDirectionIndicator>>,
+    mut commands: Commands,
+) {
+    if !triggered.0 { return; }
+    triggered.0 = false;
+    for entity in game_over_q.iter() { commands.entity(entity).despawn(); }
+    for mut bg in fade_bg_q.iter_mut() {
+        bg.0 = Color::srgba(0.0, 0.0, 0.0, 0.0);
+    }
+    for entity in asteroid_q.iter() { commands.entity(entity).despawn(); }
+    for entity in crystal_q.iter() { commands.entity(entity).despawn(); }
+    for entity in particle_q.iter() { commands.entity(entity).despawn(); }
+    for entity in spark_q.iter() { commands.entity(entity).despawn(); }
+    for entity in engine_q.iter() { commands.entity(entity).despawn(); }
+    for entity in float_q.iter() { commands.entity(entity).despawn(); }
+    for entity in smoke_q.iter() { commands.entity(entity).despawn(); }
+    for entity in dspark_q.iter() { commands.entity(entity).despawn(); }
+    for entity in warning_q.iter() { commands.entity(entity).despawn(); }
+    for entity in damage_dir_q.iter() { commands.entity(entity).despawn(); }
 }

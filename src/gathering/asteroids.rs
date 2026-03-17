@@ -163,7 +163,11 @@ pub fn spawn_asteroids(
     if !timer.0.just_finished() { return; }
 
     let mut rng = rand::thread_rng();
-    let radius = rng.gen_range(ASTEROID_MIN_RADIUS..ASTEROID_MAX_RADIUS);
+    // Feature #7: Scale asteroid sizes with difficulty
+    let c = difficulty.combined;
+    let min_r = ASTEROID_EARLY_MIN_R + (ASTEROID_LATE_MIN_R - ASTEROID_EARLY_MIN_R) * c.max(0.0).min(1.0);
+    let max_r = ASTEROID_EARLY_MAX_R + (ASTEROID_LATE_MAX_R - ASTEROID_EARLY_MAX_R) * c.max(0.0).min(1.0);
+    let radius = rng.gen_range(min_r..max_r);
     let base_speed = rng.gen_range(ASTEROID_MIN_SPEED..ASTEROID_MAX_SPEED) * difficulty.speed_mult;
 
     let mesh_idx = rng.gen_range(0..assets.asteroid_meshes.len());

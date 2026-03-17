@@ -121,6 +121,7 @@ pub struct Difficulty {
     pub spawn_mult: f32,
     pub speed_mult: f32,
     pub side_chance: f32,
+    pub combined: f32,
 }
 
 #[derive(States, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -161,6 +162,48 @@ pub struct NebulaPlane;
 
 #[derive(Resource, Default)]
 pub struct Paused(pub bool);
+
+// === Warning indicators (screen-edge asteroid warnings) ===
+#[derive(Component)]
+pub struct WarningIndicator {
+    pub asteroid_entity: Entity,
+}
+
+// === Damage direction indicator ===
+#[derive(Component)]
+pub struct DamageDirectionIndicator {
+    pub timer: f32,
+}
+
+// === Crystal magnet range ring ===
+#[derive(Component)]
+pub struct MagnetRing;
+
+// === Crystal chain bonus ===
+#[derive(Resource)]
+pub struct CrystalChain {
+    pub timer: f32,
+    pub multiplier: f32,
+}
+
+impl Default for CrystalChain {
+    fn default() -> Self {
+        Self { timer: 0.0, multiplier: 1.0 }
+    }
+}
+
+// === Ship damage smoke/sparks ===
+#[derive(Component)]
+pub struct DamageSmoke {
+    pub lifetime: f32,
+    pub velocity: Vec3,
+}
+
+#[derive(Component)]
+pub struct DamageSpark {
+    pub lifetime: f32,
+    pub velocity: Vec3,
+}
 
 #[derive(Resource)]
 pub struct BestStats {
