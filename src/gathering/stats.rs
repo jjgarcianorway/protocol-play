@@ -10,6 +10,8 @@ struct SessionStats {
     time_days: u32,
     crystals: u64,
     hits_taken: u32,
+    near_misses: u32,
+    max_chain: f32,
     elapsed_secs: f32,
 }
 
@@ -62,6 +64,8 @@ pub fn save_session(state: &ShipState, best: &mut BestStats) -> bool {
         time_days: (state.elapsed_time * 0.1) as u32,
         crystals: state.crystals,
         hits_taken: state.hits_taken,
+        near_misses: state.near_misses,
+        max_chain: state.max_chain,
         elapsed_secs: state.elapsed_time,
     };
     let dir = stats_dir();

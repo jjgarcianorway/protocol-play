@@ -132,6 +132,10 @@ pub fn spawn_game_over_screen(
             let crys = if state.crystals >= 1_000 { format!("{}K", state.crystals / 1_000) } else { format!("{}", state.crystals) };
             stat_row(card, "Crystals", &crys, &stat_font, label_color, value_color);
             stat_row(card, "Hits taken", &format!("{}", state.hits_taken), &stat_font, label_color, value_color);
+            stat_row(card, "Near misses", &format!("{}", state.near_misses), &stat_font, label_color, value_color);
+            if state.max_chain > 1.0 {
+                stat_row(card, "Best chain", &format!("x{:.1}", state.max_chain), &stat_font, label_color, value_color);
+            }
             if new_record {
                 card.spawn(Node { height: Val::Px(4.0), ..default() });
                 card.spawn((
@@ -193,6 +197,7 @@ pub fn try_again_interaction(
     mut fade: ResMut<FadeTimer>,
     mut difficulty: ResMut<Difficulty>,
     mut hit_flash: ResMut<HitFlash>,
+    mut near_miss_flash: ResMut<NearMissFlash>,
     mut chain: ResMut<CrystalChain>,
     mut triggered: ResMut<TryAgainTriggered>,
 ) {
@@ -203,6 +208,7 @@ pub fn try_again_interaction(
         *fade = FadeTimer::default();
         *difficulty = Difficulty::default();
         *hit_flash = HitFlash::default();
+        *near_miss_flash = NearMissFlash::default();
         *chain = CrystalChain::default();
         triggered.0 = true;
         next_state.set(GatheringState::Running);
@@ -223,6 +229,7 @@ pub fn try_again_cleanup(
     dspark_q: Query<Entity, With<DamageSpark>>,
     warning_q: Query<Entity, With<WarningIndicator>>,
     damage_dir_q: Query<Entity, With<DamageDirectionIndicator>>,
+    trail_q: Query<Entity, With<AsteroidTrailParticle>>,
     mut commands: Commands,
 ) {
     if !triggered.0 { return; }
@@ -241,4 +248,5 @@ pub fn try_again_cleanup(
     for entity in dspark_q.iter() { commands.entity(entity).despawn(); }
     for entity in warning_q.iter() { commands.entity(entity).despawn(); }
     for entity in damage_dir_q.iter() { commands.entity(entity).despawn(); }
+    for entity in trail_q.iter() { commands.entity(entity).despawn(); }
 }

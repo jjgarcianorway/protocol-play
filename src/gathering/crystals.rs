@@ -263,11 +263,13 @@ pub fn absorb_crystals(
     font: Res<GatheringFont>,
     cameras: Query<(&Camera, &GlobalTransform)>,
     mut chain: ResMut<CrystalChain>,
+    difficulty: Res<Difficulty>,
 ) -> Result {
     if !state.alive || paused.0 { return Ok(()); }
     let ship_tf = ship_q.single()?;
     let ship_pos = ship_tf.translation.truncate();
     let dt = time.delta_secs();
+    let difficulty_mult = 1.0 + difficulty.combined * CRYSTAL_DIFFICULTY_SCALE;
 
     // Feature #5: Tick chain timer
     if chain.timer > 0.0 {
@@ -277,6 +279,11 @@ pub fn absorb_crystals(
         }
     }
 
+    // Track max chain for stats
+    if chain.multiplier > state.max_chain {
+        state.max_chain = chain.multiplier;
+    }
+
     for (mut cloud, tf, _entity) in crystal_q.iter_mut() {
         let cloud_pos = tf.translation.truncate();
         let dist = ship_pos.distance(cloud_pos);
@@ -284,7 +291,7 @@ pub fn absorb_crystals(
             let absorb = CRYSTAL_ABSORB_RATE * dt;
             let absorbed_fraction = absorb.min(cloud.remaining);
             cloud.remaining -= absorbed_fraction;
-            let base_crystals = (cloud.value as f32 * absorbed_fraction) as u64;
+            let base_crystals = (cloud.value as f32 * absorbed_fraction * difficulty_mult) as u64;
             let crystals_gained = (base_crystals as f32 * chain.multiplier) as u64;
             state.crystals += crystals_gained;
 

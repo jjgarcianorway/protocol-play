@@ -262,3 +262,46 @@ pub const ASTEROID_LATE_MAX_R: f32 = 5.0;
 
 // Crystal placement bias toward asteroids
 pub const CRYSTAL_ASTEROID_BIAS: f32 = 0.3;
+
+// Near-miss shield recovery
+pub const NEAR_MISS_RANGE: f32 = 0.8; // outer edge beyond collision
+pub const NEAR_MISS_MIN_GAP: f32 = 0.3; // inner edge beyond collision (closest)
+pub const NEAR_MISS_SHIELD_RECOVERY: f32 = 4.0; // shield points recovered
+pub const NEAR_MISS_COOLDOWN: f32 = 2.0; // seconds before same asteroid can trigger again
+pub const NEAR_MISS_TEXT_COLOR: (f32, f32, f32) = (0.5, 0.85, 1.0); // light blue
+pub const NEAR_MISS_FLASH_DURATION: f32 = 0.15;
+pub const NEAR_MISS_FLASH_COLOR: (f32, f32, f32) = (0.2, 0.9, 0.7); // teal
+
+// Asteroid types
+pub const ASTEROID_ROCK_ROUGHNESS: f32 = 0.7;
+pub const ASTEROID_ROCK_METALLIC: f32 = 0.15;
+pub const ASTEROID_ICE_ROUGHNESS: f32 = 0.3;
+pub const ASTEROID_ICE_METALLIC: f32 = 0.1;
+pub const ASTEROID_ICE_EMISSIVE: f32 = 0.8;
+pub const ASTEROID_ICE_DAMAGE_MULT: f32 = 0.75;
+pub const ASTEROID_METALLIC_ROUGHNESS: f32 = 0.2;
+pub const ASTEROID_METALLIC_METALLIC: f32 = 0.9;
+pub const ASTEROID_METALLIC_DAMAGE_MULT: f32 = 1.3;
+pub const ASTEROID_ICE_COLORS: [(f32, f32, f32); 4] = [
+    (0.70, 0.85, 1.00),
+    (0.60, 0.80, 0.95),
+    (0.75, 0.90, 1.00),
+    (0.55, 0.75, 0.92),
+];
+pub const ASTEROID_METALLIC_COLORS: [(f32, f32, f32); 4] = [
+    (0.55, 0.55, 0.60),
+    (0.45, 0.45, 0.52),
+    (0.50, 0.50, 0.58),
+    (0.40, 0.42, 0.50),
+];
+
+// Asteroid trail wisps (large asteroids only)
+pub const TRAIL_MIN_RADIUS: f32 = 3.0;
+pub const TRAIL_PARTICLES_PER_SEC: f32 = 7.0;
+pub const TRAIL_PARTICLE_LIFETIME: f32 = 0.3;
+pub const TRAIL_PARTICLE_SIZE: f32 = 0.1;
+pub const TRAIL_PARTICLE_ALPHA: f32 = 0.25;
+pub const TRAIL_PARTICLE_COLOR: (f32, f32, f32) = (0.4, 0.38, 0.35);
+
+// Crystal value scaling with difficulty
+pub const CRYSTAL_DIFFICULTY_SCALE: f32 = 0.5;

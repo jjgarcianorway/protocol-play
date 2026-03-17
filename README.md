@@ -4,7 +4,7 @@ A game built with [Bevy 0.18](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.32.0** — The Gathering: warnings, chain bonus, damage effects, smart spawning
+**v0.33.0** — Asteroid variety, near-miss shield recovery, dust trails, crystal scaling
 
 ### Bot Game (Editor + Player)
 - **149 campaign levels** across 13 chapters, each introducing a new mechanic

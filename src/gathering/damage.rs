@@ -46,6 +46,35 @@ pub fn update_hit_flash(
     }
 }
 
+/// Near-miss teal flash on ship (brief shield absorption effect).
+pub fn update_near_miss_flash(
+    mut near_miss_flash: ResMut<NearMissFlash>,
+    ship_q: Query<Entity, With<Ship>>,
+    children_q: Query<&Children>,
+    material_q: Query<&MeshMaterial3d<StandardMaterial>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    time: Res<Time>,
+) {
+    if near_miss_flash.timer <= 0.0 { return; }
+    near_miss_flash.timer = (near_miss_flash.timer - time.delta_secs()).max(0.0);
+    let flash_t = near_miss_flash.timer / NEAR_MISS_FLASH_DURATION;
+
+    let Ok(ship_entity) = ship_q.single() else { return; };
+    let mut stack = vec![ship_entity];
+    while let Some(entity) = stack.pop() {
+        if let Ok(mat_handle) = material_q.get(entity) {
+            if let Some(mat) = materials.get_mut(&mat_handle.0) {
+                let (r, g, b) = NEAR_MISS_FLASH_COLOR;
+                let intensity = flash_t * 6.0;
+                mat.emissive = LinearRgba::new(r * intensity, g * intensity, b * intensity, 1.0);
+            }
+        }
+        if let Ok(children) = children_q.get(entity) {
+            for child in children.iter() { stack.push(child); }
+        }
+    }
+}
+
 pub fn update_screen_shake(
     mut shake: ResMut<ScreenShake>,
     mut camera_q: Query<&mut Transform, With<Camera3d>>,

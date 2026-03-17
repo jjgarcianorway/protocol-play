@@ -6,12 +6,28 @@ use super::constants::*;
 // === Components ===
 #[derive(Component)] pub struct Ship;
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum AsteroidType {
+    Rock,
+    Ice,
+    Metallic,
+}
+
 #[derive(Component)]
 pub struct Asteroid {
     pub radius: f32,
     pub velocity: Vec2,
     pub rot_axis: Vec3,
     pub rot_speed: f32,
+    pub asteroid_type: AsteroidType,
+}
+
+#[derive(Component)]
+pub struct NearMissCooldown(pub f32);
+
+#[derive(Component)]
+pub struct AsteroidTrailParticle {
+    pub lifetime: f32,
 }
 
 #[derive(Component)]
@@ -55,6 +71,8 @@ pub struct ShipState {
     pub distance: f32,
     pub elapsed_time: f32,
     pub hits_taken: u32,
+    pub near_misses: u32,
+    pub max_chain: f32,
     pub control_loss_timer: f32,
     pub alive: bool,
 }
@@ -65,7 +83,8 @@ impl Default for ShipState {
             target: Vec2::ZERO, velocity: Vec2::ZERO,
             shield: SHIELD_MAX, life: LIFE_MAX,
             crystals: 0, distance: 0.0, elapsed_time: 0.0,
-            hits_taken: 0, control_loss_timer: 0.0, alive: true,
+            hits_taken: 0, near_misses: 0, max_chain: 1.0,
+            control_loss_timer: 0.0, alive: true,
         }
     }
 }
@@ -101,10 +120,14 @@ impl Default for AsteroidSpawnTimer {
 pub struct GatheringAssets {
     pub asteroid_meshes: Vec<Handle<Mesh>>,
     pub asteroid_materials: Vec<Handle<StandardMaterial>>,
+    pub ice_materials: Vec<Handle<StandardMaterial>>,
+    pub metallic_materials: Vec<Handle<StandardMaterial>>,
     pub crystal_meshes: Vec<Handle<Mesh>>,
     pub crystal_materials: Vec<Handle<StandardMaterial>>,
     pub particle_mesh: Handle<Mesh>,
     pub particle_materials: Vec<Handle<StandardMaterial>>,
+    pub trail_mesh: Handle<Mesh>,
+    pub trail_material: Handle<StandardMaterial>,
 }
 
 #[derive(Resource)]
@@ -136,6 +159,11 @@ pub struct GatheringFont(pub Handle<Font>);
 
 #[derive(Resource, Default)]
 pub struct HitFlash {
+    pub timer: f32,
+}
+
+#[derive(Resource, Default)]
+pub struct NearMissFlash {
     pub timer: f32,
 }
 

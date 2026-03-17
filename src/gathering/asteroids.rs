@@ -92,7 +92,31 @@ pub fn create_asteroid_assets(
     for &(r, g, b) in &ASTEROID_COLORS {
         asteroid_materials.push(materials.add(StandardMaterial {
             base_color: Color::srgb(r, g, b),
-            perceptual_roughness: 0.7, metallic: 0.15,
+            perceptual_roughness: ASTEROID_ROCK_ROUGHNESS,
+            metallic: ASTEROID_ROCK_METALLIC,
+            ..default()
+        }));
+    }
+
+    // Ice asteroid materials
+    let mut ice_materials = Vec::with_capacity(ASTEROID_ICE_COLORS.len());
+    for &(r, g, b) in &ASTEROID_ICE_COLORS {
+        ice_materials.push(materials.add(StandardMaterial {
+            base_color: Color::srgb(r, g, b),
+            perceptual_roughness: ASTEROID_ICE_ROUGHNESS,
+            metallic: ASTEROID_ICE_METALLIC,
+            emissive: LinearRgba::new(r * 0.3, g * 0.4, b * 0.5, 1.0) * ASTEROID_ICE_EMISSIVE,
+            ..default()
+        }));
+    }
+
+    // Metallic asteroid materials
+    let mut metallic_materials = Vec::with_capacity(ASTEROID_METALLIC_COLORS.len());
+    for &(r, g, b) in &ASTEROID_METALLIC_COLORS {
+        metallic_materials.push(materials.add(StandardMaterial {
+            base_color: Color::srgb(r, g, b),
+            perceptual_roughness: ASTEROID_METALLIC_ROUGHNESS,
+            metallic: ASTEROID_METALLIC_METALLIC,
             ..default()
         }));
     }
@@ -141,10 +165,21 @@ pub fn create_asteroid_assets(
         }));
     }
 
+    // Trail particle mesh and material for large asteroids
+    let trail_mesh = meshes.add(Sphere::new(TRAIL_PARTICLE_SIZE));
+    let (tr, tg, tb) = TRAIL_PARTICLE_COLOR;
+    let trail_material = materials.add(StandardMaterial {
+        base_color: Color::srgba(tr, tg, tb, TRAIL_PARTICLE_ALPHA),
+        alpha_mode: AlphaMode::Blend,
+        unlit: true,
+        ..default()
+    });
+
     GatheringAssets {
-        asteroid_meshes, asteroid_materials,
+        asteroid_meshes, asteroid_materials, ice_materials, metallic_materials,
         crystal_meshes, crystal_materials,
         particle_mesh, particle_materials,
+        trail_mesh, trail_material,
     }
 }
 
@@ -170,8 +205,32 @@ pub fn spawn_asteroids(
     let radius = rng.gen_range(min_r..max_r);
     let base_speed = rng.gen_range(ASTEROID_MIN_SPEED..ASTEROID_MAX_SPEED) * difficulty.speed_mult;
 
+    // Select asteroid type: 60% rock, 25% ice, 15% metallic
+    let type_roll: f32 = rng.gen_range(0.0..1.0);
+    let asteroid_type = if type_roll < 0.60 {
+        AsteroidType::Rock
+    } else if type_roll < 0.85 {
+        AsteroidType::Ice
+    } else {
+        AsteroidType::Metallic
+    };
+
     let mesh_idx = rng.gen_range(0..assets.asteroid_meshes.len());
-    let mat_idx = rng.gen_range(0..assets.asteroid_materials.len());
+    let material = match asteroid_type {
+        AsteroidType::Rock => {
+            let i = rng.gen_range(0..assets.asteroid_materials.len());
+            assets.asteroid_materials[i].clone()
+        }
+        AsteroidType::Ice => {
+            let i = rng.gen_range(0..assets.ice_materials.len());
+            assets.ice_materials[i].clone()
+        }
+        AsteroidType::Metallic => {
+            let i = rng.gen_range(0..assets.metallic_materials.len());
+            assets.metallic_materials[i].clone()
+        }
+    };
+
     let rot_axis = Vec3::new(
         rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0),
     ).normalize_or(Vec3::Y);
@@ -191,9 +250,9 @@ pub fn spawn_asteroids(
     };
 
     commands.spawn((
-        Asteroid { radius, velocity, rot_axis, rot_speed },
+        Asteroid { radius, velocity, rot_axis, rot_speed, asteroid_type },
         Mesh3d(assets.asteroid_meshes[mesh_idx].clone()),
-        MeshMaterial3d(assets.asteroid_materials[mat_idx].clone()),
+        MeshMaterial3d(material),
         Transform::from_xyz(x, y, 0.0).with_scale(Vec3::splat(radius)),
     ));
 }
@@ -267,7 +326,7 @@ pub fn asteroid_asteroid_collisions(
                         (combos[i].0.y + combos[j].0.y) * 0.5,
                         0.0,
                     );
-                    spawn_sparks(&mut commands, &mut meshes, &mut materials, contact);
+                    super::effects::spawn_sparks(&mut commands, &mut meshes, &mut materials, contact);
                 }
             }
         }
@@ -288,48 +347,3 @@ pub fn asteroid_asteroid_collisions(
     }
 }
 
-fn spawn_sparks(
-    commands: &mut Commands,
-    meshes: &mut Assets<Mesh>,
-    materials: &mut Assets<StandardMaterial>,
-    position: Vec3,
-) {
-    let mesh = meshes.add(Sphere::new(SPARK_SIZE));
-    let (r, g, b) = SPARK_COLOR;
-    let mat = materials.add(StandardMaterial {
-        base_color: Color::srgb(r, g, b),
-        emissive: LinearRgba::new(r, g, b, 1.0) * SPARK_EMISSIVE,
-        unlit: true,
-        ..default()
-    });
-
-    let mut rng = rand::thread_rng();
-    for _ in 0..SPARK_COUNT {
-        let angle = rng.gen_range(0.0..std::f32::consts::TAU);
-        let speed = SPARK_SPEED * rng.gen_range(0.5..1.5);
-        let velocity = Vec3::new(angle.cos() * speed, angle.sin() * speed, 0.0);
-        commands.spawn((
-            Spark { velocity, lifetime: SPARK_LIFETIME },
-            Mesh3d(mesh.clone()),
-            MeshMaterial3d(mat.clone()),
-            Transform::from_translation(position),
-        ));
-    }
-}
-
-pub fn move_sparks(
-    mut commands: Commands,
-    mut query: Query<(Entity, &mut Spark, &mut Transform)>,
-    time: Res<Time>,
-) {
-    let dt = time.delta_secs();
-    for (entity, mut spark, mut tf) in query.iter_mut() {
-        spark.lifetime -= dt;
-        tf.translation += spark.velocity * dt;
-        let life_frac = (spark.lifetime / SPARK_LIFETIME).max(0.0);
-        tf.scale = Vec3::splat(life_frac);
-        if spark.lifetime <= 0.0 {
-            commands.entity(entity).despawn();
-        }
-    }
-}

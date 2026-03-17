@@ -13,6 +13,7 @@ mod hud;
 mod game_over;
 mod stats;
 mod pause;
+mod effects;
 mod warnings;
 
 use bevy::prelude::*;
@@ -38,6 +39,7 @@ pub fn build_app(app: &mut App) {
         .insert_resource(FadeTimer::default())
         .insert_resource(game_over::IntroFade::default())
         .insert_resource(HitFlash::default())
+        .insert_resource(NearMissFlash::default())
         .insert_resource(Paused::default())
         .insert_resource(CrystalChain::default())
         .insert_resource(game_over::TryAgainTriggered::default())
@@ -49,9 +51,11 @@ pub fn build_app(app: &mut App) {
             asteroids::spawn_asteroids,
             asteroids::move_asteroids,
             asteroids::asteroid_asteroid_collisions.after(asteroids::move_asteroids),
-            asteroids::move_sparks,
+            effects::move_sparks,
             collision::check_collisions.after(asteroids::move_asteroids),
+            collision::check_near_misses.after(collision::check_collisions),
             collision::tick_hit_cooldowns,
+            collision::tick_near_miss_cooldowns,
             crystals::spawn_crystals,
             crystals::move_crystals,
             crystals::absorb_crystals.after(crystals::move_crystals),
@@ -61,6 +65,7 @@ pub fn build_app(app: &mut App) {
             damage::update_screen_shake.after(collision::check_collisions),
             damage::update_bars,
             damage::update_hit_flash.after(collision::check_collisions),
+            damage::update_near_miss_flash.after(collision::check_near_misses),
         ))
         .add_systems(Update, (
             difficulty::update_difficulty,
@@ -89,6 +94,8 @@ pub fn build_app(app: &mut App) {
             collision::update_damage_direction,
             ship::spawn_damage_particles,
             ship::move_damage_particles,
+            effects::spawn_asteroid_trails,
+            effects::move_trail_particles,
         ));
 }
 
