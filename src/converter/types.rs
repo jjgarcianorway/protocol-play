@@ -93,7 +93,8 @@ impl Default for CrystalPile {
 
 #[derive(Resource, Default)]
 pub struct ResourceTanks {
-    pub levels: [f32; 5], // accumulated resource units
+    pub levels: [f32; 5],
+    pub prev_levels: [f32; 5],
 }
 
 #[derive(Resource, Default)]
@@ -109,7 +110,7 @@ pub struct ConverterFont(pub Handle<Font>);
 
 #[derive(Resource, Default)]
 pub struct HoveredGroup {
-    pub cells: Vec<(usize, usize)>, // (row, col)
+    pub cells: Vec<(usize, usize)>,
     pub color: Option<CrystalColor>,
 }
 
@@ -124,10 +125,21 @@ pub struct GridCell {
 pub struct ChainSizeLabel;
 
 #[derive(Component)]
-pub struct TankFill(pub usize); // color index
+pub struct ChainMultLabel;
+
+#[derive(Component)]
+pub struct TankFill(pub usize);
 
 #[derive(Component)]
 pub struct TankLabel(pub usize);
+
+#[derive(Component)]
+pub struct TankFlash {
+    pub timer: f32,
+}
+
+#[derive(Component)]
+pub struct TankGlassOverlay;
 
 #[derive(Component)]
 pub struct PileCountText;
@@ -137,7 +149,7 @@ pub struct PileFill;
 
 #[derive(Component)]
 pub struct BurstParticle {
-    pub target: Vec2,  // screen position of target tank
+    pub target: Vec2,
     pub start: Vec2,
     pub lifetime: f32,
     pub max_lifetime: f32,
@@ -151,7 +163,15 @@ pub struct ResultsScreen;
 pub struct ReturnButton;
 
 #[derive(Component)]
-pub struct ConverterRoot; // root UI node, despawn on cleanup
+pub struct ConverterRoot;
+
+#[derive(Component)]
+pub struct CascadeText {
+    pub lifetime: f32,
+}
+
+#[derive(Component)]
+pub struct StarDot;
 
 // === Helper: efficiency multiplier ===
 pub fn efficiency_mult(chain_size: u32) -> f32 {

@@ -88,8 +88,18 @@ pub const ANNA_NAME_FONT: f32 = 12.0;
 pub const ANNA_NAME_COLOR: (f32, f32, f32) = (0.4, 0.7, 1.0);
 pub const ANNA_MSG_FONT: f32 = 15.0;
 pub const ANNA_MSG_COLOR: (f32, f32, f32) = (0.75, 0.8, 0.9);
+pub const ANNA_STORY_MSG_COLOR: (f32, f32, f32) = (0.9, 0.85, 0.75);
 pub const ANNA_FADE_SPEED: f32 = 2.0;
-pub const ANNA_MSG_HOLD: f32 = 6.0;
+pub const ANNA_MSG_HOLD: f32 = 5.0;
+pub const ANNA_STORY_HOLD: f32 = 8.0;
+
+// Anna mood glow colors
+pub const ANNA_WARNING_COLOR: (f32, f32, f32) = (0.9, 0.5, 0.2);
+pub const ANNA_STORY_COLOR: (f32, f32, f32) = (0.9, 0.85, 0.7);
+pub const ANNA_GLITCH_COLOR: (f32, f32, f32) = (0.3, 0.6, 0.9);
+pub const ANNA_WARNING_PULSE_SPEED: f32 = 4.0;
+pub const ANNA_NORMAL_PULSE_SPEED: f32 = 1.2;
+pub const ANNA_GLITCH_SPEED: f32 = 12.0;
 
 // === Version ===
 pub const VERSION_FONT_M: f32 = 11.0;

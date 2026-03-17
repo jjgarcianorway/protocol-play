@@ -4,6 +4,7 @@ mod constants;
 mod types;
 mod pods;
 mod ui;
+mod effects;
 mod results;
 
 use bevy::prelude::*;
@@ -30,6 +31,8 @@ pub fn build_app(app: &mut App) {
         ui::sync_hud,
         ui::highlight_slots,
         ui::fade_intro,
+        effects::animate_stars,
+        effects::animate_streak_popups,
     ).run_if(in_state(DeliveryPhase::Playing)))
     .add_systems(OnEnter(DeliveryPhase::Results), results::spawn_results_screen)
     .add_systems(Update,
@@ -42,7 +45,6 @@ fn setup_delivery(
     mut fonts: ResMut<Assets<Font>>,
     mut images: ResMut<Assets<Image>>,
 ) {
-    // Camera (2D-style but using Camera3d for bloom)
     commands.spawn((
         Camera3d::default(),
         Bloom {
@@ -55,12 +57,10 @@ fn setup_delivery(
         Transform::from_xyz(0.0, 0.0, 100.0).looking_at(Vec3::ZERO, Vec3::Y),
     ));
 
-    // Font
     let font_bytes = include_bytes!("../../assets/fonts/FiraSans-Regular.ttf").to_vec();
     let font = fonts.add(Font::try_from_bytes(font_bytes).unwrap());
     commands.insert_resource(DeliveryFont(font.clone()));
 
-    // Vignette overlay
     let vignette = create_vignette(&mut images);
     commands.spawn((
         Node {
@@ -72,7 +72,6 @@ fn setup_delivery(
         ImageNode::new(vignette),
     ));
 
-    // Version label
     commands.spawn(Node {
         position_type: PositionType::Absolute,
         right: Val::Px(6.0),
@@ -85,7 +84,6 @@ fn setup_delivery(
     ));
 }
 
-/// Create a vignette texture (same pattern as other games).
 fn create_vignette(images: &mut Assets<Image>) -> Handle<Image> {
     let size = 256u32;
     let mut data = vec![0u8; (size * size * 4) as usize];

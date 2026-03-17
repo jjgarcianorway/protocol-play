@@ -5,6 +5,8 @@ mod types;
 mod dashboard;
 mod games;
 mod anna;
+mod anna_messages;
+mod story;
 
 use bevy::prelude::*;
 use bevy::post_process::bloom::Bloom;
@@ -42,6 +44,8 @@ pub fn build_app(app: &mut App) {
         games::card_hover_interaction,
         games::card_click_interaction,
         anna::update_anna_messages,
+        anna::anna_click_dismiss,
+        anna::update_anna_glow,
         twinkle_stars,
     ));
 }

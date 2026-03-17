@@ -31,6 +31,14 @@ pub struct GameState {
     pub gathering_runs: u32,
     pub total_crystals_gathered: u64,
 
+    // Story progression
+    #[serde(default)]
+    pub story_chapter: u32,
+    #[serde(default)]
+    pub story_seen: Vec<u32>,
+    #[serde(default)]
+    pub decisions: Vec<String>,
+
     // Story flags (for Anna's questions later)
     pub story_flags: Vec<String>,
 }
@@ -54,6 +62,9 @@ impl Default for GameState {
             distance_au: 0.0,
             gathering_runs: 0,
             total_crystals_gathered: 0,
+            story_chapter: 0,
+            story_seen: Vec::new(),
+            decisions: Vec::new(),
             story_flags: Vec::new(),
         }
     }

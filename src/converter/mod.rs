@@ -31,8 +31,11 @@ pub fn build_app(app: &mut App) {
         ui::sync_grid_visuals.after(process_grid_phases),
         ui::sync_tank_visuals,
         ui::sync_pile_visuals,
+        ui::detect_tank_changes.after(ui::sync_tank_visuals),
+        ui::animate_tank_flashes,
         effects::update_burst_particles,
-        effects::animate_highlight_pulse.after(handle_hover),
+        effects::animate_cascade_text,
+        effects::animate_stars,
         update_chain_label.after(handle_hover),
         check_round_complete.after(process_grid_phases),
     ).run_if(in_state(ConverterPhase::Processing)))
@@ -47,7 +50,6 @@ fn setup_converter(
     mut fonts: ResMut<Assets<Font>>,
     mut images: ResMut<Assets<Image>>,
 ) {
-    // Camera (2D-style but using Camera3d for bloom)
     commands.spawn((
         Camera3d::default(),
         Bloom {
@@ -60,12 +62,10 @@ fn setup_converter(
         Transform::from_xyz(0.0, 0.0, 100.0).looking_at(Vec3::ZERO, Vec3::Y),
     ));
 
-    // Font
     let font_bytes = include_bytes!("../../assets/fonts/FiraSans-Regular.ttf").to_vec();
     let font = fonts.add(Font::try_from_bytes(font_bytes).unwrap());
     commands.insert_resource(ConverterFont(font.clone()));
 
-    // Vignette overlay
     let vignette = create_vignette(&mut images);
     commands.spawn((
         Node {
@@ -77,7 +77,6 @@ fn setup_converter(
         ImageNode::new(vignette),
     ));
 
-    // Version label
     commands.spawn(Node {
         position_type: PositionType::Absolute,
         right: Val::Px(6.0),
@@ -90,7 +89,6 @@ fn setup_converter(
     ));
 }
 
-/// Create a vignette texture (same pattern as gathering).
 fn create_vignette(images: &mut Assets<Image>) -> Handle<Image> {
     let size = 256u32;
     let mut data = vec![0u8; (size * size * 4) as usize];
@@ -115,7 +113,6 @@ fn create_vignette(images: &mut Assets<Image>) -> Handle<Image> {
     ))
 }
 
-/// Handle mouse hover over grid cells — compute connected group.
 fn handle_hover(
     grid_state: Res<GridState>,
     mut hovered: ResMut<HoveredGroup>,
@@ -150,7 +147,6 @@ fn handle_hover(
     }
 }
 
-/// Handle click on grid cells — trigger chain burst.
 fn handle_click(
     mut grid_state: ResMut<GridState>,
     mut stats: ResMut<ConversionStats>,
@@ -178,18 +174,15 @@ fn handle_click(
     let chain_size = hovered.cells.len() as u32;
     let mult = efficiency_mult(chain_size);
 
-    // Remove cells from grid
     grid::remove_cells(&mut grid_state, &hovered.cells);
 
-    // Update stats
     stats.total_converted += chain_size as u64;
     stats.chains_triggered += 1;
     if chain_size > stats.best_chain {
         stats.best_chain = chain_size;
     }
 
-    // Spawn burst particles (approximate positions)
-    let tank_target = Vec2::new(900.0, 300.0); // approximate tank area
+    let tank_target = Vec2::new(900.0, 300.0);
     for &(row, col) in &hovered.cells {
         let cell_pos = Vec2::new(
             GRID_LEFT_MARGIN + col as f32 * (CELL_SIZE + CELL_GAP) + CELL_SIZE / 2.0,
@@ -201,20 +194,17 @@ fn handle_click(
         );
     }
 
-    // Resources are added when particles arrive at tanks (in effects.rs)
-
-    // Start gravity phase
     grid_state.phase = GridPhase::Gravity;
     grid_state.phase_timer = GRAVITY_DELAY;
 }
 
-/// Process grid phase transitions: gravity, cascade, refill.
 fn process_grid_phases(
     time: Res<Time>,
     mut grid_state: ResMut<GridState>,
     mut pile: ResMut<CrystalPile>,
     mut stats: ResMut<ConversionStats>,
     mut commands: Commands,
+    font: Res<ConverterFont>,
 ) {
     let dt = time.delta_secs();
     grid_state.phase_timer -= dt;
@@ -223,20 +213,17 @@ fn process_grid_phases(
     match grid_state.phase {
         GridPhase::Idle => {}
         GridPhase::Bursting => {
-            // Transition to gravity
             grid_state.phase = GridPhase::Gravity;
             grid_state.phase_timer = GRAVITY_DELAY;
         }
         GridPhase::Gravity => {
             grid::apply_gravity(&mut grid_state);
-            // Check for cascades
             grid_state.phase = GridPhase::CascadeCheck;
             grid_state.phase_timer = CASCADE_DELAY;
         }
         GridPhase::CascadeCheck => {
             let groups = grid::find_all_groups(&grid_state);
             if let Some((color, group)) = groups.into_iter().next() {
-                // Auto-trigger the largest group
                 let chain_size = group.len() as u32;
                 grid::remove_cells(&mut grid_state, &group);
                 stats.cascades += 1;
@@ -245,7 +232,9 @@ fn process_grid_phases(
                     stats.best_chain = chain_size;
                 }
 
-                // Spawn particles for cascade
+                // Cascade feedback text
+                effects::spawn_cascade_text(&mut commands, &font.0, stats.cascades);
+
                 let tank_target = Vec2::new(900.0, 300.0);
                 let mult = efficiency_mult(chain_size);
                 for &(row, col) in &group {
@@ -259,11 +248,9 @@ fn process_grid_phases(
                     );
                 }
 
-                // Back to gravity
                 grid_state.phase = GridPhase::Gravity;
                 grid_state.phase_timer = GRAVITY_DELAY;
             } else {
-                // No cascades — refill from pile
                 if pile.remaining > 0 {
                     grid_state.phase = GridPhase::Refilling;
                     grid_state.phase_timer = 0.1;
@@ -279,24 +266,45 @@ fn process_grid_phases(
     }
 }
 
-/// Update chain size label text based on hovered group.
 fn update_chain_label(
     hovered: Res<HoveredGroup>,
-    mut query: Query<(&mut Text, &mut TextColor), With<ChainSizeLabel>>,
+    mut size_q: Query<
+        (&mut Text, &mut TextColor),
+        (With<ChainSizeLabel>, Without<ChainMultLabel>),
+    >,
+    mut mult_q: Query<
+        (&mut Text, &mut TextColor),
+        (With<ChainMultLabel>, Without<ChainSizeLabel>),
+    >,
 ) {
-    for (mut text, mut color) in query.iter_mut() {
+    for (mut text, mut color) in size_q.iter_mut() {
+        if hovered.cells.is_empty() {
+            *color = TextColor(Color::srgba(1.0, 1.0, 0.5, 0.0));
+        } else {
+            let size = hovered.cells.len();
+            *text = Text::new(format!("Chain: {}", size));
+            *color = TextColor(Color::srgba(1.0, 1.0, 0.5, 0.9));
+        }
+    }
+    for (mut text, mut color) in mult_q.iter_mut() {
         if hovered.cells.is_empty() {
             *color = TextColor(Color::srgba(1.0, 1.0, 0.5, 0.0));
         } else {
             let size = hovered.cells.len();
             let mult = efficiency_mult(size as u32);
-            *text = Text::new(format!("Chain: {} (x{:.1})", size, mult));
-            *color = TextColor(Color::srgba(1.0, 1.0, 0.5, 0.9));
+            *text = Text::new(format!("x{:.1}", mult));
+            let c = if mult >= 1.5 {
+                Color::srgba(0.3, 1.0, 0.4, 0.85)
+            } else if mult >= 1.0 {
+                Color::srgba(1.0, 1.0, 0.5, 0.85)
+            } else {
+                Color::srgba(1.0, 0.4, 0.3, 0.7)
+            };
+            *color = TextColor(c);
         }
     }
 }
 
-/// Check if the round is complete (pile empty + grid cleared or no moves).
 fn check_round_complete(
     grid_state: Res<GridState>,
     pile: Res<CrystalPile>,

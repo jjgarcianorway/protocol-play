@@ -54,42 +54,83 @@ pub fn update_burst_particles(
         particle.lifetime += dt;
         let t = (particle.lifetime / particle.max_lifetime).clamp(0.0, 1.0);
 
-        // Ease-in curve for acceleration toward target
         let ease = t * t;
         let pos = particle.start.lerp(particle.target, ease);
 
         node.left = Val::Px(pos.x);
         node.top = Val::Px(pos.y);
 
-        // Fade out near end
         let alpha = if t > 0.7 { 1.0 - (t - 0.7) / 0.3 } else { 1.0 };
         let c = CRYSTAL_COLORS[particle.color_index];
         *bg = BackgroundColor(Color::srgba(c.0, c.1, c.2, alpha));
 
         if t >= 1.0 {
-            // Add to tank
             tanks.levels[particle.color_index] += 0.5;
             commands.entity(entity).despawn();
         }
     }
 }
 
-/// Animate cell backgrounds on hover (pulse border).
-pub fn animate_highlight_pulse(
+/// Spawn cascade feedback text ("Cascade x2!", etc.)
+pub fn spawn_cascade_text(
+    commands: &mut Commands,
+    font: &Handle<Font>,
+    cascade_count: u32,
+) {
+    let label = format!("Cascade x{}!", cascade_count);
+    let scale = 1.0 + (cascade_count as f32 - 1.0) * 0.15;
+    let font_size = CASCADE_TEXT_FONT * scale.min(1.6);
+    commands.spawn((
+        Node {
+            position_type: PositionType::Absolute,
+            width: Val::Percent(100.0),
+            top: Val::Percent(35.0),
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
+            ..default()
+        },
+        CascadeText { lifetime: CASCADE_TEXT_LIFETIME },
+    )).with_child((
+        Text::new(label),
+        TextFont { font: font.clone(), font_size, ..default() },
+        TextColor(Color::srgba(1.0, 0.9, 0.3, 1.0)),
+    ));
+}
+
+/// Animate cascade text (rise + fade out).
+pub fn animate_cascade_text(
     time: Res<Time>,
-    hovered: Res<HoveredGroup>,
-    mut query: Query<(&GridCell, &mut BorderColor)>,
+    mut query: Query<(Entity, &mut CascadeText, &mut Node)>,
+    mut commands: Commands,
+) {
+    let dt = time.delta_secs();
+    for (entity, mut ct, mut node) in query.iter_mut() {
+        ct.lifetime -= dt;
+        if ct.lifetime <= 0.0 {
+            commands.entity(entity).despawn();
+        } else {
+            if let Val::Percent(pct) = node.top {
+                node.top = Val::Percent(pct - CASCADE_TEXT_RISE_SPEED * dt * 0.05);
+            }
+        }
+    }
+}
+
+/// Animate star dots with subtle twinkle.
+pub fn animate_stars(
+    time: Res<Time>,
+    mut query: Query<(&mut BackgroundColor, &Node), With<StarDot>>,
 ) {
     let t = time.elapsed_secs();
-    let pulse = ((t * HIGHLIGHT_PULSE_SPEED).sin() * 0.3 + 0.7).clamp(0.4, 1.0);
-
-    for (cell, mut border) in query.iter_mut() {
-        let is_hovered = hovered.cells.iter().any(|&(r, c)| r == cell.row && c == cell.col);
-        if is_hovered {
-            let (hr, hg, hb, _) = HIGHLIGHT_BORDER_COLOR;
-            *border = BorderColor::all(Color::srgba(hr, hg, hb, pulse));
-        } else {
-            *border = BorderColor::all(Color::NONE);
-        }
+    let mut i = 0u32;
+    for (mut bg, node) in query.iter_mut() {
+        let phase = i as f32 * 2.7;
+        let twinkle = ((t * 1.5 + phase).sin() * 0.5 + 0.5).clamp(0.2, 1.0);
+        let base_alpha = match node.left {
+            Val::Percent(p) => (p * 0.01).sin().abs() * 0.35 + 0.15,
+            _ => 0.3,
+        };
+        *bg = BackgroundColor(Color::srgba(0.7, 0.75, 1.0, base_alpha * twinkle));
+        i += 1;
     }
 }

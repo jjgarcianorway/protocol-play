@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use rand::Rng;
 use super::constants::*;
 use super::types::*;
+use super::effects;
 
 /// Spawn pods on a timer, increasing difficulty over time.
 pub fn spawn_pods(
@@ -28,7 +29,7 @@ pub fn spawn_pods(
     state.difficulty = state.pods_spawned as f32 / state.total_pods as f32;
 
     let (r, g, b) = color.rgb();
-    commands.spawn((
+    let pod_entity = commands.spawn((
         Pod {
             color,
             progress: 0.0,
@@ -56,15 +57,36 @@ pub fn spawn_pods(
         PodVisual,
     )).with_child((
         Text::new(color.icon()),
-        TextFont { font: font.0.clone(), font_size: 18.0, ..default() },
+        TextFont { font: font.0.clone(), font_size: POD_ICON_FONT, ..default() },
         TextColor(Color::WHITE),
-    ));
+    )).id();
+
+    // Spawn trail ghosts behind the pod
+    for trail_i in 0..POD_TRAIL_COUNT {
+        let decay = POD_TRAIL_ALPHA_DECAY.powi(trail_i as i32 + 1);
+        let size_scale = POD_TRAIL_SIZE_DECAY.powi(trail_i as i32 + 1);
+        let trail_size = POD_SIZE * size_scale;
+        commands.spawn((
+            PodTrail { owner: pod_entity, delay_index: trail_i + 1 },
+            Node {
+                position_type: PositionType::Absolute,
+                width: Val::Px(trail_size),
+                height: Val::Px(trail_size),
+                left: Val::Percent(50.0),
+                top: Val::Px(FALL_ZONE_TOP),
+                border_radius: BorderRadius::all(Val::Px(POD_CORNER * size_scale)),
+                ..default()
+            },
+            BackgroundColor(Color::srgba(r, g, b, 0.3 * decay)),
+        ));
+    }
 }
 
 /// Move pods downward and animate horizontal routing.
 pub fn move_pods(
     time: Res<Time>,
-    mut pod_q: Query<(&mut Pod, &mut Node)>,
+    mut pod_q: Query<(Entity, &mut Pod, &mut Node)>,
+    mut trail_q: Query<(&PodTrail, &mut Node), Without<Pod>>,
     window_q: Query<&Window>,
 ) {
     let dt = time.delta_secs();
@@ -72,14 +94,17 @@ pub fn move_pods(
         .map(|w| w.resolution.width())
         .unwrap_or(1280.0);
 
-    for (mut pod, mut node) in pod_q.iter_mut() {
+    // Collect pod positions after update
+    let mut pod_positions: Vec<(Entity, f32, f32)> = Vec::new();
+
+    for (entity, mut pod, mut node) in pod_q.iter_mut() {
         let speed = 1.0 / pod.fall_duration;
         pod.progress += speed * dt;
 
         let y = FALL_ZONE_TOP + pod.progress * FALL_ZONE_HEIGHT;
         node.top = Val::Px(y);
 
-        if let Some(slot_idx) = pod.routed {
+        let x = if let Some(slot_idx) = pod.routed {
             pod.route_progress = (pod.route_progress + dt / ROUTE_ANIM_DURATION).min(1.0);
             let total_slots_width = SLOT_COUNT as f32 * SLOT_WIDTH
                 + (SLOT_COUNT as f32 - 1.0) * SLOT_GAP;
@@ -90,10 +115,21 @@ pub fn move_pods(
                 - POD_SIZE / 2.0;
             let start_x = win_width / 2.0 - POD_SIZE / 2.0;
             let t = smoothstep(pod.route_progress);
-            let x = start_x + (target_x - start_x) * t;
-            node.left = Val::Px(x);
+            start_x + (target_x - start_x) * t
         } else {
-            node.left = Val::Px(win_width / 2.0 - POD_SIZE / 2.0);
+            win_width / 2.0 - POD_SIZE / 2.0
+        };
+        node.left = Val::Px(x);
+
+        pod_positions.push((entity, x, y));
+    }
+
+    // Update trail positions (slightly behind the pod)
+    for (trail, mut node) in trail_q.iter_mut() {
+        if let Some(&(_, px, py)) = pod_positions.iter().find(|(e, _, _)| *e == trail.owner) {
+            let offset = trail.delay_index as f32 * POD_TRAIL_SPACING;
+            node.left = Val::Px(px);
+            node.top = Val::Px(py - offset);
         }
     }
 }
@@ -104,10 +140,13 @@ pub fn resolve_pods(
     pod_q: Query<(Entity, &Pod)>,
     mut commands: Commands,
     slot_q: Query<(Entity, &DepositSlot)>,
+    font: Res<DeliveryFont>,
+    trail_q: Query<(Entity, &PodTrail)>,
 ) {
     for (entity, pod) in pod_q.iter() {
         if pod.progress < 1.0 { continue; }
 
+        let prev_streak = state.streak;
         state.pods_resolved += 1;
 
         match pod.routed {
@@ -119,6 +158,10 @@ pub fn resolve_pods(
                         state.best_streak = state.streak;
                     }
                     spawn_flash(&mut commands, &slot_q, slot_idx, true);
+                    // Check for streak milestone
+                    check_streak_milestone(
+                        &mut commands, &font.0, prev_streak, state.streak,
+                    );
                 } else {
                     state.wasted += 1;
                     state.streak = 0;
@@ -131,7 +174,27 @@ pub fn resolve_pods(
             }
         }
 
+        // Despawn trails belonging to this pod
+        for (trail_entity, trail) in trail_q.iter() {
+            if trail.owner == entity {
+                commands.entity(trail_entity).despawn();
+            }
+        }
         commands.entity(entity).despawn();
+    }
+}
+
+/// Check for streak milestones and spawn popup.
+fn check_streak_milestone(
+    commands: &mut Commands,
+    font: &Handle<Font>,
+    prev: u32,
+    current: u32,
+) {
+    for milestone in [STREAK_TIER_1, STREAK_TIER_2, STREAK_TIER_3] {
+        if prev < milestone && current >= milestone {
+            effects::spawn_streak_popup(commands, font, current);
+        }
     }
 }
 
@@ -173,7 +236,6 @@ pub fn route_pod_to_slot(
 
         state.selected_slot = Some(slot.0);
 
-        // Find the lowest-progress (most recently spawned / highest on screen) unrouted pod
         let mut best_entity: Option<Entity> = None;
         let mut best_progress = -1.0_f32;
 

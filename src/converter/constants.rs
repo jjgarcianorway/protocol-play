@@ -62,25 +62,54 @@ pub const HIGHLIGHT_PULSE_SPEED: f32 = 4.0;
 
 // Cell empty color
 pub const CELL_EMPTY_COLOR: (f32, f32, f32, f32) = (0.10, 0.11, 0.18, 0.6);
+// Empty cell subtle border
+pub const CELL_EMPTY_BORDER: (f32, f32, f32, f32) = (0.15, 0.16, 0.24, 0.4);
 
 // Font sizes
 pub const TITLE_FONT: f32 = 28.0;
-pub const CHAIN_SIZE_FONT: f32 = 22.0;
+pub const CHAIN_SIZE_FONT: f32 = 28.0;
+pub const CHAIN_MULT_FONT: f32 = 20.0;
 pub const TANK_LABEL_FONT: f32 = 18.0;
 pub const TANK_PCT_FONT: f32 = 12.0;
 pub const PILE_FONT: f32 = 14.0;
 pub const RESULTS_TITLE_FONT: f32 = 36.0;
 pub const RESULTS_FONT: f32 = 20.0;
 pub const RESULTS_BTN_FONT: f32 = 18.0;
+pub const CASCADE_TEXT_FONT: f32 = 32.0;
 
 // Panel backgrounds
 pub const RESULTS_BG: (f32, f32, f32, f32) = (0.06, 0.07, 0.12, 0.95);
 pub const BTN_BG_C: (f32, f32, f32) = (0.15, 0.18, 0.28);
 pub const BTN_HOVER_C: (f32, f32, f32) = (0.22, 0.26, 0.38);
 
-// Bloom
-pub const BLOOM_INTENSITY_C: f32 = 0.15;
-pub const BLOOM_LF_BOOST_C: f32 = 0.3;
+// Bloom (matching Gathering: 0.20 intensity, 0.4 LF boost)
+pub const BLOOM_INTENSITY_C: f32 = 0.20;
+pub const BLOOM_LF_BOOST_C: f32 = 0.4;
 
 // Max resource capacity (percentage-based, 1.0 = 100%)
 pub const RESOURCE_MAX: f32 = 100.0;
+
+// Tank glass overlay
+pub const TANK_GLASS_TOP_ALPHA: f32 = 0.12;
+
+// Tank flash on change
+pub const TANK_FLASH_DURATION: f32 = 0.35;
+
+// Cascade feedback
+pub const CASCADE_TEXT_LIFETIME: f32 = 1.2;
+pub const CASCADE_TEXT_RISE_SPEED: f32 = 50.0;
+
+// Star background (UI-based dots)
+pub const STAR_COUNT: usize = 60;
+pub const STAR_MIN_SIZE: f32 = 1.0;
+pub const STAR_MAX_SIZE: f32 = 3.0;
+pub const STAR_MIN_ALPHA: f32 = 0.15;
+pub const STAR_MAX_ALPHA: f32 = 0.5;
+
+// Grid background pattern
+pub const GRID_BG_ALPHA: f32 = 0.06;
+pub const GRID_BG_COLOR: (f32, f32, f32) = (0.2, 0.22, 0.35);
+
+// Shimmer on tank fills
+pub const TANK_SHIMMER_SPEED: f32 = 2.5;
+pub const TANK_SHIMMER_AMOUNT: f32 = 0.08;

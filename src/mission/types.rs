@@ -36,6 +36,7 @@ impl Default for ShipStatus {
 
 impl ShipStatus {
     /// Lowest resource level — determines urgency.
+    #[allow(dead_code)]
     pub fn lowest_resource(&self) -> (usize, f32) {
         let vals = [self.power, self.life_support, self.cryo, self.shields, self.repair];
         let mut min_idx = 0;
@@ -106,22 +107,54 @@ pub struct CardRecommended(#[allow(dead_code)] pub GameCard);
 #[derive(Component)]
 pub struct AnnaMessageText;
 
-/// Anna's message cycling state.
+/// Marker for Anna's glowing circle (portrait).
+#[derive(Component)]
+pub struct AnnaCircle;
+
+/// Marker for the Anna panel (click-to-dismiss area).
+#[derive(Component)]
+pub struct AnnaPanelArea;
+
+/// Anna's glow visual mood.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum AnnaMood {
+    Normal,
+    Warning,
+    Story,
+    Glitching,
+}
+
+/// Anna's message cycling state with full dialog support.
 #[derive(Resource)]
 pub struct AnnaState {
     pub current_msg: String,
     pub timer: f32,
     pub fade_alpha: f32,
     pub fading_out: bool,
+    pub is_story_msg: bool,
+    pub mood: AnnaMood,
+    pub last_personality_idx: Option<usize>,
+    /// Whether the player clicked to dismiss the current message.
+    pub dismissed: bool,
+    /// Queue of pending messages (text, is_story).
+    pub queue: Vec<(String, bool)>,
+    /// Whether we've shown the first message yet.
+    pub initialized: bool,
 }
 
 impl Default for AnnaState {
     fn default() -> Self {
         Self {
             current_msg: String::new(),
-            timer: 0.5, // short delay before first message
+            timer: 0.5,
             fade_alpha: 0.0,
             fading_out: false,
+            is_story_msg: false,
+            mood: AnnaMood::Normal,
+            last_personality_idx: None,
+            dismissed: false,
+            queue: Vec::new(),
+            initialized: false,
         }
     }
 }

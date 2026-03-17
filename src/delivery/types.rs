@@ -124,10 +124,10 @@ pub struct DeliveryFont(pub Handle<Font>);
 #[derive(Component)]
 pub struct Pod {
     pub color: PodColor,
-    pub progress: f32,       // 0.0 (top) to 1.0 (bottom)
+    pub progress: f32,
     pub fall_duration: f32,
-    pub routed: Option<usize>, // slot index if routed
-    pub route_progress: f32,   // 0.0 to 1.0 for horizontal routing anim
+    pub routed: Option<usize>,
+    pub route_progress: f32,
 }
 
 /// Marker for deposit slot buttons.
@@ -151,6 +151,14 @@ pub struct StreakText;
 #[derive(Component)]
 pub struct PodsRemainingText;
 
+/// Multiplier display (top-right, pulses when active).
+#[derive(Component)]
+pub struct MultiplierText;
+
+/// Speed/difficulty meter.
+#[derive(Component)]
+pub struct SpeedMeterText;
+
 /// Results screen marker.
 #[derive(Component)]
 pub struct ResultsScreen;
@@ -166,3 +174,20 @@ pub struct DeliveryRoot;
 /// The pod visual node (for updating position).
 #[derive(Component)]
 pub struct PodVisual;
+
+/// A trail ghost behind a falling pod.
+#[derive(Component)]
+pub struct PodTrail {
+    pub owner: Entity,
+    pub delay_index: usize,
+}
+
+/// Star background dot.
+#[derive(Component)]
+pub struct StarDotD;
+
+/// Streak milestone popup text.
+#[derive(Component)]
+pub struct StreakPopup {
+    pub lifetime: f32,
+}

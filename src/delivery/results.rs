@@ -138,6 +138,9 @@ pub fn return_button_interaction(
     results_q: Query<Entity, With<ResultsScreen>>,
     root_q: Query<Entity, With<DeliveryRoot>>,
     pod_q: Query<Entity, With<Pod>>,
+    trail_q: Query<Entity, With<PodTrail>>,
+    popup_q: Query<Entity, With<StreakPopup>>,
+    star_q: Query<Entity, With<StarDotD>>,
     mut commands: Commands,
 ) {
     for (interaction, mut bg) in interaction_q.iter_mut() {
@@ -152,6 +155,15 @@ pub fn return_button_interaction(
                     commands.entity(entity).despawn();
                 }
                 for entity in pod_q.iter() {
+                    commands.entity(entity).despawn();
+                }
+                for entity in trail_q.iter() {
+                    commands.entity(entity).despawn();
+                }
+                for entity in popup_q.iter() {
+                    commands.entity(entity).despawn();
+                }
+                for entity in star_q.iter() {
                     commands.entity(entity).despawn();
                 }
                 next_state.set(DeliveryPhase::Playing);

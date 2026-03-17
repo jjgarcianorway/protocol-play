@@ -3,8 +3,9 @@
 use bevy::prelude::*;
 use super::constants::*;
 use super::types::*;
+use super::effects;
 
-/// Spawn the main game UI: deposit slots, HUD.
+/// Spawn the main game UI: deposit slots, HUD, stars.
 pub fn spawn_delivery_ui(
     mut commands: Commands,
     font: Res<DeliveryFont>,
@@ -14,6 +15,9 @@ pub fn spawn_delivery_ui(
     let tf = |size: f32| TextFont { font: f.clone(), font_size: size, ..default() };
 
     state.game_started = true;
+
+    // Star background
+    effects::spawn_star_background(&mut commands);
 
     // Root container
     commands.spawn((
@@ -25,10 +29,7 @@ pub fn spawn_delivery_ui(
         DeliveryRoot,
     ));
 
-    // HUD: top bar with score info
     spawn_hud(&mut commands, &tf);
-
-    // Deposit slots at bottom
     spawn_deposit_slots(&mut commands, &tf);
 
     // Intro text (fades out)
@@ -90,9 +91,14 @@ fn spawn_hud(commands: &mut Commands, tf: &dyn Fn(f32) -> TextFont) {
             TextColor(Color::srgba(1.0, 1.0, 1.0, 0.6)),
             PodsRemainingText,
         ));
+        col.spawn((
+            Text::new("Speed: --"),
+            tf(SPEED_METER_FONT),
+            TextColor(Color::srgba(1.0, 1.0, 1.0, 0.35)),
+            SpeedMeterText,
+        ));
     });
 
-    // Streak display (top right)
     commands.spawn(Node {
         position_type: PositionType::Absolute,
         top: Val::Px(HUD_TOP_MARGIN),
@@ -107,6 +113,12 @@ fn spawn_hud(commands: &mut Commands, tf: &dyn Fn(f32) -> TextFont) {
             tf(STREAK_FONT),
             TextColor(Color::srgba(1.0, 0.9, 0.2, 0.0)),
             StreakText,
+        ));
+        col.spawn((
+            Text::new(""),
+            tf(STREAK_FONT),
+            TextColor(Color::srgba(1.0, 0.85, 0.2, 0.0)),
+            MultiplierText,
         ));
     });
 }
@@ -142,6 +154,11 @@ fn spawn_deposit_slots(commands: &mut Commands, tf: &dyn Fn(f32) -> TextFont) {
                     UNSELECTED_BORDER_COLOR.2,
                     UNSELECTED_BORDER_COLOR.3,
                 )),
+                BoxShadow::new(
+                    Color::srgba(r, g, b, 0.0),
+                    Val::ZERO, Val::ZERO,
+                    Val::Px(SLOT_MATCH_GLOW_SPREAD), Val::Px(SLOT_MATCH_GLOW_BLUR),
+                ),
                 DepositSlot(i),
             )).with_children(|slot| {
                 slot.spawn((
@@ -162,9 +179,19 @@ fn spawn_deposit_slots(commands: &mut Commands, tf: &dyn Fn(f32) -> TextFont) {
 /// Sync HUD text with game state.
 pub fn sync_hud(
     state: Res<DeliveryState>,
-    mut score_q: Query<&mut Text, (With<ScoreText>, Without<PodsRemainingText>, Without<StreakText>)>,
-    mut remaining_q: Query<&mut Text, (With<PodsRemainingText>, Without<ScoreText>, Without<StreakText>)>,
-    mut streak_q: Query<(&mut Text, &mut TextColor), (With<StreakText>, Without<ScoreText>, Without<PodsRemainingText>)>,
+    time: Res<Time>,
+    mut score_q: Query<&mut Text, (With<ScoreText>, Without<PodsRemainingText>,
+        Without<StreakText>, Without<MultiplierText>, Without<SpeedMeterText>)>,
+    mut remaining_q: Query<&mut Text, (With<PodsRemainingText>, Without<ScoreText>,
+        Without<StreakText>, Without<MultiplierText>, Without<SpeedMeterText>)>,
+    mut streak_q: Query<(&mut Text, &mut TextColor), (With<StreakText>,
+        Without<ScoreText>, Without<PodsRemainingText>,
+        Without<MultiplierText>, Without<SpeedMeterText>)>,
+    mut mult_q: Query<(&mut Text, &mut TextColor), (With<MultiplierText>,
+        Without<ScoreText>, Without<PodsRemainingText>,
+        Without<StreakText>, Without<SpeedMeterText>)>,
+    mut speed_q: Query<&mut Text, (With<SpeedMeterText>, Without<ScoreText>,
+        Without<PodsRemainingText>, Without<StreakText>, Without<MultiplierText>)>,
 ) {
     let delivered: u32 = state.score.iter().sum();
     for mut text in score_q.iter_mut() {
@@ -176,8 +203,7 @@ pub fn sync_hud(
     }
     for (mut text, mut color) in streak_q.iter_mut() {
         if state.streak >= STREAK_TIER_1 {
-            let mult = state.streak_mult();
-            *text = Text::new(format!("x{:.1} streak ({})", mult, state.streak));
+            *text = Text::new(format!("streak: {}", state.streak));
             *color = TextColor(Color::srgba(1.0, 0.9, 0.2, 0.95));
         } else if state.streak > 0 {
             *text = Text::new(format!("streak: {}", state.streak));
@@ -187,30 +213,71 @@ pub fn sync_hud(
             *color = TextColor(Color::srgba(1.0, 1.0, 1.0, 0.0));
         }
     }
+    let t = time.elapsed_secs();
+    for (mut text, mut color) in mult_q.iter_mut() {
+        let mult = state.streak_mult();
+        if mult > 1.0 {
+            *text = Text::new(format!("x{:.1}", mult));
+            let pulse = ((t * 3.0).sin() * 0.15 + 0.85).clamp(0.7, 1.0);
+            *color = TextColor(Color::srgba(1.0, 0.85, 0.2, pulse));
+        } else {
+            *text = Text::new("");
+            *color = TextColor(Color::srgba(1.0, 1.0, 1.0, 0.0));
+        }
+    }
+    for mut text in speed_q.iter_mut() {
+        let speed_pct = (state.difficulty * 100.0).clamp(0.0, 100.0);
+        *text = Text::new(format!("Speed: {:.0}%", speed_pct));
+    }
 }
 
-/// Highlight hovered/selected deposit slots.
+/// Highlight hovered/selected deposit slots + glow matching pods.
 pub fn highlight_slots(
     state: Res<DeliveryState>,
-    mut slot_q: Query<(&DepositSlot, &Interaction, &mut BorderColor)>,
+    time: Res<Time>,
+    pod_q: Query<&Pod>,
+    mut slot_q: Query<(&DepositSlot, &Interaction, &mut BorderColor, &mut BoxShadow)>,
 ) {
-    for (slot, interaction, mut border) in slot_q.iter_mut() {
+    let t = time.elapsed_secs();
+    let pulse = ((t * SLOT_MATCH_PULSE_SPEED).sin() * 0.3 + 0.7).clamp(0.4, 1.0);
+
+    let mut falling_colors = [false; 5];
+    for pod in pod_q.iter() {
+        if pod.routed.is_none() {
+            falling_colors[pod.color.index()] = true;
+        }
+    }
+
+    for (slot, interaction, mut border, mut shadow) in slot_q.iter_mut() {
         let selected = state.selected_slot == Some(slot.0);
         let hovered = *interaction == Interaction::Hovered;
+        let matching = falling_colors[slot.0];
+
         if selected || hovered {
             *border = BorderColor::all(Color::srgba(
-                SELECTED_BORDER_COLOR.0,
-                SELECTED_BORDER_COLOR.1,
-                SELECTED_BORDER_COLOR.2,
-                if selected { 1.0 } else { 0.6 },
+                SELECTED_BORDER_COLOR.0, SELECTED_BORDER_COLOR.1,
+                SELECTED_BORDER_COLOR.2, if selected { 1.0 } else { 0.6 },
             ));
         } else {
             *border = BorderColor::all(Color::srgba(
-                UNSELECTED_BORDER_COLOR.0,
-                UNSELECTED_BORDER_COLOR.1,
-                UNSELECTED_BORDER_COLOR.2,
-                UNSELECTED_BORDER_COLOR.3,
+                UNSELECTED_BORDER_COLOR.0, UNSELECTED_BORDER_COLOR.1,
+                UNSELECTED_BORDER_COLOR.2, UNSELECTED_BORDER_COLOR.3,
             ));
+        }
+
+        let (r, g, b) = POD_COLORS[slot.0];
+        if matching {
+            *shadow = BoxShadow::new(
+                Color::srgba(r, g, b, 0.3 * pulse),
+                Val::ZERO, Val::ZERO,
+                Val::Px(SLOT_MATCH_GLOW_SPREAD), Val::Px(SLOT_MATCH_GLOW_BLUR),
+            );
+        } else {
+            *shadow = BoxShadow::new(
+                Color::srgba(r, g, b, 0.0),
+                Val::ZERO, Val::ZERO,
+                Val::Px(0.0), Val::Px(0.0),
+            );
         }
     }
 }
