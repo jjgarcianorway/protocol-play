@@ -26,6 +26,8 @@ pub struct Star {
 #[derive(Component)] pub struct GameOverScreen;
 #[derive(Component)] pub struct TryAgainButton;
 #[derive(Component)] pub struct CrystalText;
+#[derive(Component)] pub struct PauseScreen;
+#[derive(Component)] pub struct ShieldBubble;
 
 #[derive(Component)]
 pub struct CrystalCloud {
@@ -130,3 +132,46 @@ pub enum GatheringState {
 
 #[derive(Resource)]
 pub struct GatheringFont(pub Handle<Font>);
+
+#[derive(Resource, Default)]
+pub struct HitFlash {
+    pub timer: f32,
+}
+
+#[derive(Component)]
+pub struct FloatingText {
+    pub lifetime: f32,
+    pub max_lifetime: f32,
+}
+
+#[derive(Component)]
+pub struct Spark {
+    pub velocity: Vec3,
+    pub lifetime: f32,
+}
+
+#[derive(Component)]
+pub struct EngineParticle {
+    pub lifetime: f32,
+    pub velocity: Vec3,
+}
+
+#[derive(Component)]
+pub struct NebulaPlane;
+
+#[derive(Resource, Default)]
+pub struct Paused(pub bool);
+
+#[derive(Resource)]
+pub struct BestStats {
+    pub best_distance_au: f32,
+    pub best_crystals: u64,
+    pub best_time_days: u32,
+    pub total_sessions: u32,
+}
+
+impl Default for BestStats {
+    fn default() -> Self {
+        Self { best_distance_au: 0.0, best_crystals: 0, best_time_days: 0, total_sessions: 0 }
+    }
+}

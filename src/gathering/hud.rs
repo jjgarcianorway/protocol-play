@@ -9,15 +9,17 @@ pub fn spawn_hud(commands: &mut Commands, font: Handle<Font>) {
     let value_color = Color::srgba(HUD_VALUE_COLOR.0, HUD_VALUE_COLOR.1, HUD_VALUE_COLOR.2, HUD_VALUE_COLOR.3);
     let tf = TextFont { font, font_size: HUD_FONT, ..default() };
 
-    commands.spawn(Node {
+    commands.spawn((Node {
         position_type: PositionType::Absolute,
         top: Val::Px(HUD_MARGIN_PX),
         right: Val::Px(HUD_MARGIN_PX + BAR_MARGIN_PX + BAR_WIDTH_PX * 2.0 + BAR_GAP_PX + 20.0),
         flex_direction: FlexDirection::Column,
         row_gap: Val::Px(HUD_GAP_PX),
         align_items: AlignItems::FlexEnd,
+        border_radius: BorderRadius::all(Val::Px(6.0)),
+        padding: UiRect::all(Val::Px(8.0)),
         ..default()
-    }).with_children(|parent| {
+    }, BackgroundColor(Color::srgba(0.0, 0.0, 0.05, 0.3)))).with_children(|parent| {
         hud_row(parent, "CRYS", "0K", &tf, label_color, value_color, Some(CrystalText));
         hud_row(parent, "DIST", "0 AU", &tf, label_color, value_color, Some(DistanceText));
         hud_row(parent, "TIME", "0d", &tf, label_color, value_color, Some(TimeText));
@@ -61,8 +63,8 @@ pub fn update_hud(
     Ok(())
 }
 
-pub fn update_game_time(mut state: ResMut<ShipState>, time: Res<Time>) {
-    if !state.alive { return; }
+pub fn update_game_time(mut state: ResMut<ShipState>, time: Res<Time>, paused: Res<Paused>) {
+    if !state.alive || paused.0 { return; }
     let dt = time.delta_secs();
     state.elapsed_time += dt;
     state.distance += SCROLL_SPEED * dt;

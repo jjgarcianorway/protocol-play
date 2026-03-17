@@ -92,7 +92,7 @@ pub fn create_asteroid_assets(
     for &(r, g, b) in &ASTEROID_COLORS {
         asteroid_materials.push(materials.add(StandardMaterial {
             base_color: Color::srgb(r, g, b),
-            perceptual_roughness: 0.85,
+            perceptual_roughness: 0.7, metallic: 0.15,
             ..default()
         }));
     }
@@ -156,8 +156,9 @@ pub fn spawn_asteroids(
     assets: Res<GatheringAssets>,
     state: Res<ShipState>,
     difficulty: Res<Difficulty>,
+    paused: Res<Paused>,
 ) {
-    if !state.alive { return; }
+    if !state.alive || paused.0 { return; }
     timer.0.tick(time.delta());
     if !timer.0.just_finished() { return; }
 
@@ -199,8 +200,9 @@ pub fn move_asteroids(
     bounds: Res<ViewBounds>,
     time: Res<Time>,
     state: Res<ShipState>,
+    paused: Res<Paused>,
 ) {
-    if !state.alive { return; }
+    if !state.alive || paused.0 { return; }
     let dt = time.delta_secs();
     for (entity, asteroid, mut tf) in query.iter_mut() {
         tf.translation.x += asteroid.velocity.x * dt;
@@ -217,6 +219,9 @@ pub fn move_asteroids(
 pub fn asteroid_asteroid_collisions(
     mut query: Query<(Entity, &mut Asteroid, &mut Transform)>,
     time: Res<Time>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let dt = time.delta_secs();
     let mut entities: Vec<Entity> = Vec::new();
@@ -251,12 +256,21 @@ pub fn asteroid_asteroid_collisions(
                     let impulse = vel_along * ASTEROID_BOUNCE_FACTOR / total;
                     impulses.push((i, -normal * impulse * mass_j));
                     impulses.push((j, normal * impulse * mass_i));
+
+                    // Spawn sparks at collision point
+                    let contact = Vec3::new(
+                        (combos[i].0.x + combos[j].0.x) * 0.5,
+                        (combos[i].0.y + combos[j].0.y) * 0.5,
+                        0.0,
+                    );
+                    spawn_sparks(&mut commands, &mut meshes, &mut materials, contact);
                 }
             }
         }
     }
 
     if impulses.is_empty() && separations.is_empty() { return; }
+    // Spark spawning already happened above during collision detection
     for &(idx, imp) in &impulses {
         if let Ok((_, mut asteroid, _)) = query.get_mut(entities[idx]) {
             asteroid.velocity += imp;
@@ -266,6 +280,52 @@ pub fn asteroid_asteroid_collisions(
         if let Ok((_, _, mut tf)) = query.get_mut(entities[idx]) {
             tf.translation.x += sep.x;
             tf.translation.y += sep.y;
+        }
+    }
+}
+
+fn spawn_sparks(
+    commands: &mut Commands,
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Assets<StandardMaterial>,
+    position: Vec3,
+) {
+    let mesh = meshes.add(Sphere::new(SPARK_SIZE));
+    let (r, g, b) = SPARK_COLOR;
+    let mat = materials.add(StandardMaterial {
+        base_color: Color::srgb(r, g, b),
+        emissive: LinearRgba::new(r, g, b, 1.0) * SPARK_EMISSIVE,
+        unlit: true,
+        ..default()
+    });
+
+    let mut rng = rand::thread_rng();
+    for _ in 0..SPARK_COUNT {
+        let angle = rng.gen_range(0.0..std::f32::consts::TAU);
+        let speed = SPARK_SPEED * rng.gen_range(0.5..1.5);
+        let velocity = Vec3::new(angle.cos() * speed, angle.sin() * speed, 0.0);
+        commands.spawn((
+            Spark { velocity, lifetime: SPARK_LIFETIME },
+            Mesh3d(mesh.clone()),
+            MeshMaterial3d(mat.clone()),
+            Transform::from_translation(position),
+        ));
+    }
+}
+
+pub fn move_sparks(
+    mut commands: Commands,
+    mut query: Query<(Entity, &mut Spark, &mut Transform)>,
+    time: Res<Time>,
+) {
+    let dt = time.delta_secs();
+    for (entity, mut spark, mut tf) in query.iter_mut() {
+        spark.lifetime -= dt;
+        tf.translation += spark.velocity * dt;
+        let life_frac = (spark.lifetime / SPARK_LIFETIME).max(0.0);
+        tf.scale = Vec3::splat(life_frac);
+        if spark.lifetime <= 0.0 {
+            commands.entity(entity).despawn();
         }
     }
 }

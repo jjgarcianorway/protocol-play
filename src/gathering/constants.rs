@@ -23,6 +23,7 @@ pub const SHIP_TILT_SPEED: f32 = 8.0;
 pub const SHIP_TILT_FACTOR: f32 = 0.07;
 pub const SHIP_PITCH_FACTOR: f32 = 0.02;
 pub const SHIP_COLLISION_RADIUS: f32 = 0.9;
+pub const SHIP_MODEL_SCALE: f32 = 0.6;
 
 // Ship colors (tuples for srgb)
 pub const SHIP_HULL_COLOR: (f32, f32, f32) = (0.65, 0.68, 0.75);
@@ -46,21 +47,26 @@ pub const ASTEROID_MIN_SPEED: f32 = 2.0;
 pub const ASTEROID_MAX_SPEED: f32 = 7.0;
 pub const ASTEROID_MIN_ROT_SPEED: f32 = 0.2;
 pub const ASTEROID_MAX_ROT_SPEED: f32 = 1.5;
-pub const ASTEROID_SPAWN_INTERVAL: f32 = 0.50;
+pub const ASTEROID_SPAWN_INTERVAL: f32 = 1.2;
 pub const ASTEROID_SPAWN_BUFFER: f32 = 8.0;
 pub const ASTEROID_DESPAWN_BUFFER: f32 = 8.0;
 pub const ASTEROID_COLORS: [(f32, f32, f32); 8] = [
-    (0.45, 0.40, 0.35), (0.35, 0.32, 0.30), (0.50, 0.42, 0.38),
-    (0.40, 0.38, 0.42), (0.48, 0.45, 0.40), (0.30, 0.28, 0.32),
-    (0.55, 0.48, 0.40), (0.38, 0.35, 0.28),
+    (0.38, 0.40, 0.45), // cool grey
+    (0.30, 0.32, 0.38), // dark blue-grey
+    (0.42, 0.40, 0.48), // purple-grey
+    (0.35, 0.38, 0.42), // slate
+    (0.45, 0.43, 0.50), // lavender stone
+    (0.28, 0.30, 0.38), // deep blue-grey
+    (0.40, 0.38, 0.45), // mauve stone
+    (0.33, 0.35, 0.40), // steel
 ];
 
 // Damage
-pub const SHIELD_MAX: f32 = 100.0;
+pub const SHIELD_MAX: f32 = 200.0;
 pub const LIFE_MAX: f32 = 100.0;
-pub const SHIELD_REGEN_RATE: f32 = 0.3;
-pub const DAMAGE_SIZE_FACTOR: f32 = 4.0;
-pub const DAMAGE_SPEED_FACTOR: f32 = 0.8;
+pub const SHIELD_REGEN_RATE: f32 = 1.0;
+pub const DAMAGE_SIZE_FACTOR: f32 = 0.8;
+pub const DAMAGE_SPEED_FACTOR: f32 = 0.15;
 pub const DAMAGE_GLANCING_MULT: f32 = 0.4;
 pub const CONTROL_LOSS_DURATION: f32 = 0.5;
 pub const CONTROL_LOSS_FACTOR: f32 = 0.3;
@@ -89,7 +95,7 @@ pub const BAR_BG_COLOR: (f32, f32, f32, f32) = (0.1, 0.1, 0.12, 0.8);
 pub const BAR_STROKE_COLOR: (f32, f32, f32, f32) = (0.3, 0.3, 0.35, 0.9);
 
 // HUD
-pub const HUD_FONT: f32 = 14.0;
+pub const HUD_FONT: f32 = 16.0;
 pub const HUD_LABEL_COLOR: (f32, f32, f32, f32) = (0.7, 0.7, 0.75, 0.8);
 pub const HUD_VALUE_COLOR: (f32, f32, f32, f32) = (1.0, 1.0, 1.0, 0.9);
 pub const HUD_MARGIN_PX: f32 = 12.0;
@@ -97,16 +103,16 @@ pub const HUD_GAP_PX: f32 = 6.0;
 
 // Game
 pub const SCROLL_SPEED: f32 = 5.0;
-pub const CLEAR_COLOR_G: (f32, f32, f32) = (0.01, 0.01, 0.04);
+pub const CLEAR_COLOR_G: (f32, f32, f32) = (0.02, 0.03, 0.08);
 pub const AMBIENT_COLOR_G: (f32, f32, f32) = (0.6, 0.6, 0.7);
 pub const AMBIENT_BRIGHTNESS_G: f32 = 200.0;
 pub const FADE_DURATION: f32 = 1.5;
-pub const STATS_FONT: f32 = 18.0;
-pub const STATS_TITLE_FONT: f32 = 28.0;
+pub const STATS_FONT: f32 = 20.0;
+pub const STATS_TITLE_FONT: f32 = 32.0;
 pub const STATS_CARD_BG: (f32, f32, f32) = (0.08, 0.08, 0.12);
 pub const STATS_CARD_PAD: f32 = 40.0;
 pub const STATS_CARD_GAP: f32 = 12.0;
-pub const STATS_SUCCESS_COLOR: (f32, f32, f32) = (0.3, 0.7, 1.0);
+pub const STATS_SUCCESS_COLOR: (f32, f32, f32) = (0.3, 0.8, 0.7);
 
 // Crystal nebula clouds
 pub const CRYSTAL_MIN_RADIUS: f32 = 1.5;
@@ -146,10 +152,10 @@ pub const PARTICLE_EMISSIVE: f32 = 18.0;
 pub const PARTICLE_SPREAD: f32 = 0.5;
 
 // Difficulty
-pub const DIFFICULTY_TIME_SCALE: f32 = 0.003;
-pub const DIFFICULTY_CRYSTAL_SCALE: f32 = 0.00001;
-pub const DIFFICULTY_MAX_SPAWN_MULT: f32 = 3.0;
-pub const DIFFICULTY_MAX_SPEED_MULT: f32 = 1.8;
+pub const DIFFICULTY_TIME_SCALE: f32 = 0.0015;
+pub const DIFFICULTY_CRYSTAL_SCALE: f32 = 0.000005;
+pub const DIFFICULTY_MAX_SPAWN_MULT: f32 = 2.5;
+pub const DIFFICULTY_MAX_SPEED_MULT: f32 = 1.5;
 pub const DIFFICULTY_SIDE_SPAWN_CHANCE: f32 = 0.25;
 
 // Asteroid-asteroid collision
@@ -159,3 +165,55 @@ pub const ASTEROID_SEPARATION_SPEED: f32 = 3.0;
 // Lighting
 pub const DIR_LIGHT_DIR: [f32; 3] = [-0.4, -0.6, -0.8];
 pub const DIR_LIGHT_BRIGHTNESS: f32 = 3000.0;
+
+// Hit flash
+pub const HIT_FLASH_DURATION: f32 = 0.3;
+
+// Floating text
+pub const FLOAT_TEXT_LIFETIME: f32 = 1.5;
+pub const FLOAT_TEXT_RISE_SPEED: f32 = 60.0;
+pub const FLOAT_TEXT_FONT: f32 = 22.0;
+pub const FLOAT_TEXT_COLOR: (f32, f32, f32) = (0.3, 0.8, 1.0);
+
+// Pause
+pub const PAUSE_OVERLAY_ALPHA: f32 = 0.7;
+pub const PAUSE_FONT: f32 = 48.0;
+
+// Engine trail particles
+pub const ENGINE_PARTICLE_SIZE: f32 = 0.08;
+pub const ENGINE_PARTICLE_LIFETIME: f32 = 0.4;
+pub const ENGINE_PARTICLES_PER_SEC: f32 = 30.0;
+pub const ENGINE_PARTICLE_SPEED: f32 = 3.0;
+pub const ENGINE_PARTICLE_EMISSIVE: f32 = 8.0;
+pub const ENGINE_COLOR: (f32, f32, f32) = (0.3, 0.75, 1.0);
+pub const ENGINE_OFFSETS: [(f32, f32, f32); 3] = [
+    (-0.42, -0.39, 0.0),
+    (0.42, -0.39, 0.0),
+    (0.0, -0.51, 0.0),
+];
+
+// Background nebula planes
+pub const NEBULA_SCROLL_SPEED_MULT: f32 = 0.3;
+pub const NEBULA_CONFIGS: [(f32, f32, f32, f32, f32); 3] = [
+    // (z, alpha, r, g, b)
+    (-50.0, 0.07, 0.05, 0.25, 0.35),  // teal
+    (-47.0, 0.08, 0.2, 0.08, 0.35),   // purple
+    (-53.0, 0.06, 0.08, 0.12, 0.35),  // deep blue
+];
+pub const NEBULA_SIZE: f32 = 50.0;
+
+// Asteroid collision sparks
+pub const SPARK_COUNT: usize = 4;
+pub const SPARK_SPEED: f32 = 8.0;
+pub const SPARK_LIFETIME: f32 = 0.3;
+pub const SPARK_SIZE: f32 = 0.12;
+pub const SPARK_EMISSIVE: f32 = 15.0;
+pub const SPARK_COLOR: (f32, f32, f32) = (1.0, 0.7, 0.2);
+
+// Shield bubble
+pub const SHIELD_BUBBLE_RADIUS: f32 = 1.4;
+pub const SHIELD_BUBBLE_MAX_ALPHA: f32 = 0.15;
+pub const SHIELD_BUBBLE_EMISSIVE: f32 = 2.0;
+pub const SHIELD_BUBBLE_COLOR: (f32, f32, f32) = (0.4, 0.7, 1.0);
+pub const SHIELD_BUBBLE_PULSE_SPEED: f32 = 2.0;
+pub const SHIELD_BUBBLE_PULSE_AMOUNT: f32 = 0.03;

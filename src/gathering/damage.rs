@@ -4,10 +4,45 @@ use bevy::prelude::*;
 use super::constants::*;
 use super::types::*;
 
-pub fn update_shield_regen(mut state: ResMut<ShipState>, time: Res<Time>) {
-    if !state.alive { return; }
+pub fn update_shield_regen(
+    mut state: ResMut<ShipState>,
+    time: Res<Time>,
+    paused: Res<Paused>,
+) {
+    if !state.alive || paused.0 { return; }
     if state.shield < SHIELD_MAX {
         state.shield = (state.shield + SHIELD_REGEN_RATE * time.delta_secs()).min(SHIELD_MAX);
+    }
+}
+
+pub fn update_hit_flash(
+    mut hit_flash: ResMut<HitFlash>,
+    ship_q: Query<Entity, With<Ship>>,
+    children_q: Query<&Children>,
+    material_q: Query<&MeshMaterial3d<StandardMaterial>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    time: Res<Time>,
+) {
+    if hit_flash.timer <= 0.0 { return; }
+    hit_flash.timer = (hit_flash.timer - time.delta_secs()).max(0.0);
+    let flash_t = hit_flash.timer / HIT_FLASH_DURATION;
+
+    let Ok(ship_entity) = ship_q.single() else { return; };
+    // Walk children of the ship scene to find all meshes
+    let mut stack = vec![ship_entity];
+    while let Some(entity) = stack.pop() {
+        if let Ok(mat_handle) = material_q.get(entity) {
+            if let Some(mat) = materials.get_mut(&mat_handle.0) {
+                let intensity = flash_t * 12.0;
+                let r = 1.0 * intensity;
+                let g = 0.6 * intensity;
+                let b = 0.5 * intensity;
+                mat.emissive = LinearRgba::new(r, g, b, 1.0);
+            }
+        }
+        if let Ok(children) = children_q.get(entity) {
+            for child in children.iter() { stack.push(child); }
+        }
     }
 }
 
@@ -80,13 +115,15 @@ fn spawn_bar(parent: &mut ChildSpawnerCommands, is_shield: bool, font: &Handle<F
             }).with_children(|fill_parent| {
                 if is_shield {
                     fill_parent.spawn((
-                        Node { width: Val::Percent(100.0), height: Val::Percent(100.0), ..default() },
+                        Node { width: Val::Percent(100.0), height: Val::Percent(100.0),
+                            border_radius: BorderRadius::all(Val::Px(3.0)), ..default() },
                         BackgroundColor(Color::srgb(full_color.0, full_color.1, full_color.2)),
                         ShieldBarFill,
                     ));
                 } else {
                     fill_parent.spawn((
-                        Node { width: Val::Percent(100.0), height: Val::Percent(100.0), ..default() },
+                        Node { width: Val::Percent(100.0), height: Val::Percent(100.0),
+                            border_radius: BorderRadius::all(Val::Px(3.0)), ..default() },
                         BackgroundColor(Color::srgb(full_color.0, full_color.1, full_color.2)),
                         LifeBarFill,
                     ));

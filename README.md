@@ -4,7 +4,7 @@ A game built with [Bevy 0.18](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.30.1** — Level seed on screen, greener greens, no pre-solved bots
+**v0.31.0** — The Gathering complete: shield bubble, engine trails, sparks, pause, best scores
 
 ### Bot Game (Editor + Player)
 - **149 campaign levels** across 13 chapters, each introducing a new mechanic

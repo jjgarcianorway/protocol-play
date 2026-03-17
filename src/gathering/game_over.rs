@@ -46,6 +46,7 @@ pub fn update_fade(
 pub struct FadeOverlay;
 
 pub fn spawn_fade_overlay(commands: &mut Commands) {
+    // Start fully black — fades in during the first second
     commands.spawn((
         FadeOverlay,
         Node {
@@ -54,9 +55,30 @@ pub fn spawn_fade_overlay(commands: &mut Commands) {
             height: Val::Percent(100.0),
             ..default()
         },
-        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.0)),
+        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 1.0)),
         ZIndex(10),
     ));
+}
+
+/// Resource for tracking the intro fade-in
+#[derive(Resource)]
+pub struct IntroFade(pub f32);
+
+impl Default for IntroFade { fn default() -> Self { Self(0.0) } }
+
+pub fn update_intro_fade(
+    mut intro: ResMut<IntroFade>,
+    time: Res<Time>,
+    mut fade_q: Query<&mut BackgroundColor, With<FadeOverlay>>,
+    fade: Res<FadeTimer>,
+) {
+    if fade.triggered { return; } // death fade takes over
+    if intro.0 >= 1.0 { return; }
+    intro.0 = (intro.0 + time.delta_secs() / FADE_DURATION).min(1.0);
+    let alpha = 1.0 - intro.0;
+    for mut bg in fade_q.iter_mut() {
+        bg.0 = Color::srgba(0.0, 0.0, 0.0, alpha);
+    }
 }
 
 pub fn spawn_game_over_screen(
@@ -66,10 +88,12 @@ pub fn spawn_game_over_screen(
     existing: Query<Entity, With<GameOverScreen>>,
     font: Res<GatheringFont>,
     fade: Res<FadeTimer>,
+    mut best: ResMut<BestStats>,
 ) {
     if *gathering_state.get() != GatheringState::GameOver { return; }
     if !existing.is_empty() { return; }
-    if !fade.triggered { return; } // Prevent re-spawn after Try Again resets fade
+    if !fade.triggered { return; }
+    let new_record = super::stats::save_session(&state, &mut best);
 
     let title_font = TextFont { font: font.0.clone(), font_size: STATS_TITLE_FONT, ..default() };
     let stat_font = TextFont { font: font.0.clone(), font_size: STATS_FONT, ..default() };
@@ -108,6 +132,14 @@ pub fn spawn_game_over_screen(
             let crys = if state.crystals >= 1_000 { format!("{}K", state.crystals / 1_000) } else { format!("{}", state.crystals) };
             stat_row(card, "Crystals", &crys, &stat_font, label_color, value_color);
             stat_row(card, "Hits taken", &format!("{}", state.hits_taken), &stat_font, label_color, value_color);
+            if new_record {
+                card.spawn(Node { height: Val::Px(4.0), ..default() });
+                card.spawn((
+                    Text::new("New Record!"),
+                    TextFont { font: font.0.clone(), font_size: 24.0, ..default() },
+                    TextColor(Color::srgb(1.0, 0.85, 0.2)),
+                ));
+            }
             card.spawn(Node { height: Val::Px(8.0), ..default() });
             card.spawn((
                 Button, TryAgainButton,
@@ -137,6 +169,18 @@ fn stat_row(parent: &mut ChildSpawnerCommands, label: &str, value: &str, font: &
     });
 }
 
+pub fn try_again_hover(
+    mut query: Query<(&Interaction, &mut BackgroundColor), (Changed<Interaction>, With<TryAgainButton>)>,
+) {
+    for (interaction, mut bg) in query.iter_mut() {
+        bg.0 = match interaction {
+            Interaction::Pressed => Color::srgb(0.15, 0.4, 0.6),
+            Interaction::Hovered => Color::srgb(0.3, 0.3, 0.45),
+            Interaction::None => Color::srgb(0.2, 0.2, 0.3),
+        };
+    }
+}
+
 pub fn try_again_interaction(
     interaction_q: Query<&Interaction, (Changed<Interaction>, With<TryAgainButton>)>,
     mut next_state: ResMut<NextState<GatheringState>>,
@@ -148,7 +192,11 @@ pub fn try_again_interaction(
     asteroid_q: Query<Entity, With<Asteroid>>,
     crystal_q: Query<Entity, With<CrystalCloud>>,
     particle_q: Query<Entity, With<CrystalParticle>>,
+    spark_q: Query<Entity, With<Spark>>,
+    engine_q: Query<Entity, With<EngineParticle>>,
+    float_q: Query<Entity, With<FloatingText>>,
     mut difficulty: ResMut<Difficulty>,
+    mut hit_flash: ResMut<HitFlash>,
     mut commands: Commands,
 ) {
     for interaction in interaction_q.iter() {
@@ -157,6 +205,7 @@ pub fn try_again_interaction(
         *shake = ScreenShake::default();
         *fade = FadeTimer::default();
         *difficulty = Difficulty::default();
+        *hit_flash = HitFlash::default();
         next_state.set(GatheringState::Running);
         for entity in game_over_q.iter() { commands.entity(entity).despawn(); }
         for mut bg in fade_bg_q.iter_mut() {
@@ -165,5 +214,8 @@ pub fn try_again_interaction(
         for entity in asteroid_q.iter() { commands.entity(entity).despawn(); }
         for entity in crystal_q.iter() { commands.entity(entity).despawn(); }
         for entity in particle_q.iter() { commands.entity(entity).despawn(); }
+        for entity in spark_q.iter() { commands.entity(entity).despawn(); }
+        for entity in engine_q.iter() { commands.entity(entity).despawn(); }
+        for entity in float_q.iter() { commands.entity(entity).despawn(); }
     }
 }

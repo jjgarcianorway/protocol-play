@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use rand::Rng;
 use super::constants::*;
 use super::types::*;
+use super::types::GatheringFont;
 
 #[derive(Component)]
 pub struct NebulaLayer;
@@ -18,8 +19,9 @@ pub fn spawn_crystals(
     bounds: Res<ViewBounds>,
     assets: Res<GatheringAssets>,
     state: Res<ShipState>,
+    paused: Res<Paused>,
 ) {
-    if !state.alive { return; }
+    if !state.alive || paused.0 { return; }
     timer.0.tick(time.delta());
     if !timer.0.just_finished() { return; }
 
@@ -97,8 +99,9 @@ pub fn move_crystals(
         (With<Ship>, Without<CrystalCloud>, Without<NebulaLayer>, Without<CrystalParticle>),
     >,
     assets: Res<GatheringAssets>,
+    paused: Res<Paused>,
 ) {
-    if !state.alive { return; }
+    if !state.alive || paused.0 { return; }
     let dt = time.delta_secs();
     let ship_pos = ship_q.iter().next().map(|t| t.translation);
     let mut rng = rand::thread_rng();
@@ -109,7 +112,8 @@ pub fn move_crystals(
 
         // Nebula shrinks as crystals are absorbed
         let s = cloud.remaining.max(0.01);
-        let new_scale = Vec3::splat(s);
+        let pulse = 1.0 + (time.elapsed_secs() * 2.0 + cloud.radius * 3.0).sin() * 0.03;
+        let new_scale = Vec3::splat(s * pulse);
         if tf.scale != new_scale { tf.scale = new_scale; }
 
         // Dim the central point light proportionally
@@ -220,16 +224,20 @@ pub fn move_particles(
 
 pub fn absorb_crystals(
     ship_q: Query<&Transform, With<Ship>>,
-    mut crystal_q: Query<(&mut CrystalCloud, &Transform)>,
+    mut crystal_q: Query<(&mut CrystalCloud, &Transform, Entity)>,
     mut state: ResMut<ShipState>,
     time: Res<Time>,
+    paused: Res<Paused>,
+    mut commands: Commands,
+    font: Res<GatheringFont>,
+    cameras: Query<(&Camera, &GlobalTransform)>,
 ) -> Result {
-    if !state.alive { return Ok(()); }
+    if !state.alive || paused.0 { return Ok(()); }
     let ship_tf = ship_q.single()?;
     let ship_pos = ship_tf.translation.truncate();
     let dt = time.delta_secs();
 
-    for (mut cloud, tf) in crystal_q.iter_mut() {
+    for (mut cloud, tf, _entity) in crystal_q.iter_mut() {
         let cloud_pos = tf.translation.truncate();
         let dist = ship_pos.distance(cloud_pos);
         if dist < CRYSTAL_ABSORB_RANGE + cloud.radius * cloud.remaining {
@@ -238,7 +246,68 @@ pub fn absorb_crystals(
             cloud.remaining -= absorbed_fraction;
             let crystals_gained = (cloud.value as f32 * absorbed_fraction) as u64;
             state.crystals += crystals_gained;
+
+            // Spawn floating text when cloud is fully absorbed
+            if cloud.remaining <= 0.01 && crystals_gained > 0 {
+                let total_k = cloud.value / 1000;
+                let label = format!("+{}K", total_k);
+                // Project cloud position to screen
+                if let Ok((camera, cam_gt)) = cameras.single() {
+                    if let Ok(vp) = camera.world_to_viewport(cam_gt, tf.translation) {
+                        spawn_floating_text(&mut commands, &font.0, &label, vp);
+                    }
+                }
+            }
         }
     }
     Ok(())
+}
+
+fn spawn_floating_text(
+    commands: &mut Commands,
+    font: &Handle<Font>,
+    text: &str,
+    screen_pos: Vec2,
+) {
+    commands.spawn((
+        FloatingText { lifetime: FLOAT_TEXT_LIFETIME, max_lifetime: FLOAT_TEXT_LIFETIME },
+        Node {
+            position_type: PositionType::Absolute,
+            left: Val::Px(screen_pos.x - 40.0),
+            top: Val::Px(screen_pos.y - 20.0),
+            ..default()
+        },
+        ZIndex(15),
+    )).with_child((
+        Text::new(text),
+        TextFont { font: font.clone(), font_size: FLOAT_TEXT_FONT, ..default() },
+        TextColor(Color::srgb(FLOAT_TEXT_COLOR.0, FLOAT_TEXT_COLOR.1, FLOAT_TEXT_COLOR.2)),
+    ));
+}
+
+pub fn update_floating_texts(
+    mut commands: Commands,
+    mut query: Query<(Entity, &mut FloatingText, &mut Node, &Children)>,
+    mut text_color_q: Query<&mut TextColor>,
+    time: Res<Time>,
+) {
+    let dt = time.delta_secs();
+    for (entity, mut ft, mut node, children) in query.iter_mut() {
+        ft.lifetime -= dt;
+        if ft.lifetime <= 0.0 {
+            commands.entity(entity).despawn();
+            continue;
+        }
+        // Rise upward
+        if let Val::Px(top) = node.top {
+            node.top = Val::Px(top - FLOAT_TEXT_RISE_SPEED * dt);
+        }
+        // Fade out
+        let alpha = (ft.lifetime / ft.max_lifetime).clamp(0.0, 1.0);
+        for child in children.iter() {
+            if let Ok(mut tc) = text_color_q.get_mut(child) {
+                tc.0 = Color::srgba(FLOAT_TEXT_COLOR.0, FLOAT_TEXT_COLOR.1, FLOAT_TEXT_COLOR.2, alpha);
+            }
+        }
+    }
 }

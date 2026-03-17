@@ -14,8 +14,9 @@ pub fn update_difficulty(
     state: Res<ShipState>,
     mut difficulty: ResMut<Difficulty>,
     mut timer: ResMut<AsteroidSpawnTimer>,
+    paused: Res<Paused>,
 ) {
-    if !state.alive { return; }
+    if !state.alive || paused.0 { return; }
     let time_factor = state.elapsed_time * DIFFICULTY_TIME_SCALE;
     let crystal_factor = state.crystals as f32 * DIFFICULTY_CRYSTAL_SCALE;
     let combined = (time_factor + crystal_factor).min(1.0);

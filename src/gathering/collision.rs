@@ -12,9 +12,11 @@ pub fn check_collisions(
     asteroid_q: Query<(Entity, &Transform, &Asteroid), Without<HitCooldown>>,
     mut state: ResMut<ShipState>,
     mut shake: ResMut<ScreenShake>,
+    mut hit_flash: ResMut<HitFlash>,
+    paused: Res<Paused>,
     mut commands: Commands,
 ) -> Result {
-    if !state.alive { return Ok(()); }
+    if !state.alive || paused.0 { return Ok(()); }
     let ship_tf = ship_q.single()?;
     let ship_pos = ship_tf.translation.truncate();
 
@@ -41,6 +43,7 @@ pub fn check_collisions(
             state.hits_taken += 1;
             state.control_loss_timer = CONTROL_LOSS_DURATION;
             shake.intensity = (shake.intensity + damage * 0.15).min(3.0);
+            hit_flash.timer = HIT_FLASH_DURATION;
             commands.entity(entity).insert(HitCooldown(0.5));
 
             if state.life <= 0.0 {
