@@ -12,6 +12,14 @@ mod question_data;
 mod questions;
 mod endings;
 mod endings_anim;
+mod dialog_types;
+mod dialog_ui;
+mod dialog_system;
+mod dialog_scenes;
+mod dialog_scenes_act1;
+mod dialog_scenes_act2;
+mod dialog_scenes_act3;
+mod dialog_scenes_act4;
 
 use bevy::prelude::*;
 use bevy::post_process::bloom::Bloom;
@@ -45,6 +53,7 @@ pub fn build_app(app: &mut App) {
     .insert_resource(DrainTimer::default())
     .insert_resource(RunningGame::default())
     .insert_resource(questions::QuestionState::default())
+    .insert_resource(dialog_types::DialogState::default())
     .add_systems(Startup, setup_mission)
     .add_systems(Update, (
         dashboard::animate_resource_bars,
@@ -65,6 +74,17 @@ pub fn build_app(app: &mut App) {
         questions::question_option_click,
         questions::update_reaction_overlay,
         final_voyage_click,
+    ))
+    .add_systems(Update, (
+        dialog_system::check_dialog_triggers,
+        dialog_system::start_next_dialog,
+        dialog_system::update_typewriter,
+        dialog_system::dialog_click_advance,
+        dialog_system::dialog_choice_click,
+        dialog_system::spawn_choices_when_ready,
+        dialog_ui::dialog_choice_hover,
+        dialog_ui::animate_dialog_glow,
+        dialog_ui::animate_dialog_circle,
     ))
     .add_systems(Update, (
         endings_anim::animate_ending_screen,
