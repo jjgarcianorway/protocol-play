@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 use bevy::prelude::*;
-use crate::constants::*;
-use crate::types::*;
-use crate::ui_helpers::*;
+use crate::constants::*; use crate::types::*; use crate::ui_helpers::*;
 use crate::board::spawn_tile;
 use crate::test_mode::{group_tiles, spawn_test_inventory};
 use crate::simulation::SimulationResult;
@@ -342,6 +340,9 @@ pub fn handle_level_complete(
     progress.data[idx].stats = ProgressStats { editing_time: stats.editing_time, play_count: stats.play_count, reset_count: stats.reset_count };
     save_one(&progress, idx);
     append_stats_log(&progress.save_dir, &progress.filenames[idx], &levels.levels[idx].name, &progress.data[idx].stats, creative);
+    // Update cross-game save state
+    let mut gs = crate::save_state::load_game_state();
+    gs.bot_level = (idx as u32 + 1).max(gs.bot_level); crate::save_state::save_game_state(&gs);
     let next = first_unsolved(&progress.data).unwrap_or(idx);
     levels.current = next;
     for e in &cleanup { commands.entity(e).despawn(); }

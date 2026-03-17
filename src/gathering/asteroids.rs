@@ -123,7 +123,6 @@ pub fn create_asteroid_assets(
 
     // Nebula crystal cloud layers — unlit glowing spheres
     let mut crystal_meshes = Vec::with_capacity(CRYSTAL_NEBULA_LAYERS);
-    let mut crystal_materials = Vec::with_capacity(CRYSTAL_NEBULA_LAYERS);
     for i in 0..CRYSTAL_NEBULA_LAYERS {
         let t = i as f32 / (CRYSTAL_NEBULA_LAYERS - 1) as f32;
         let scale = 0.5 + t * 0.7;
@@ -137,19 +136,6 @@ pub fn create_asteroid_assets(
             }
         }
         crystal_meshes.push(meshes.add(mesh));
-
-        let ci = i % CRYSTAL_COLORS.len();
-        let (r, g, b) = CRYSTAL_COLORS[ci];
-        let alpha = CRYSTAL_CORE_ALPHA + (CRYSTAL_OUTER_ALPHA - CRYSTAL_CORE_ALPHA) * t;
-        let emissive_str = CRYSTAL_CORE_EMISSIVE + (CRYSTAL_OUTER_EMISSIVE - CRYSTAL_CORE_EMISSIVE) * t;
-        crystal_materials.push(materials.add(StandardMaterial {
-            base_color: Color::srgba(r, g, b, alpha),
-            emissive: LinearRgba::new(r, g, b, 1.0) * emissive_str,
-            alpha_mode: AlphaMode::Blend,
-            unlit: true,
-            cull_mode: None,
-            ..default()
-        }));
     }
 
     // Per-color crystal materials (5 color groups, each with CRYSTAL_NEBULA_LAYERS materials)
@@ -209,7 +195,7 @@ pub fn create_asteroid_assets(
 
     GatheringAssets {
         asteroid_meshes, asteroid_materials, ice_materials, metallic_materials,
-        crystal_meshes, crystal_materials, crystal_materials_by_color,
+        crystal_meshes, crystal_materials_by_color,
         particle_mesh, particle_materials, particle_materials_by_color,
         trail_mesh, trail_material,
     }

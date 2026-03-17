@@ -75,7 +75,6 @@ pub const RESULTS_FONT_D: f32 = 20.0;
 pub const RESULTS_BTN_FONT_D: f32 = 18.0;
 
 // Panel backgrounds
-pub const PANEL_BG_D: (f32, f32, f32, f32) = (0.08, 0.09, 0.15, 0.9);
 pub const RESULTS_BG_D: (f32, f32, f32, f32) = (0.06, 0.07, 0.12, 0.95);
 pub const BTN_BG_D: (f32, f32, f32) = (0.15, 0.18, 0.28);
 pub const BTN_HOVER_D: (f32, f32, f32) = (0.22, 0.26, 0.38);

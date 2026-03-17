@@ -34,6 +34,9 @@ pub fn spawn_results_screen(
     let eff = calc_efficiency(&stats, &tanks);
     let rating = efficiency_rating(eff);
 
+    // Save results to cross-game state
+    save_converter_results(&stats, &tanks);
+
     commands.spawn((
         Node {
             position_type: PositionType::Absolute,
@@ -119,6 +122,30 @@ pub fn spawn_results_screen(
             });
         });
     });
+}
+
+/// Save converter results to cross-game state.
+pub fn save_converter_results(
+    stats: &ConversionStats,
+    tanks: &ResourceTanks,
+) {
+    if stats.total_converted == 0 { return; }
+    let mut gs = crate::save_state::load_game_state();
+    // Add resource levels from tanks (each tank value maps to resource %)
+    gs.power = (gs.power + tanks.levels[0]).clamp(0.0, 100.0);
+    gs.life_support = (gs.life_support + tanks.levels[1]).clamp(0.0, 100.0);
+    gs.cryo = (gs.cryo + tanks.levels[2]).clamp(0.0, 100.0);
+    gs.shields = (gs.shields + tanks.levels[3]).clamp(0.0, 100.0);
+    gs.repair = (gs.repair + tanks.levels[4]).clamp(0.0, 100.0);
+    // Subtract consumed crystals
+    let used = stats.total_converted;
+    let per_color = used / 5;
+    gs.crystals_red = gs.crystals_red.saturating_sub(per_color);
+    gs.crystals_green = gs.crystals_green.saturating_sub(per_color);
+    gs.crystals_blue = gs.crystals_blue.saturating_sub(per_color);
+    gs.crystals_yellow = gs.crystals_yellow.saturating_sub(per_color);
+    gs.crystals_purple = gs.crystals_purple.saturating_sub(per_color);
+    crate::save_state::save_game_state(&gs);
 }
 
 /// Handle return button interaction — reset the game.

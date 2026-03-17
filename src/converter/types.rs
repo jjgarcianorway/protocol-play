@@ -23,11 +23,6 @@ impl CrystalColor {
         CRYSTAL_COLORS[self.index()]
     }
 
-    pub fn color(&self) -> Color {
-        let (r, g, b) = self.rgb();
-        Color::srgb(r, g, b)
-    }
-
     pub fn index(&self) -> usize {
         match self {
             CrystalColor::Red => 0,
@@ -37,9 +32,6 @@ impl CrystalColor {
             CrystalColor::Purple => 4,
         }
     }
-
-    pub fn name(&self) -> &str { RESOURCE_NAMES[self.index()] }
-    pub fn icon(&self) -> &str { RESOURCE_ICONS[self.index()] }
 
     pub fn from_index(i: usize) -> Self {
         Self::ALL[i % 5]
@@ -58,6 +50,7 @@ pub enum ConverterPhase {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GridPhase {
     Idle,          // Player can click
+    #[allow(dead_code)]
     Bursting,      // Chain is bursting (animated)
     Gravity,       // Crystals falling
     CascadeCheck,  // Checking for auto-trigger groups
@@ -126,9 +119,6 @@ pub struct GridCell {
     pub row: usize,
     pub col: usize,
 }
-
-#[derive(Component)]
-pub struct CellCrystal;
 
 #[derive(Component)]
 pub struct ChainSizeLabel;

@@ -35,7 +35,6 @@ pub const BAR_BG_COLOR: (f32, f32, f32, f32) = (0.12, 0.13, 0.18, 0.8);
 pub const BAR_LABEL_FONT: f32 = 14.0;
 pub const BAR_PCT_FONT: f32 = 13.0;
 pub const BAR_LERP_SPEED: f32 = 3.0;
-pub const BAR_GAP: f32 = 8.0;
 
 // Resource colors (same 5-color palette as crystals)
 pub const RES_POWER_COLOR: (f32, f32, f32) = (0.902, 0.098, 0.294);
@@ -59,7 +58,6 @@ pub const INFO_HIGHLIGHT_COLOR: (f32, f32, f32) = (0.85, 0.9, 1.0);
 // === Game cards ===
 pub const CARD_WIDTH: f32 = 300.0;
 pub const CARD_HEIGHT: f32 = 80.0;
-pub const CARD_GAP: f32 = 10.0;
 pub const CARD_PAD: f32 = 14.0;
 pub const CARD_CORNER: f32 = 8.0;
 pub const CARD_BG: (f32, f32, f32, f32) = (0.10, 0.11, 0.16, 0.9);
@@ -92,11 +90,6 @@ pub const ANNA_MSG_FONT: f32 = 15.0;
 pub const ANNA_MSG_COLOR: (f32, f32, f32) = (0.75, 0.8, 0.9);
 pub const ANNA_FADE_SPEED: f32 = 2.0;
 pub const ANNA_MSG_HOLD: f32 = 6.0;
-pub const ANNA_MSG_FADE: f32 = 1.0;
-
-// === Panel backgrounds ===
-pub const PANEL_BG_M: (f32, f32, f32, f32) = (0.07, 0.08, 0.12, 0.85);
-pub const PANEL_CORNER: f32 = 10.0;
 
 // === Version ===
 pub const VERSION_FONT_M: f32 = 11.0;

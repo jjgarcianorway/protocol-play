@@ -35,18 +35,6 @@ impl Default for ShipStatus {
 }
 
 impl ShipStatus {
-    /// Get resource value by index (0-4).
-    pub fn resource(&self, index: usize) -> f32 {
-        match index {
-            0 => self.power,
-            1 => self.life_support,
-            2 => self.cryo,
-            3 => self.shields,
-            4 => self.repair,
-            _ => 0.0,
-        }
-    }
-
     /// Lowest resource level — determines urgency.
     pub fn lowest_resource(&self) -> (usize, f32) {
         let vals = [self.power, self.life_support, self.cryo, self.shields, self.repair];
@@ -61,7 +49,7 @@ impl ShipStatus {
 
 /// Font resource for Mission Control.
 #[derive(Resource)]
-pub struct MissionFont(pub Handle<Font>);
+pub struct MissionFont(#[allow(dead_code)] pub Handle<Font>);
 
 /// Displayed bar values (lerped toward targets for smooth animation).
 #[derive(Resource)]
@@ -108,11 +96,11 @@ pub enum GameCard {
 
 /// Marker for game card status text.
 #[derive(Component)]
-pub struct CardStatusText(pub GameCard);
+pub struct CardStatusText(#[allow(dead_code)] pub GameCard);
 
 /// Marker for game card recommended badge.
 #[derive(Component)]
-pub struct CardRecommended(pub GameCard);
+pub struct CardRecommended(#[allow(dead_code)] pub GameCard);
 
 /// Anna's message text component.
 #[derive(Component)]

@@ -121,11 +121,6 @@ pub fn refill_from_pile(grid: &mut GridState, pile: &mut CrystalPile) -> u32 {
     filled
 }
 
-/// Check if the grid is completely empty.
-pub fn grid_is_empty(grid: &GridState) -> bool {
-    grid.cells.iter().all(|row| row.iter().all(|c| c.is_none()))
-}
-
 /// Check if there are any crystals left on the grid.
 pub fn grid_has_crystals(grid: &GridState) -> bool {
     grid.cells.iter().any(|row| row.iter().any(|c| c.is_some()))

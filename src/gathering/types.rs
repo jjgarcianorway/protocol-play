@@ -31,16 +31,6 @@ impl CrystalColor {
         }
     }
 
-    pub fn name(&self) -> &str {
-        match self {
-            CrystalColor::Red    => "Power",
-            CrystalColor::Green  => "Life Support",
-            CrystalColor::Blue   => "Cryo",
-            CrystalColor::Yellow => "Shields",
-            CrystalColor::Purple => "Repair",
-        }
-    }
-
     pub fn resource_icon(&self) -> &str {
         match self {
             CrystalColor::Red    => "\u{26A1}",
@@ -211,7 +201,6 @@ pub struct GatheringAssets {
     pub ice_materials: Vec<Handle<StandardMaterial>>,
     pub metallic_materials: Vec<Handle<StandardMaterial>>,
     pub crystal_meshes: Vec<Handle<Mesh>>,
-    pub crystal_materials: Vec<Handle<StandardMaterial>>,
     pub crystal_materials_by_color: Vec<Vec<Handle<StandardMaterial>>>,
     pub particle_mesh: Handle<Mesh>,
     pub particle_materials: Vec<Handle<StandardMaterial>>,

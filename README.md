@@ -4,7 +4,7 @@ A game built with [Bevy 0.18](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.37.0** — The Delivery + Mission Control: all 5 game components complete
+**v0.38.0** — Cross-game save system, zero warnings, game state persistence
 
 ### Bot Game (Editor + Player)
 - **149 campaign levels** across 13 chapters, each introducing a new mechanic

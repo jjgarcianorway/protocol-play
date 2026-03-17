@@ -27,6 +27,18 @@ pub fn spawn_results_screen(
     let rating = efficiency_rating(eff);
     let delivered: u32 = state.score.iter().sum();
 
+    // Save delivery results to cross-game state
+    {
+        let mut gs = crate::save_state::load_game_state();
+        let efficiency_factor = eff / 100.0;
+        gs.power = (gs.power + state.score[0] as f32 * efficiency_factor * 0.5).clamp(0.0, 100.0);
+        gs.life_support = (gs.life_support + state.score[1] as f32 * efficiency_factor * 0.5).clamp(0.0, 100.0);
+        gs.cryo = (gs.cryo + state.score[2] as f32 * efficiency_factor * 0.5).clamp(0.0, 100.0);
+        gs.shields = (gs.shields + state.score[3] as f32 * efficiency_factor * 0.5).clamp(0.0, 100.0);
+        gs.repair = (gs.repair + state.score[4] as f32 * efficiency_factor * 0.5).clamp(0.0, 100.0);
+        crate::save_state::save_game_state(&gs);
+    }
+
     commands.spawn((
         Node {
             position_type: PositionType::Absolute,

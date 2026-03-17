@@ -6,6 +6,7 @@ mod ui_helpers; mod slot_ui; mod inventory; mod systems; mod systems_ui; mod sim
 mod bot_formation; mod mat_helpers; mod test_mode; mod level_io; mod save_dialog;
 mod level_gen_sim; mod level_gen_tiles; mod level_gen_algo; mod level_gen_ui; mod level_gen_interact;
 mod icon_render;
+#[allow(dead_code)] mod save_state;
 #[cfg(feature = "player")] mod player;
 #[cfg(feature = "gathering")] mod gathering;
 #[cfg(feature = "converter")] mod converter;

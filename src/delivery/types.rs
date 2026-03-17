@@ -33,17 +33,6 @@ impl PodColor {
         POD_COLORS[self.index()]
     }
 
-    pub fn color(&self) -> Color {
-        let (r, g, b) = self.rgb();
-        Color::srgb(r, g, b)
-    }
-
-    pub fn bright_color(&self) -> Color {
-        let (r, g, b) = self.rgb();
-        Color::srgb((r * 1.3).min(1.0), (g * 1.3).min(1.0), (b * 1.3).min(1.0))
-    }
-
-    pub fn name(&self) -> &str { RESOURCE_NAMES[self.index()] }
     pub fn icon(&self) -> &str { RESOURCE_ICONS[self.index()] }
 
     pub fn from_index(i: usize) -> Self {
@@ -145,10 +134,6 @@ pub struct Pod {
 #[derive(Component)]
 pub struct DepositSlot(pub usize);
 
-/// Marker for slot highlight border.
-#[derive(Component)]
-pub struct SlotHighlight(pub usize);
-
 /// Flash effect on a slot.
 #[derive(Component)]
 pub struct SlotFlash {
@@ -165,9 +150,6 @@ pub struct StreakText;
 
 #[derive(Component)]
 pub struct PodsRemainingText;
-
-#[derive(Component)]
-pub struct DifficultyText;
 
 /// Results screen marker.
 #[derive(Component)]

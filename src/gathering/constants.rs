@@ -4,18 +4,7 @@
 pub const CAMERA_Z: f32 = 50.0;
 pub const CAMERA_FOV: f32 = 45.0;
 
-// Ship geometry (smooth capsules + spheres)
-pub const SHIP_HULL_R: f32 = 0.35;
-pub const SHIP_HULL_LEN: f32 = 1.6;
-pub const SHIP_NACELLE_R: f32 = 0.18;
-pub const SHIP_NACELLE_LEN: f32 = 0.9;
-pub const SHIP_NACELLE_OFF: f32 = 0.7;
-pub const SHIP_NACELLE_Y: f32 = 0.2;
-pub const SHIP_ENGINE_R: f32 = 0.14;
-pub const SHIP_COCKPIT_R: f32 = 0.22;
-pub const SHIP_WING_SPAN: f32 = 1.8;
-pub const SHIP_WING_THICK: f32 = 0.06;
-pub const SHIP_WING_CHORD: f32 = 0.6;
+// Ship dynamics
 pub const SHIP_INERTIA: f32 = 6.0;
 pub const SHIP_MAX_TILT: f32 = 1.4;
 pub const SHIP_MAX_PITCH: f32 = 0.3;
@@ -25,15 +14,6 @@ pub const SHIP_PITCH_FACTOR: f32 = 0.02;
 pub const SHIP_COLLISION_RADIUS: f32 = 0.9;
 pub const SHIP_MODEL_SCALE: f32 = 0.6;
 
-// Ship colors (tuples for srgb)
-pub const SHIP_HULL_COLOR: (f32, f32, f32) = (0.65, 0.68, 0.75);
-pub const SHIP_ACCENT_COLOR: (f32, f32, f32) = (0.45, 0.50, 0.58);
-pub const SHIP_ENGINE_COLOR: (f32, f32, f32) = (0.3, 0.75, 1.0);
-pub const SHIP_ENGINE_EMISSIVE: f32 = 6.0;
-pub const SHIP_COCKPIT_COLOR: (f32, f32, f32) = (0.5, 0.85, 1.0);
-pub const SHIP_COCKPIT_EMISSIVE: f32 = 3.0;
-pub const SHIP_WING_COLOR: (f32, f32, f32) = (0.5, 0.52, 0.58);
-
 // Asteroids
 pub const NUM_ASTEROID_MESHES: usize = 12;
 pub const ASTEROID_ICO_SUBDIVISIONS: [u32; 4] = [1, 2, 2, 3];
@@ -41,8 +21,6 @@ pub const ASTEROID_PERTURB_MIN: f32 = 0.12;
 pub const ASTEROID_PERTURB_MAX: f32 = 0.35;
 pub const ASTEROID_ELONGATION_MIN: f32 = 0.7;
 pub const ASTEROID_ELONGATION_MAX: f32 = 1.5;
-pub const ASTEROID_MIN_RADIUS: f32 = 0.8;
-pub const ASTEROID_MAX_RADIUS: f32 = 5.0;
 pub const ASTEROID_MIN_SPEED: f32 = 2.0;
 pub const ASTEROID_MAX_SPEED: f32 = 7.0;
 pub const ASTEROID_MIN_ROT_SPEED: f32 = 0.2;
@@ -173,8 +151,6 @@ pub const HIT_FLASH_DURATION: f32 = 0.3;
 pub const FLOAT_TEXT_LIFETIME: f32 = 1.5;
 pub const FLOAT_TEXT_RISE_SPEED: f32 = 60.0;
 pub const FLOAT_TEXT_FONT: f32 = 22.0;
-pub const FLOAT_TEXT_COLOR: (f32, f32, f32) = (0.3, 0.8, 1.0);
-
 // Pause
 pub const PAUSE_OVERLAY_ALPHA: f32 = 0.7;
 pub const PAUSE_FONT: f32 = 48.0;
@@ -315,7 +291,3 @@ pub const CRYSTAL_RESOURCE_COLORS: [(f32, f32, f32); 5] = [
     (0.569, 0.118, 0.706), // Purple — Repair
 ];
 
-// Crystal spawn color distribution
-pub const CRYSTAL_SINGLE_COLOR_CHANCE: f32 = 0.70;
-pub const CRYSTAL_MULTI_COLOR_CHANCE: f32 = 0.25;
-pub const CRYSTAL_RAINBOW_CHANCE: f32 = 0.05;

@@ -95,6 +95,18 @@ pub fn spawn_game_over_screen(
     if !fade.triggered { return; }
     let new_record = super::stats::save_session(&state, &mut best);
 
+    // Update cross-game save state
+    let mut gs = crate::save_state::load_game_state();
+    gs.crystals_red += state.crystals_red;
+    gs.crystals_green += state.crystals_green;
+    gs.crystals_blue += state.crystals_blue;
+    gs.crystals_yellow += state.crystals_yellow;
+    gs.crystals_purple += state.crystals_purple;
+    gs.gathering_runs += 1;
+    gs.total_crystals_gathered += state.crystals;
+    gs.distance_au += state.distance * 0.01;
+    crate::save_state::save_game_state(&gs);
+
     let title_font = TextFont { font: font.0.clone(), font_size: STATS_TITLE_FONT, ..default() };
     let stat_font = TextFont { font: font.0.clone(), font_size: STATS_FONT, ..default() };
     let value_color = Color::srgb(STATS_SUCCESS_COLOR.0, STATS_SUCCESS_COLOR.1, STATS_SUCCESS_COLOR.2);

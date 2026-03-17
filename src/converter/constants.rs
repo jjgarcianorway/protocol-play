@@ -39,18 +39,12 @@ pub const EFFICIENCY_TABLE: [(u32, f32); 6] = [
 
 // Crystal pile
 pub const INITIAL_PILE_SIZE: u64 = 500;
-pub const REFILL_BATCH: usize = 8; // crystals added per refill
 
 // Timing
 pub const GRAVITY_DELAY: f32 = 0.15;
 pub const CASCADE_DELAY: f32 = 0.5;
-pub const BURST_DURATION: f32 = 0.3;
-pub const PARTICLE_SPEED: f32 = 800.0;
 pub const PARTICLE_LIFETIME: f32 = 0.6;
 pub const PARTICLE_SIZE: f32 = 8.0;
-
-// Gravity animation
-pub const GRAVITY_FALL_SPEED: f32 = 12.0;
 
 // UI layout
 pub const GRID_LEFT_MARGIN: f32 = 200.0;
@@ -68,11 +62,9 @@ pub const HIGHLIGHT_PULSE_SPEED: f32 = 4.0;
 
 // Cell empty color
 pub const CELL_EMPTY_COLOR: (f32, f32, f32, f32) = (0.10, 0.11, 0.18, 0.6);
-pub const CELL_HOVER_BRIGHTEN: f32 = 0.15;
 
 // Font sizes
 pub const TITLE_FONT: f32 = 28.0;
-pub const LABEL_FONT_C: f32 = 14.0;
 pub const CHAIN_SIZE_FONT: f32 = 22.0;
 pub const TANK_LABEL_FONT: f32 = 18.0;
 pub const TANK_PCT_FONT: f32 = 12.0;
@@ -82,7 +74,6 @@ pub const RESULTS_FONT: f32 = 20.0;
 pub const RESULTS_BTN_FONT: f32 = 18.0;
 
 // Panel backgrounds
-pub const PANEL_BG: (f32, f32, f32, f32) = (0.08, 0.09, 0.15, 0.9);
 pub const RESULTS_BG: (f32, f32, f32, f32) = (0.06, 0.07, 0.12, 0.95);
 pub const BTN_BG_C: (f32, f32, f32) = (0.15, 0.18, 0.28);
 pub const BTN_HOVER_C: (f32, f32, f32) = (0.22, 0.26, 0.38);

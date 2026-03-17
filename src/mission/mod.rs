@@ -12,12 +12,27 @@ use bevy::render::render_resource::*;
 use rand::Rng;
 use constants::*;
 use types::*;
+use crate::save_state::{load_game_state, GameState};
 
 pub fn build_app(app: &mut App) {
+    let gs = load_game_state();
+    let ship = ShipStatus {
+        power: gs.power,
+        life_support: gs.life_support,
+        cryo: gs.cryo,
+        shields: gs.shields,
+        repair: gs.repair,
+        crystals: gs.total_crystals(),
+        crew_count: gs.crew_count,
+        day: gs.day,
+        distance_au: gs.distance_au,
+        bot_level: gs.bot_level,
+    };
     app.insert_resource(ClearColor(Color::srgb(
         CLEAR_COLOR_M.0, CLEAR_COLOR_M.1, CLEAR_COLOR_M.2,
     )))
-    .insert_resource(ShipStatus::default())
+    .insert_resource(ship)
+    .insert_resource(gs)
     .insert_resource(BarDisplayValues::default())
     .insert_resource(AnnaState::default())
     .add_systems(Startup, setup_mission)
@@ -79,7 +94,13 @@ fn setup_mission(
     ));
 
     // Main UI layout
-    let ship = ShipStatus::default();
+    let ship = load_game_state();
+    let ship_status = ShipStatus {
+        power: ship.power, life_support: ship.life_support,
+        cryo: ship.cryo, shields: ship.shields, repair: ship.repair,
+        crystals: ship.total_crystals(), crew_count: ship.crew_count,
+        day: ship.day, distance_au: ship.distance_au, bot_level: ship.bot_level,
+    };
     commands.spawn(Node {
         width: Val::Percent(100.0),
         height: Val::Percent(100.0),
@@ -87,7 +108,7 @@ fn setup_mission(
         ..default()
     }).with_children(|root| {
         dashboard::spawn_dashboard(root, &font);
-        games::spawn_game_cards(root, &font, &ship);
+        games::spawn_game_cards(root, &font, &ship_status);
     });
 
     // Anna's panel (absolute positioned at bottom)
