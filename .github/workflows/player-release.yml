@@ -26,8 +26,6 @@ jobs:
           mkdir bundle
           copy target\x86_64-pc-windows-msvc\release\protocol-play.exe bundle\protocol-play-player.exe
           for %%f in (campaign_levels\*.json) do copy "%%f" "bundle\"
-          xcopy /E /I assets\icons bundle\assets\icons
-          xcopy /E /I assets\textures bundle\assets\textures
           cd bundle && 7z a ../protocol-play-player-windows.zip *
         shell: cmd
       - name: Upload artifact
@@ -47,11 +45,10 @@ jobs:
         run: cargo build --release --features player --target aarch64-apple-darwin
       - name: Package
         run: |
-          mkdir -p bundle/assets
+          mkdir bundle
           cp target/aarch64-apple-darwin/release/protocol-play bundle/protocol-play-player
           chmod +x bundle/protocol-play-player
           cp campaign_levels/*.json bundle/
-          cp -r assets/icons assets/textures bundle/assets/
           cd bundle && tar czf ../protocol-play-player-macos.tar.gz .
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -70,11 +67,10 @@ jobs:
         run: cargo build --release --features player
       - name: Package
         run: |
-          mkdir -p bundle/assets
+          mkdir bundle
           cp target/release/protocol-play bundle/protocol-play-player
           chmod +x bundle/protocol-play-player
           cp campaign_levels/*.json bundle/
-          cp -r assets/icons assets/textures bundle/assets/
           cd bundle && tar czf ../protocol-play-player-linux.tar.gz .
       - name: Upload artifact
         uses: actions/upload-artifact@v4
