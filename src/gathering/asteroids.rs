@@ -152,6 +152,26 @@ pub fn create_asteroid_assets(
         }));
     }
 
+    // Per-color crystal materials (5 color groups, each with CRYSTAL_NEBULA_LAYERS materials)
+    let mut crystal_materials_by_color = Vec::with_capacity(CRYSTAL_RESOURCE_COLORS.len());
+    for &(cr, cg, cb) in &CRYSTAL_RESOURCE_COLORS {
+        let mut color_mats = Vec::with_capacity(CRYSTAL_NEBULA_LAYERS);
+        for i in 0..CRYSTAL_NEBULA_LAYERS {
+            let t = i as f32 / (CRYSTAL_NEBULA_LAYERS - 1) as f32;
+            let alpha = CRYSTAL_CORE_ALPHA + (CRYSTAL_OUTER_ALPHA - CRYSTAL_CORE_ALPHA) * t;
+            let emissive_str = CRYSTAL_CORE_EMISSIVE + (CRYSTAL_OUTER_EMISSIVE - CRYSTAL_CORE_EMISSIVE) * t;
+            color_mats.push(materials.add(StandardMaterial {
+                base_color: Color::srgba(cr, cg, cb, alpha),
+                emissive: LinearRgba::new(cr, cg, cb, 1.0) * emissive_str,
+                alpha_mode: AlphaMode::Blend,
+                unlit: true,
+                cull_mode: None,
+                ..default()
+            }));
+        }
+        crystal_materials_by_color.push(color_mats);
+    }
+
     // Absorption particle mesh and materials — small glowing spheres
     let particle_mesh = meshes.add(Sphere::new(1.0).mesh().ico(2).unwrap());
     let mut particle_materials = Vec::with_capacity(CRYSTAL_COLORS.len());
@@ -159,6 +179,18 @@ pub fn create_asteroid_assets(
         particle_materials.push(materials.add(StandardMaterial {
             base_color: Color::srgba(r, g, b, 0.9),
             emissive: LinearRgba::new(r, g, b, 1.0) * PARTICLE_EMISSIVE,
+            alpha_mode: AlphaMode::Blend,
+            unlit: true,
+            ..default()
+        }));
+    }
+
+    // Per-color particle materials
+    let mut particle_materials_by_color = Vec::with_capacity(CRYSTAL_RESOURCE_COLORS.len());
+    for &(cr, cg, cb) in &CRYSTAL_RESOURCE_COLORS {
+        particle_materials_by_color.push(materials.add(StandardMaterial {
+            base_color: Color::srgba(cr, cg, cb, 0.9),
+            emissive: LinearRgba::new(cr, cg, cb, 1.0) * PARTICLE_EMISSIVE,
             alpha_mode: AlphaMode::Blend,
             unlit: true,
             ..default()
@@ -177,8 +209,8 @@ pub fn create_asteroid_assets(
 
     GatheringAssets {
         asteroid_meshes, asteroid_materials, ice_materials, metallic_materials,
-        crystal_meshes, crystal_materials,
-        particle_mesh, particle_materials,
+        crystal_meshes, crystal_materials, crystal_materials_by_color,
+        particle_mesh, particle_materials, particle_materials_by_color,
         trail_mesh, trail_material,
     }
 }

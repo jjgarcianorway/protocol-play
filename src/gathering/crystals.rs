@@ -12,32 +12,23 @@ pub struct NebulaLayer;
 #[derive(Component)]
 pub struct NebulaLight;
 
-/// Feature #8: Bias crystal X position toward asteroid-dense areas.
+/// Bias crystal X position toward asteroid-dense areas (60% chance).
 fn bias_crystal_x(
-    asteroid_q: &Query<&Transform, With<Asteroid>>,
-    bounds: &ViewBounds,
-    rng: &mut impl Rng,
+    asteroid_q: &Query<&Transform, With<Asteroid>>, bounds: &ViewBounds, rng: &mut impl Rng,
 ) -> f32 {
-    let base_x = rng.gen_range(-bounds.half_width * 0.7..bounds.half_width * 0.7);
-
-    // Find densest asteroid cluster x-position
+    let hw = bounds.half_width * 0.7;
+    let base_x = rng.gen_range(-hw..hw);
     let positions: Vec<f32> = asteroid_q.iter().map(|t| t.translation.x).collect();
-    if positions.is_empty() {
-        return base_x;
-    }
-
-    // Simple average of asteroid x positions as cluster center
+    if positions.is_empty() { return base_x; }
     let avg_x: f32 = positions.iter().sum::<f32>() / positions.len() as f32;
     let bias_range = bounds.half_width * CRYSTAL_ASTEROID_BIAS;
-    let biased_x = avg_x + rng.gen_range(-bias_range..bias_range);
-    let biased_x = biased_x.clamp(-bounds.half_width * 0.7, bounds.half_width * 0.7);
+    let biased_x = (avg_x + rng.gen_range(-bias_range..bias_range)).clamp(-hw, hw);
+    if rng.gen_range(0.0..1.0_f32) < 0.6 { biased_x } else { base_x }
+}
 
-    // 60% chance to use biased position, 40% random
-    if rng.gen_range(0.0..1.0_f32) < 0.6 {
-        biased_x
-    } else {
-        base_x
-    }
+/// Pick a random crystal color (uniform across 5 types).
+fn pick_crystal_color(rng: &mut impl Rng) -> CrystalColor {
+    CrystalColor::ALL[rng.gen_range(0..5)]
 }
 
 pub fn spawn_crystals(
@@ -56,12 +47,10 @@ pub fn spawn_crystals(
 
     let mut rng = rand::thread_rng();
     let value = rng.gen_range(CRYSTAL_MIN_VALUE..CRYSTAL_MAX_VALUE);
-    // Nebula size reflects crystal value
     let value_t = (value - CRYSTAL_MIN_VALUE) as f32
         / (CRYSTAL_MAX_VALUE - CRYSTAL_MIN_VALUE) as f32;
     let radius = CRYSTAL_MIN_RADIUS + value_t * (CRYSTAL_MAX_RADIUS - CRYSTAL_MIN_RADIUS);
 
-    // Feature #8: Bias crystal X toward asteroid clusters
     let x = bias_crystal_x(&asteroid_q, &bounds, &mut rng);
     let y = bounds.half_height + ASTEROID_SPAWN_BUFFER + radius;
 
@@ -69,12 +58,17 @@ pub fn spawn_crystals(
         rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0),
     ).normalize_or(Vec3::Z);
 
+    let color = pick_crystal_color(&mut rng);
+    let ci = color.index();
+
     commands.spawn((
-        CrystalCloud { radius, value, remaining: 1.0, rot_axis, particle_timer: 0.0 },
+        CrystalCloud { radius, value, remaining: 1.0, rot_axis, particle_timer: 0.0, color },
         Transform::from_xyz(x, y, 0.0),
         Visibility::default(),
     )).with_children(|parent| {
-        let n = assets.crystal_meshes.len().min(assets.crystal_materials.len());
+        let n = assets.crystal_meshes.len();
+        let color_mats = &assets.crystal_materials_by_color[ci];
+        let mat_count = color_mats.len();
         for i in 0..n {
             let num = if i < n / 3 { 3 } else { 2 };
             for _ in 0..num {
@@ -84,10 +78,11 @@ pub fn spawn_crystals(
                 let oy = rng.gen_range(-spread..spread);
                 let oz = rng.gen_range(-spread * 0.4..spread * 0.4);
                 let layer_scale = radius * (0.3 + t * 0.5) * rng.gen_range(0.6..1.4);
+                let mat_idx = i % mat_count;
                 parent.spawn((
                     NebulaLayer,
                     Mesh3d(assets.crystal_meshes[i].clone()),
-                    MeshMaterial3d(assets.crystal_materials[i].clone()),
+                    MeshMaterial3d(color_mats[mat_idx].clone()),
                     Transform::from_xyz(ox, oy, oz)
                         .with_scale(Vec3::splat(layer_scale))
                         .with_rotation(Quat::from_euler(
@@ -99,11 +94,11 @@ pub fn spawn_crystals(
                 ));
             }
         }
-        // Central point light — brighter than particle lights
+        let (cr, cg, cb) = color.rgb();
         parent.spawn((
             NebulaLight,
             PointLight {
-                color: Color::srgb(0.2, 0.5, 1.0),
+                color: Color::srgb(cr, cg, cb),
                 intensity: CRYSTAL_POINT_LIGHT_INTENSITY * radius,
                 range: CRYSTAL_POINT_LIGHT_RANGE * radius.sqrt(),
                 shadows_enabled: false,
@@ -170,6 +165,7 @@ pub fn move_crystals(
                     emit_particle(
                         &mut commands, &assets, &mut rng,
                         tf.translation, sp, cloud.radius * s,
+                        cloud.color,
                     );
                 }
             }
@@ -189,8 +185,14 @@ fn emit_particle(
     cloud_pos: Vec3,
     ship_pos: Vec3,
     spread: f32,
+    color: CrystalColor,
 ) {
-    let ci = rng.gen_range(0..assets.particle_materials.len());
+    let mat = if assets.particle_materials_by_color.len() > color.index() {
+        assets.particle_materials_by_color[color.index()].clone()
+    } else {
+        let ci = rng.gen_range(0..assets.particle_materials.len());
+        assets.particle_materials[ci].clone()
+    };
     let offset = Vec3::new(
         rng.gen_range(-spread..spread) * PARTICLE_SPREAD,
         rng.gen_range(-spread..spread) * PARTICLE_SPREAD,
@@ -199,17 +201,18 @@ fn emit_particle(
     let start = cloud_pos + offset;
     let dir = (ship_pos - start).normalize_or(Vec3::Y);
     let speed = PARTICLE_SPEED * rng.gen_range(0.7..1.3);
+    let (cr, cg, cb) = color.rgb();
 
     commands.spawn((
         CrystalParticle { velocity: dir * speed, lifetime: PARTICLE_LIFETIME },
         Mesh3d(assets.particle_mesh.clone()),
-        MeshMaterial3d(assets.particle_materials[ci].clone()),
+        MeshMaterial3d(mat),
         Transform::from_translation(start)
             .with_scale(Vec3::splat(PARTICLE_SIZE * rng.gen_range(0.5..1.5))),
     )).with_children(|parent| {
         parent.spawn((
             PointLight {
-                color: Color::srgb(0.15, 0.4, 1.0),
+                color: Color::srgb(cr, cg, cb),
                 intensity: PARTICLE_LIGHT_INTENSITY,
                 range: PARTICLE_LIGHT_RANGE,
                 shadows_enabled: false,
@@ -293,26 +296,25 @@ pub fn absorb_crystals(
             cloud.remaining -= absorbed_fraction;
             let base_crystals = (cloud.value as f32 * absorbed_fraction * difficulty_mult) as u64;
             let crystals_gained = (base_crystals as f32 * chain.multiplier) as u64;
-            state.crystals += crystals_gained;
+            state.add_crystals(crystals_gained, cloud.color);
 
             // Spawn floating text when cloud is fully absorbed
             if cloud.remaining <= 0.01 && crystals_gained > 0 {
                 let total_k = cloud.value / 1000;
+                let icon = cloud.color.resource_icon();
                 let label = if chain.multiplier > 1.0 {
-                    format!("+{}K x{:.1}!", total_k, chain.multiplier)
+                    format!("+{}K {} x{:.1}!", total_k, icon, chain.multiplier)
                 } else {
-                    format!("+{}K", total_k)
+                    format!("+{}K {}", total_k, icon)
                 };
-                // Project cloud position to screen
                 if let Ok((camera, cam_gt)) = cameras.single() {
                     if let Ok(vp) = camera.world_to_viewport(cam_gt, tf.translation) {
-                        spawn_floating_text(
+                        spawn_colored_floating_text(
                             &mut commands, &font.0, &label, vp,
-                            chain.multiplier > 1.0,
+                            chain.multiplier > 1.0, cloud.color,
                         );
                     }
                 }
-                // Advance chain
                 advance_chain(&mut chain);
             }
         }
@@ -330,32 +332,27 @@ fn advance_chain(chain: &mut CrystalChain) {
     chain.multiplier = CHAIN_MULTIPLIERS[next_idx];
 }
 
-fn spawn_floating_text(
-    commands: &mut Commands,
-    font: &Handle<Font>,
-    text: &str,
-    screen_pos: Vec2,
-    is_chain: bool,
+fn spawn_colored_floating_text(
+    commands: &mut Commands, font: &Handle<Font>, text: &str,
+    screen_pos: Vec2, is_chain: bool, crystal_color: CrystalColor,
 ) {
-    let color = if is_chain {
-        Color::srgb(CHAIN_TEXT_COLOR.0, CHAIN_TEXT_COLOR.1, CHAIN_TEXT_COLOR.2)
-    } else {
-        Color::srgb(FLOAT_TEXT_COLOR.0, FLOAT_TEXT_COLOR.1, FLOAT_TEXT_COLOR.2)
+    let (r, g, b) = if is_chain { CHAIN_TEXT_COLOR } else {
+        let (cr, cg, cb) = crystal_color.rgb();
+        ((cr + 0.3).min(1.0), (cg + 0.3).min(1.0), (cb + 0.3).min(1.0))
     };
     let font_size = if is_chain { FLOAT_TEXT_FONT + 4.0 } else { FLOAT_TEXT_FONT };
     commands.spawn((
-        FloatingText { lifetime: FLOAT_TEXT_LIFETIME, max_lifetime: FLOAT_TEXT_LIFETIME },
-        Node {
-            position_type: PositionType::Absolute,
-            left: Val::Px(screen_pos.x - 50.0),
-            top: Val::Px(screen_pos.y - 20.0),
-            ..default()
+        FloatingText {
+            lifetime: FLOAT_TEXT_LIFETIME, max_lifetime: FLOAT_TEXT_LIFETIME,
+            text_color: (r, g, b),
         },
+        Node { position_type: PositionType::Absolute,
+            left: Val::Px(screen_pos.x - 50.0), top: Val::Px(screen_pos.y - 20.0), ..default() },
         ZIndex(15),
     )).with_child((
         Text::new(text),
         TextFont { font: font.clone(), font_size, ..default() },
-        TextColor(color),
+        TextColor(Color::srgb(r, g, b)),
     ));
 }
 
@@ -378,9 +375,10 @@ pub fn update_floating_texts(
         }
         // Fade out
         let alpha = (ft.lifetime / ft.max_lifetime).clamp(0.0, 1.0);
+        let (cr, cg, cb) = ft.text_color;
         for child in children.iter() {
             if let Ok(mut tc) = text_color_q.get_mut(child) {
-                tc.0 = Color::srgba(FLOAT_TEXT_COLOR.0, FLOAT_TEXT_COLOR.1, FLOAT_TEXT_COLOR.2, alpha);
+                tc.0 = Color::srgba(cr, cg, cb, alpha);
             }
         }
     }

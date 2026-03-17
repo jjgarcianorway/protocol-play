@@ -6,6 +6,62 @@ use super::constants::*;
 // === Components ===
 #[derive(Component)] pub struct Ship;
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
+pub enum CrystalColor {
+    Red,
+    Green,
+    Blue,
+    Yellow,
+    Purple,
+}
+
+impl CrystalColor {
+    pub const ALL: [CrystalColor; 5] = [
+        CrystalColor::Red, CrystalColor::Green, CrystalColor::Blue,
+        CrystalColor::Yellow, CrystalColor::Purple,
+    ];
+
+    pub fn rgb(&self) -> (f32, f32, f32) {
+        match self {
+            CrystalColor::Red    => (0.902, 0.098, 0.294),
+            CrystalColor::Green  => (0.130, 0.545, 0.130),
+            CrystalColor::Blue   => (0.150, 0.250, 0.700),
+            CrystalColor::Yellow => (1.000, 0.882, 0.098),
+            CrystalColor::Purple => (0.569, 0.118, 0.706),
+        }
+    }
+
+    pub fn name(&self) -> &str {
+        match self {
+            CrystalColor::Red    => "Power",
+            CrystalColor::Green  => "Life Support",
+            CrystalColor::Blue   => "Cryo",
+            CrystalColor::Yellow => "Shields",
+            CrystalColor::Purple => "Repair",
+        }
+    }
+
+    pub fn resource_icon(&self) -> &str {
+        match self {
+            CrystalColor::Red    => "\u{26A1}",
+            CrystalColor::Green  => "\u{1F4A7}",
+            CrystalColor::Blue   => "\u{2744}\u{FE0F}",
+            CrystalColor::Yellow => "\u{1F6E1}\u{FE0F}",
+            CrystalColor::Purple => "\u{1F527}",
+        }
+    }
+
+    pub fn index(&self) -> usize {
+        match self {
+            CrystalColor::Red    => 0,
+            CrystalColor::Green  => 1,
+            CrystalColor::Blue   => 2,
+            CrystalColor::Yellow => 3,
+            CrystalColor::Purple => 4,
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum AsteroidType {
     Rock,
@@ -52,6 +108,7 @@ pub struct CrystalCloud {
     pub remaining: f32,
     pub rot_axis: Vec3,
     pub particle_timer: f32,
+    pub color: CrystalColor,
 }
 
 #[derive(Component)]
@@ -68,6 +125,11 @@ pub struct ShipState {
     pub shield: f32,
     pub life: f32,
     pub crystals: u64,
+    pub crystals_red: u64,
+    pub crystals_green: u64,
+    pub crystals_blue: u64,
+    pub crystals_yellow: u64,
+    pub crystals_purple: u64,
     pub distance: f32,
     pub elapsed_time: f32,
     pub hits_taken: u32,
@@ -77,12 +139,38 @@ pub struct ShipState {
     pub alive: bool,
 }
 
+impl ShipState {
+    pub fn add_crystals(&mut self, amount: u64, color: CrystalColor) {
+        self.crystals += amount;
+        match color {
+            CrystalColor::Red    => self.crystals_red += amount,
+            CrystalColor::Green  => self.crystals_green += amount,
+            CrystalColor::Blue   => self.crystals_blue += amount,
+            CrystalColor::Yellow => self.crystals_yellow += amount,
+            CrystalColor::Purple => self.crystals_purple += amount,
+        }
+    }
+
+    pub fn crystals_by_color(&self, color: CrystalColor) -> u64 {
+        match color {
+            CrystalColor::Red    => self.crystals_red,
+            CrystalColor::Green  => self.crystals_green,
+            CrystalColor::Blue   => self.crystals_blue,
+            CrystalColor::Yellow => self.crystals_yellow,
+            CrystalColor::Purple => self.crystals_purple,
+        }
+    }
+}
+
 impl Default for ShipState {
     fn default() -> Self {
         Self {
             target: Vec2::ZERO, velocity: Vec2::ZERO,
             shield: SHIELD_MAX, life: LIFE_MAX,
-            crystals: 0, distance: 0.0, elapsed_time: 0.0,
+            crystals: 0,
+            crystals_red: 0, crystals_green: 0, crystals_blue: 0,
+            crystals_yellow: 0, crystals_purple: 0,
+            distance: 0.0, elapsed_time: 0.0,
             hits_taken: 0, near_misses: 0, max_chain: 1.0,
             control_loss_timer: 0.0, alive: true,
         }
@@ -124,8 +212,10 @@ pub struct GatheringAssets {
     pub metallic_materials: Vec<Handle<StandardMaterial>>,
     pub crystal_meshes: Vec<Handle<Mesh>>,
     pub crystal_materials: Vec<Handle<StandardMaterial>>,
+    pub crystal_materials_by_color: Vec<Vec<Handle<StandardMaterial>>>,
     pub particle_mesh: Handle<Mesh>,
     pub particle_materials: Vec<Handle<StandardMaterial>>,
+    pub particle_materials_by_color: Vec<Handle<StandardMaterial>>,
     pub trail_mesh: Handle<Mesh>,
     pub trail_material: Handle<StandardMaterial>,
 }
@@ -171,6 +261,7 @@ pub struct NearMissFlash {
 pub struct FloatingText {
     pub lifetime: f32,
     pub max_lifetime: f32,
+    pub text_color: (f32, f32, f32),
 }
 
 #[derive(Component)]

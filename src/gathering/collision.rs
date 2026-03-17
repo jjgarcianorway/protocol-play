@@ -100,7 +100,10 @@ pub fn check_near_misses(
                         NEAR_MISS_TEXT_COLOR.0, NEAR_MISS_TEXT_COLOR.1, NEAR_MISS_TEXT_COLOR.2,
                     );
                     commands.spawn((
-                        FloatingText { lifetime: FLOAT_TEXT_LIFETIME, max_lifetime: FLOAT_TEXT_LIFETIME },
+                        FloatingText {
+                            lifetime: FLOAT_TEXT_LIFETIME, max_lifetime: FLOAT_TEXT_LIFETIME,
+                            text_color: NEAR_MISS_TEXT_COLOR,
+                        },
                         Node {
                             position_type: PositionType::Absolute,
                             left: Val::Px(vp.x - 50.0),

@@ -305,3 +305,17 @@ pub const TRAIL_PARTICLE_COLOR: (f32, f32, f32) = (0.4, 0.38, 0.35);
 
 // Crystal value scaling with difficulty
 pub const CRYSTAL_DIFFICULTY_SCALE: f32 = 0.5;
+
+// Crystal resource colors (5 distinct types)
+pub const CRYSTAL_RESOURCE_COLORS: [(f32, f32, f32); 5] = [
+    (0.902, 0.098, 0.294), // Red — Power
+    (0.130, 0.545, 0.130), // Green — Life Support
+    (0.150, 0.250, 0.700), // Blue — Cryo
+    (1.000, 0.882, 0.098), // Yellow — Shields
+    (0.569, 0.118, 0.706), // Purple — Repair
+];
+
+// Crystal spawn color distribution
+pub const CRYSTAL_SINGLE_COLOR_CHANCE: f32 = 0.70;
+pub const CRYSTAL_MULTI_COLOR_CHANCE: f32 = 0.25;
+pub const CRYSTAL_RAINBOW_CHANCE: f32 = 0.05;

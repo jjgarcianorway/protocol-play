@@ -14,7 +14,7 @@ pub struct SolveResult {
 }
 
 pub fn solve_level(data: &LevelData) -> SolveResult {
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs_f64(0.4);
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs_f64(0.5);
     let size = data.board_size;
     let mut board: Vec<(u32, u32, TileKind)> = Vec::new();
     let mut inventory: Vec<TileKind> = Vec::new();

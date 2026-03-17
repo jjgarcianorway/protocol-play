@@ -131,6 +131,8 @@ pub fn spawn_game_over_screen(
             stat_row(card, "Time", &format!("{} days", days), &stat_font, label_color, value_color);
             let crys = if state.crystals >= 1_000 { format!("{}K", state.crystals / 1_000) } else { format!("{}", state.crystals) };
             stat_row(card, "Crystals", &crys, &stat_font, label_color, value_color);
+            // Per-color crystal breakdown
+            crystal_breakdown_row(card, &state, &stat_font);
             stat_row(card, "Hits taken", &format!("{}", state.hits_taken), &stat_font, label_color, value_color);
             stat_row(card, "Near misses", &format!("{}", state.near_misses), &stat_font, label_color, value_color);
             if state.max_chain > 1.0 {
@@ -170,6 +172,34 @@ fn stat_row(parent: &mut ChildSpawnerCommands, label: &str, value: &str, font: &
     }).with_children(|row| {
         row.spawn((Text::new(label), font.clone(), TextColor(label_color)));
         row.spawn((Text::new(value), font.clone(), TextColor(value_color)));
+    });
+}
+
+fn crystal_breakdown_row(parent: &mut ChildSpawnerCommands, state: &ShipState, font: &TextFont) {
+    let small_font = TextFont { font: font.font.clone(), font_size: 14.0, ..default() };
+    parent.spawn(Node {
+        flex_direction: FlexDirection::Row,
+        column_gap: Val::Px(8.0),
+        justify_content: JustifyContent::Center,
+        width: Val::Px(240.0),
+        ..default()
+    }).with_children(|row| {
+        for color in CrystalColor::ALL {
+            let count = state.crystals_by_color(color);
+            if count == 0 { continue; }
+            let (r, g, b) = color.rgb();
+            let text_color = Color::srgb(
+                (r + 0.2).min(1.0), (g + 0.2).min(1.0), (b + 0.2).min(1.0),
+            );
+            let label = if count >= 1_000_000 {
+                format!("{} {:.1}M", color.resource_icon(), count as f64 / 1_000_000.0)
+            } else if count >= 1_000 {
+                format!("{} {}K", color.resource_icon(), count / 1_000)
+            } else {
+                format!("{} {}", color.resource_icon(), count)
+            };
+            row.spawn((Text::new(label), small_font.clone(), TextColor(text_color)));
+        }
     });
 }
 
