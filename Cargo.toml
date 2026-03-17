@@ -1,6 +1,6 @@
 [package]
 name = "protocol-play"
-version = "0.35.0"
+version = "0.36.0"
 edition = "2024"
 license = "GPL-3.0-or-later"
 description = "protocol: play - a game built with Bevy"
@@ -16,6 +16,7 @@ rand = "0.8"
 default = []
 player = []
 gathering = []
+converter = []
 
 [[bin]]
 name = "protocol-play"

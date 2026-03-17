@@ -19,6 +19,9 @@ cp target/release/protocol-play target/release/protocol-play-player
 echo "Building gathering..."
 cargo build --release --features gathering
 cp target/release/protocol-play target/release/protocol-play-gathering
+echo "Building converter..."
+cargo build --release --features converter
+cp target/release/protocol-play target/release/protocol-play-converter
 echo "Copying campaign levels and icons next to player binary..."
 cp campaign_levels/*.json target/release/
 mkdir -p target/release/assets/icons target/release/assets/textures
@@ -36,3 +39,4 @@ echo "Done! Binaries:"
 echo "  target/release/protocol-play-editor"
 echo "  target/release/protocol-play-player (+ 149 campaign levels)"
 echo "  target/release/protocol-play-gathering"
+echo "  target/release/protocol-play-converter"

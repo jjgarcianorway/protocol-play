@@ -8,6 +8,7 @@ mod level_gen_sim; mod level_gen_tiles; mod level_gen_algo; mod level_gen_ui; mo
 mod icon_render;
 #[cfg(feature = "player")] mod player;
 #[cfg(feature = "gathering")] mod gathering;
+#[cfg(feature = "converter")] mod converter;
 
 use bevy::prelude::*;
 use bevy::post_process::bloom::Bloom;
@@ -35,6 +36,13 @@ fn main() {
         let _ = std::env::set_current_dir(&d);
     }
 
+    #[cfg(feature = "converter")] {
+        let mut app = App::new();
+        app.add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window { title: "The Converter".into(), ..default() }), ..default() }));
+        app.set_error_handler(bevy::ecs::error::warn);
+        converter::build_app(&mut app); app.run(); return;
+    }
     #[cfg(feature = "gathering")] {
         let mut app = App::new();
         app.add_plugins(DefaultPlugins.set(WindowPlugin {

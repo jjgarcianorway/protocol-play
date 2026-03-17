@@ -4,7 +4,7 @@ A game built with [Bevy 0.18](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.35.0** — 5-color crystal system in The Gathering, resource types preparation
+**v0.36.0** — The Converter: chain reaction crystal processing minigame
 
 ### Bot Game (Editor + Player)
 - **149 campaign levels** across 13 chapters, each introducing a new mechanic
