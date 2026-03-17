@@ -114,29 +114,47 @@ fn spawn_resource_bar(parent: &mut ChildSpawnerCommands, index: usize, font: &Ha
             ));
         });
 
-        // Bar background
-        col.spawn((
-            Node {
-                width: Val::Px(BAR_WIDTH),
-                height: Val::Px(BAR_HEIGHT),
-                border_radius: BorderRadius::all(Val::Px(BAR_CORNER)),
-                overflow: Overflow::clip(),
-                ..default()
-            },
-            BackgroundColor(Color::srgba(
-                BAR_BG_COLOR.0, BAR_BG_COLOR.1, BAR_BG_COLOR.2, BAR_BG_COLOR.3,
-            )),
-        )).with_children(|bar_bg| {
-            // Bar fill
-            bar_bg.spawn((
+        // Bar + drain rate row
+        col.spawn(Node {
+            flex_direction: FlexDirection::Row,
+            align_items: AlignItems::Center,
+            column_gap: Val::Px(8.0),
+            ..default()
+        }).with_children(|row| {
+            // Bar background
+            row.spawn((
                 Node {
-                    width: Val::Percent(0.0),
-                    height: Val::Percent(100.0),
+                    width: Val::Px(BAR_WIDTH),
+                    height: Val::Px(BAR_HEIGHT),
                     border_radius: BorderRadius::all(Val::Px(BAR_CORNER)),
+                    overflow: Overflow::clip(),
                     ..default()
                 },
-                BackgroundColor(Color::srgb(color.0, color.1, color.2)),
-                ResourceBarFill(index),
+                BackgroundColor(Color::srgba(
+                    BAR_BG_COLOR.0, BAR_BG_COLOR.1, BAR_BG_COLOR.2, BAR_BG_COLOR.3,
+                )),
+            )).with_children(|bar_bg| {
+                // Bar fill
+                bar_bg.spawn((
+                    Node {
+                        width: Val::Percent(0.0),
+                        height: Val::Percent(100.0),
+                        border_radius: BorderRadius::all(Val::Px(BAR_CORNER)),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgb(color.0, color.1, color.2)),
+                    ResourceBarFill(index),
+                ));
+            });
+            // Drain rate label
+            let drain = RES_DRAIN_RATES[index];
+            row.spawn((
+                Text::new(format!("-{:.1}/day", drain)),
+                TextFont { font: font.clone(), font_size: DRAIN_LABEL_FONT, ..default() },
+                TextColor(Color::srgb(
+                    DRAIN_LABEL_COLOR.0, DRAIN_LABEL_COLOR.1, DRAIN_LABEL_COLOR.2,
+                )),
+                DrainRateText(index),
             ));
         });
     });

@@ -159,6 +159,37 @@ impl Default for AnnaState {
     }
 }
 
+/// Timer resource for resource drain and periodic saving.
+#[derive(Resource)]
+pub struct DrainTimer {
+    pub day_timer: f32,
+    pub save_timer: f32,
+}
+
+impl Default for DrainTimer {
+    fn default() -> Self {
+        Self { day_timer: 0.0, save_timer: 0.0 }
+    }
+}
+
+/// Running child game process.
+#[derive(Resource)]
+pub struct RunningGame(pub Option<std::process::Child>);
+
+impl Default for RunningGame {
+    fn default() -> Self {
+        Self(None)
+    }
+}
+
+/// Marker for the "Game in progress..." overlay.
+#[derive(Component)]
+pub struct GameRunningOverlay;
+
+/// Marker for drain rate text next to resource bars.
+#[derive(Component)]
+pub struct DrainRateText(#[allow(dead_code)] pub usize);
+
 /// Star twinkle component.
 #[derive(Component)]
 pub struct StarTwinkle {

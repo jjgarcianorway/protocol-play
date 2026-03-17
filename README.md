@@ -4,7 +4,7 @@ A game built with [Bevy 0.18](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.39.0** — Anna dialog system, visual polish, story progression
+**v0.40.0** — Game integration: resource depletion, launch games from Mission Control
 
 ### Bot Game (Editor + Player)
 - **149 campaign levels** across 13 chapters, each introducing a new mechanic

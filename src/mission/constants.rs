@@ -101,5 +101,27 @@ pub const ANNA_WARNING_PULSE_SPEED: f32 = 4.0;
 pub const ANNA_NORMAL_PULSE_SPEED: f32 = 1.2;
 pub const ANNA_GLITCH_SPEED: f32 = 12.0;
 
+// === Resource drain rates (per game-day) ===
+pub const POWER_DRAIN: f32 = 0.5;
+pub const LIFE_SUPPORT_DRAIN: f32 = 0.3;
+pub const CRYO_DRAIN: f32 = 0.2;
+pub const SHIELDS_DRAIN: f32 = 0.1;
+pub const REPAIR_DRAIN: f32 = 0.4;
+pub const DAY_DURATION_SECS: f32 = 10.0;
+pub const SAVE_INTERVAL_SECS: f32 = 30.0;
+
+/// Drain rates indexed the same as RES_NAMES (Power, Life Support, Cryo, Shields, Repair).
+pub const RES_DRAIN_RATES: [f32; 5] = [
+    POWER_DRAIN, LIFE_SUPPORT_DRAIN, CRYO_DRAIN, SHIELDS_DRAIN, REPAIR_DRAIN,
+];
+
+/// Crew lost per day when cryo is at 0.
+pub const CRYO_ZERO_CREW_LOSS_MIN: u32 = 1;
+pub const CRYO_ZERO_CREW_LOSS_MAX: u32 = 5;
+
+// === Drain rate label ===
+pub const DRAIN_LABEL_FONT: f32 = 11.0;
+pub const DRAIN_LABEL_COLOR: (f32, f32, f32) = (0.6, 0.4, 0.4);
+
 // === Version ===
 pub const VERSION_FONT_M: f32 = 11.0;

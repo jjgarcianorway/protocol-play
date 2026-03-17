@@ -7,6 +7,7 @@ mod games;
 mod anna;
 mod anna_messages;
 mod story;
+mod resources;
 
 use bevy::prelude::*;
 use bevy::post_process::bloom::Bloom;
@@ -37,12 +38,17 @@ pub fn build_app(app: &mut App) {
     .insert_resource(gs)
     .insert_resource(BarDisplayValues::default())
     .insert_resource(AnnaState::default())
+    .insert_resource(DrainTimer::default())
+    .insert_resource(RunningGame::default())
     .add_systems(Startup, setup_mission)
     .add_systems(Update, (
         dashboard::animate_resource_bars,
         dashboard::update_status_texts,
         games::card_hover_interaction,
         games::card_click_interaction,
+        games::poll_running_game,
+        games::manage_game_overlay,
+        resources::drain_resources,
         anna::update_anna_messages,
         anna::anna_click_dismiss,
         anna::update_anna_glow,

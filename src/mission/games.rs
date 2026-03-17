@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use bevy::prelude::*;
+use std::path::PathBuf;
 use super::constants::*;
 use super::types::*;
+use crate::save_state::{load_game_state, GameState};
 
 /// Spawn the game selection panel (right side).
 pub fn spawn_game_cards(parent: &mut ChildSpawnerCommands, font: &Handle<Font>, ship: &ShipStatus) {
@@ -168,19 +170,173 @@ pub fn card_hover_interaction(
     }
 }
 
-/// System: handle game card click.
+/// Binary name for each game card.
+fn binary_name(card: &GameCard) -> &'static str {
+    match card {
+        GameCard::BotGame => "protocol-play-player",
+        GameCard::Gathering => "protocol-play-gathering",
+        GameCard::Converter => "protocol-play-converter",
+        GameCard::Delivery => "protocol-play-delivery",
+    }
+}
+
+/// Get the directory where the current executable lives.
+fn exe_dir() -> Option<PathBuf> {
+    std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.to_path_buf()))
+}
+
+/// System: handle game card click — launch child game process.
 pub fn card_click_interaction(
     query: Query<(&Interaction, &GameCard), Changed<Interaction>>,
+    mut running: ResMut<RunningGame>,
+    mut anna: ResMut<AnnaState>,
 ) {
+    // Don't launch if a game is already running
+    if running.0.is_some() {
+        return;
+    }
+
     for (interaction, card) in query.iter() {
         if *interaction == Interaction::Pressed {
-            let name = match card {
-                GameCard::BotGame => "Bot Game (Repair Systems)",
-                GameCard::Gathering => "The Gathering (Gather Resources)",
-                GameCard::Converter => "The Converter (Process Crystals)",
-                GameCard::Delivery => "The Delivery (Distribute Resources)",
+            let bin = binary_name(card);
+            let dir = match exe_dir() {
+                Some(d) => d,
+                None => {
+                    anna.queue.push((
+                        "That system isn't available right now.".to_string(),
+                        false,
+                    ));
+                    return;
+                }
             };
-            info!("Would launch: {}", name);
+            let path = dir.join(bin);
+
+            // Check if binary exists
+            if !path.exists() {
+                anna.queue.push((
+                    "That system isn't available right now.".to_string(),
+                    false,
+                ));
+                info!("Binary not found: {}", path.display());
+                return;
+            }
+
+            info!("Launching: {}", path.display());
+            match std::process::Command::new(&path)
+                .current_dir(&dir)
+                .spawn()
+            {
+                Ok(child) => {
+                    running.0 = Some(child);
+                }
+                Err(e) => {
+                    anna.queue.push((
+                        "That system isn't available right now.".to_string(),
+                        false,
+                    ));
+                    warn!("Failed to launch {}: {}", bin, e);
+                }
+            }
+        }
+    }
+}
+
+/// System: poll the running child game process.
+/// When it exits, reload GameState and update ShipStatus.
+pub fn poll_running_game(
+    mut running: ResMut<RunningGame>,
+    mut ship: ResMut<ShipStatus>,
+    mut gs: ResMut<GameState>,
+) {
+    let child = match running.0.as_mut() {
+        Some(c) => c,
+        None => return,
+    };
+
+    match child.try_wait() {
+        Ok(Some(status)) => {
+            info!("Child game exited with: {}", status);
+            running.0 = None;
+
+            // Reload GameState from disk (child may have updated it)
+            let fresh = load_game_state();
+            ship.power = fresh.power;
+            ship.life_support = fresh.life_support;
+            ship.cryo = fresh.cryo;
+            ship.shields = fresh.shields;
+            ship.repair = fresh.repair;
+            ship.crystals = fresh.total_crystals();
+            ship.crew_count = fresh.crew_count;
+            ship.day = fresh.day;
+            ship.distance_au = fresh.distance_au;
+            ship.bot_level = fresh.bot_level;
+            *gs = fresh;
+        }
+        Ok(None) => {
+            // Still running
+        }
+        Err(e) => {
+            warn!("Error polling child process: {}", e);
+            running.0 = None;
+        }
+    }
+}
+
+/// System: show/hide the "Game in progress..." overlay.
+pub fn manage_game_overlay(
+    running: Res<RunningGame>,
+    mut commands: Commands,
+    overlay_q: Query<Entity, With<GameRunningOverlay>>,
+    font_res: Res<MissionFont>,
+) {
+    let game_running = running.0.is_some();
+    let overlay_exists = !overlay_q.is_empty();
+
+    if game_running && !overlay_exists {
+        // Spawn overlay
+        commands.spawn((
+            Node {
+                position_type: PositionType::Absolute,
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.02, 0.03, 0.06, 0.85)),
+            GameRunningOverlay,
+            GlobalZIndex(10),
+        )).with_children(|overlay| {
+            overlay.spawn(Node {
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                row_gap: Val::Px(16.0),
+                ..default()
+            }).with_children(|col| {
+                col.spawn((
+                    Text::new("Game in progress..."),
+                    TextFont {
+                        font: font_res.0.clone(),
+                        font_size: 28.0,
+                        ..default()
+                    },
+                    TextColor(Color::srgba(0.7, 0.8, 0.95, 0.9)),
+                ));
+                col.spawn((
+                    Text::new("Mission Control will resume when the game exits."),
+                    TextFont {
+                        font: font_res.0.clone(),
+                        font_size: 15.0,
+                        ..default()
+                    },
+                    TextColor(Color::srgba(0.5, 0.55, 0.65, 0.7)),
+                ));
+            });
+        });
+    } else if !game_running && overlay_exists {
+        // Remove overlay
+        for entity in overlay_q.iter() {
+            commands.entity(entity).despawn();
         }
     }
 }
