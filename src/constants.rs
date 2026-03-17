@@ -110,15 +110,15 @@ pub const COLOR_NAMES: [&str; NUM_COLORS] = [
 ];
 
 pub const SOURCE_COLORS: [(f32, f32, f32); NUM_COLORS] = [
-    (0.902, 0.098, 0.294),  // 0 Red        #E6194B
-    (0.130, 0.545, 0.130),  // 1 Green      #218B21 (darker, richer)
-    (1.000, 0.882, 0.098),  // 2 Yellow     #FFE119
-    (0.150, 0.250, 0.700),  // 3 Blue       #2640B3 (darker)
-    (0.961, 0.510, 0.192),  // 4 Orange     #F58231
-    (0.569, 0.118, 0.706),  // 5 Purple     #911EB4
-    (0.259, 0.831, 0.957),  // 6 Cyan       #42D4F4
-    (1.000, 0.500, 0.650),  // 7 Pink       #FF80A6 (lighter, less magenta)
-    (0.400, 0.800, 0.200),  // 8 Lime       #66CC33 (greener, less yellow)
+    (0.800, 0.050, 0.050),  // 0 Red        #CC0D0D (deeper, less pink)
+    (0.050, 0.400, 0.150),  // 1 Green      #0D6626 (dark forest green)
+    (0.950, 0.850, 0.100),  // 2 Yellow     #F2D91A (warm gold)
+    (0.100, 0.200, 0.650),  // 3 Blue       #1A33A6 (deep blue)
+    (0.950, 0.450, 0.050),  // 4 Orange     #F2730D (vivid, distinct from red)
+    (0.550, 0.100, 0.700),  // 5 Purple     #8C1AB3
+    (0.200, 0.750, 0.900),  // 6 Cyan       #33BFE6
+    (0.950, 0.400, 0.550),  // 7 Pink       #F2668C
+    (0.500, 0.850, 0.150),  // 8 Lime       #80D926 (bright yellow-green)
 ];
 
 // UI colors

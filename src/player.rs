@@ -2,7 +2,7 @@
 use bevy::prelude::*;
 use crate::constants::*; use crate::types::*; use crate::ui_helpers::*;
 use crate::board::spawn_tile;
-use crate::test_mode::{group_tiles, spawn_test_inventory};
+use crate::test_mode::{group_tiles, spawn_test_inventory, set_tool_from_kind};
 use crate::simulation::SimulationResult;
 use crate::messages::{pick_creative_msg, pick_congrats, format_time, format_attempts, format_resets};
 #[path = "player_progress.rs"] mod player_progress; use player_progress::*;
@@ -174,7 +174,20 @@ fn load_level(
     test_inv.items = progress.inventory_state.clone().unwrap_or(default_inv);
     test_inv.selected = if test_inv.items.is_empty() { None } else { Some(0) };
     test_inv.remove_mode = false;
-    selected_tool.0 = Tool::Floor;
+    // Set tool to match first inventory item so ghost preview works immediately
+    if let Some((kind, _)) = test_inv.items.first() {
+        selected_tool.0 = match kind {
+            TileKind::Turn(..) => Tool::Turn, TileKind::TurnBut(..) => Tool::TurnBut,
+            TileKind::Arrow(..) => Tool::Arrow, TileKind::ArrowBut(..) => Tool::ArrowBut,
+            TileKind::Source(..) => Tool::Source, TileKind::Goal(..) => Tool::Goal,
+            TileKind::Teleport(..) => Tool::Teleport, TileKind::TeleportBut(..) => Tool::TeleportBut,
+            TileKind::Bounce(..) => Tool::Bounce, TileKind::BounceBut(..) => Tool::BounceBut,
+            TileKind::Painter(..) => Tool::Painter, TileKind::Door(..) => Tool::Door,
+            TileKind::Switch => Tool::Switch, TileKind::ColorSwitch(..) => Tool::ColorSwitch,
+            TileKind::ColorSwitchBut(..) => Tool::ColorSwitchBut,
+            _ => Tool::Floor,
+        };
+    }
     spawn_test_inventory(commands, test_inv, icons, first_load, font);
     spawn_player_buttons(commands, font, player_levels, progress, first_load);
     *play_mode = PlayMode::TestEditing;
@@ -200,7 +213,7 @@ fn spawn_player_buttons(commands: &mut Commands, f: &Handle<Font>, levels: &Play
                 .with_child((Text::new("<"), gf(NAV_ARROW_FONT, f), tc));
         }
         p.spawn(Node { min_width: Val::Px(LEVEL_NAME_MIN_W), justify_content: JustifyContent::Center, ..default() })
-            .with_child((Text::new(&label), gf(LEVEL_NAME_FONT, f), tc, LevelNameText));
+            .with_child((Text::new(&label), gf(LEVEL_NAME_FONT, f), TextColor(Color::srgba(1.0, 1.0, 1.0, 0.5)), LevelNameText));
         if levels.levels.len() > 1 {
             p.spawn((Button, NextLevelButton, nav, BackgroundColor(btn_bg())))
                 .with_child((Text::new(">"), gf(NAV_ARROW_FONT, f), tc));

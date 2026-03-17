@@ -11,8 +11,9 @@ pub fn spawn_pods(
     time: Res<Time>,
     mut state: ResMut<DeliveryState>,
     mut commands: Commands,
-    font: Res<DeliveryFont>,
+    font: Option<Res<DeliveryFont>>,
 ) {
+    let Some(font) = font else { return; };
     if !state.game_started { return; }
     if state.pods_spawned >= state.total_pods { return; }
 
@@ -140,9 +141,10 @@ pub fn resolve_pods(
     pod_q: Query<(Entity, &Pod)>,
     mut commands: Commands,
     slot_q: Query<(Entity, &DepositSlot)>,
-    font: Res<DeliveryFont>,
+    font: Option<Res<DeliveryFont>>,
     trail_q: Query<(Entity, &PodTrail)>,
 ) {
+    let Some(font) = font else { return; };
     for (entity, pod) in pod_q.iter() {
         if pod.progress < 1.0 { continue; }
 

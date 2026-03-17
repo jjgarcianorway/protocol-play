@@ -140,8 +140,8 @@ pub fn despawn_dialog_overlay(commands: &mut Commands, query: &Query<Entity, Wit
 /// Update speaker display for current node.
 pub fn update_speaker_display(
     speaker: Speaker,
-    speaker_q: &mut Query<&mut TextColor, (With<DialogSpeakerText>, Without<DialogBodyText>)>,
-    speaker_text_q: &mut Query<&mut Text, (With<DialogSpeakerText>, Without<DialogBodyText>)>,
+    speaker_q: &mut Query<&mut TextColor, (With<DialogSpeakerText>, Without<DialogBodyText>, Without<DialogSkipHint>)>,
+    speaker_text_q: &mut Query<&mut Text, (With<DialogSpeakerText>, Without<DialogBodyText>, Without<DialogSkipHint>)>,
     circle_q: &mut Query<(&mut BackgroundColor, &mut BoxShadow), With<DialogAnnaCircle>>,
 ) {
     let (label, color) = match speaker {
@@ -331,7 +331,7 @@ pub fn animate_dialog_circle(
 /// Update the skip hint text based on dialog state.
 pub fn update_skip_hint(
     state: &DialogState,
-    hint_q: &mut Query<(&mut Text, &mut TextColor), With<DialogSkipHint>>,
+    hint_q: &mut Query<(&mut Text, &mut TextColor), (With<DialogSkipHint>, Without<DialogBodyText>, Without<DialogSpeakerText>)>,
 ) {
     let active = match &state.active_scene {
         Some(a) => a,

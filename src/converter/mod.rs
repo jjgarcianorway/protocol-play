@@ -23,7 +23,10 @@ pub fn build_app(app: &mut App) {
     .insert_resource(ConversionStats::default())
     .insert_resource(HoveredGroup::default())
     .init_state::<ConverterPhase>()
-    .add_systems(Startup, (setup_converter, ui::spawn_converter_ui.after(setup_converter)))
+    .add_systems(Startup, (
+        setup_converter,
+        ui::spawn_converter_ui.after(setup_converter),
+    ))
     .add_systems(Update, (
         handle_hover,
         handle_click.after(handle_hover),
@@ -33,8 +36,8 @@ pub fn build_app(app: &mut App) {
         ui::sync_pile_visuals,
         ui::detect_tank_changes.after(ui::sync_tank_visuals),
         ui::animate_tank_flashes,
-        effects::update_burst_particles,
-        effects::animate_cascade_text,
+        effects::update_pop_particles,
+        effects::animate_tank_floats,
         effects::animate_stars,
         update_chain_label.after(handle_hover),
         check_round_complete.after(process_grid_phases),
@@ -51,7 +54,6 @@ fn setup_converter(
     mut images: ResMut<Assets<Image>>,
     mut pile: ResMut<CrystalPile>,
 ) {
-    // Load GameState and set pile size from total crystals
     let gs = crate::save_state::load_game_state();
     let crystal_count = gs.total_crystals();
     let pile_size = if crystal_count > 0 {
@@ -161,10 +163,12 @@ fn handle_hover(
 
 fn handle_click(
     mut grid_state: ResMut<GridState>,
+    mut tanks: ResMut<ResourceTanks>,
     mut stats: ResMut<ConversionStats>,
     hovered: Res<HoveredGroup>,
     interaction_q: Query<(&Interaction, &GridCell), Changed<Interaction>>,
     mut commands: Commands,
+    font: Res<ConverterFont>,
 ) {
     if grid_state.phase != GridPhase::Idle { return; }
 
@@ -186,6 +190,11 @@ fn handle_click(
     let chain_size = hovered.cells.len() as u32;
     let mult = efficiency_mult(chain_size);
 
+    // Compute resource value and add directly to tank
+    let resource_value = chain_size as f32 * mult * 0.5;
+    tanks.levels[color.index()] =
+        (tanks.levels[color.index()] + resource_value).min(RESOURCE_MAX);
+
     grid::remove_cells(&mut grid_state, &hovered.cells);
 
     stats.total_converted += chain_size as u64;
@@ -194,18 +203,16 @@ fn handle_click(
         stats.best_chain = chain_size;
     }
 
-    let tank_target = Vec2::new(900.0, 300.0);
+    // Spawn simple pop particles at each cleared cell
     for &(row, col) in &hovered.cells {
-        let cell_pos = Vec2::new(
-            GRID_LEFT_MARGIN + col as f32 * (CELL_SIZE + CELL_GAP) + CELL_SIZE / 2.0,
-            120.0 + row as f32 * (CELL_SIZE + CELL_GAP) + CELL_SIZE / 2.0,
-        );
-        effects::spawn_burst_particles(
-            &mut commands, cell_pos, tank_target, color,
-            (mult * 2.0) as u32 + 1,
-        );
+        let cell_pos = cell_screen_pos(row, col);
+        effects::spawn_pop_particles(&mut commands, cell_pos, color);
     }
 
+    // Show "+N" on the tank
+    effects::spawn_tank_float(&mut commands, &font.0, color.index(), resource_value);
+
+    grid_state.cascade_steps = 0;
     grid_state.phase = GridPhase::Gravity;
     grid_state.phase_timer = GRAVITY_DELAY;
 }
@@ -214,6 +221,7 @@ fn process_grid_phases(
     time: Res<Time>,
     mut grid_state: ResMut<GridState>,
     mut pile: ResMut<CrystalPile>,
+    mut tanks: ResMut<ResourceTanks>,
     mut stats: ResMut<ConversionStats>,
     mut commands: Commands,
     font: Res<ConverterFont>,
@@ -234,41 +242,45 @@ fn process_grid_phases(
             grid_state.phase_timer = CASCADE_DELAY;
         }
         GridPhase::CascadeCheck => {
-            let groups = grid::find_all_groups(&grid_state);
-            if let Some((color, group)) = groups.into_iter().next() {
-                let chain_size = group.len() as u32;
-                grid::remove_cells(&mut grid_state, &group);
-                stats.cascades += 1;
-                stats.total_converted += chain_size as u64;
-                if chain_size > stats.best_chain {
-                    stats.best_chain = chain_size;
-                }
+            // Only cascade if under max steps
+            if grid_state.cascade_steps < CASCADE_MAX_STEPS {
+                let groups = grid::find_cascade_groups(&grid_state);
+                if let Some((color, group)) = groups.into_iter().next() {
+                    let chain_size = group.len() as u32;
+                    let mult = efficiency_mult(chain_size);
+                    let resource_value = chain_size as f32 * mult * 0.5;
 
-                // Cascade feedback text
-                effects::spawn_cascade_text(&mut commands, &font.0, stats.cascades);
+                    grid::remove_cells(&mut grid_state, &group);
+                    tanks.levels[color.index()] =
+                        (tanks.levels[color.index()] + resource_value).min(RESOURCE_MAX);
 
-                let tank_target = Vec2::new(900.0, 300.0);
-                let mult = efficiency_mult(chain_size);
-                for &(row, col) in &group {
-                    let cell_pos = Vec2::new(
-                        GRID_LEFT_MARGIN + col as f32 * (CELL_SIZE + CELL_GAP) + CELL_SIZE / 2.0,
-                        120.0 + row as f32 * (CELL_SIZE + CELL_GAP) + CELL_SIZE / 2.0,
+                    stats.cascades += 1;
+                    stats.total_converted += chain_size as u64;
+                    if chain_size > stats.best_chain {
+                        stats.best_chain = chain_size;
+                    }
+
+                    // Pop particles for cascade
+                    for &(row, col) in &group {
+                        let cell_pos = cell_screen_pos(row, col);
+                        effects::spawn_pop_particles(&mut commands, cell_pos, color);
+                    }
+                    effects::spawn_tank_float(
+                        &mut commands, &font.0, color.index(), resource_value,
                     );
-                    effects::spawn_burst_particles(
-                        &mut commands, cell_pos, tank_target, color,
-                        (mult * 2.0) as u32 + 1,
-                    );
-                }
 
-                grid_state.phase = GridPhase::Gravity;
-                grid_state.phase_timer = GRAVITY_DELAY;
+                    grid_state.cascade_steps += 1;
+                    grid_state.phase = GridPhase::Gravity;
+                    grid_state.phase_timer = GRAVITY_DELAY;
+                    return;
+                }
+            }
+            // No cascade (or max steps reached) — refill
+            if pile.remaining > 0 {
+                grid_state.phase = GridPhase::Refilling;
+                grid_state.phase_timer = REFILL_DELAY;
             } else {
-                if pile.remaining > 0 {
-                    grid_state.phase = GridPhase::Refilling;
-                    grid_state.phase_timer = 0.1;
-                } else {
-                    grid_state.phase = GridPhase::Idle;
-                }
+                grid_state.phase = GridPhase::Idle;
             }
         }
         GridPhase::Refilling => {
@@ -278,39 +290,38 @@ fn process_grid_phases(
     }
 }
 
+/// Approximate screen position of a grid cell (for particle spawning).
+fn cell_screen_pos(row: usize, col: usize) -> Vec2 {
+    // These are rough estimates — the grid is centered on screen,
+    // but particles are absolute-positioned so we approximate.
+    let grid_total_w = GRID_COLS as f32 * (CELL_SIZE + CELL_GAP) - CELL_GAP + 20.0;
+    let grid_total_h = GRID_ROWS as f32 * (CELL_SIZE + CELL_GAP) - CELL_GAP + 20.0;
+    // Assume ~1280x720 window, grid centered
+    let grid_left = (1280.0 - grid_total_w) / 2.0;
+    let grid_top = (720.0 - grid_total_h) / 2.0 + 40.0; // offset for title
+    Vec2::new(
+        grid_left + 10.0 + col as f32 * (CELL_SIZE + CELL_GAP) + CELL_SIZE / 2.0,
+        grid_top + 10.0 + row as f32 * (CELL_SIZE + CELL_GAP) + CELL_SIZE / 2.0,
+    )
+}
+
 fn update_chain_label(
     hovered: Res<HoveredGroup>,
-    mut size_q: Query<
-        (&mut Text, &mut TextColor),
-        (With<ChainSizeLabel>, Without<ChainMultLabel>),
-    >,
-    mut mult_q: Query<
-        (&mut Text, &mut TextColor),
-        (With<ChainMultLabel>, Without<ChainSizeLabel>),
-    >,
+    mut size_q: Query<(&mut Text, &mut TextColor), With<ChainSizeLabel>>,
 ) {
     for (mut text, mut color) in size_q.iter_mut() {
         if hovered.cells.is_empty() {
             *color = TextColor(Color::srgba(1.0, 1.0, 0.5, 0.0));
         } else {
             let size = hovered.cells.len();
-            *text = Text::new(format!("Chain: {}", size));
-            *color = TextColor(Color::srgba(1.0, 1.0, 0.5, 0.9));
-        }
-    }
-    for (mut text, mut color) in mult_q.iter_mut() {
-        if hovered.cells.is_empty() {
-            *color = TextColor(Color::srgba(1.0, 1.0, 0.5, 0.0));
-        } else {
-            let size = hovered.cells.len();
             let mult = efficiency_mult(size as u32);
-            *text = Text::new(format!("x{:.1}", mult));
+            *text = Text::new(format!("{} crystals (x{:.1})", size, mult));
             let c = if mult >= 1.5 {
                 Color::srgba(0.3, 1.0, 0.4, 0.85)
             } else if mult >= 1.0 {
                 Color::srgba(1.0, 1.0, 0.5, 0.85)
             } else {
-                Color::srgba(1.0, 0.4, 0.3, 0.7)
+                Color::srgba(1.0, 0.5, 0.3, 0.7)
             };
             *color = TextColor(c);
         }

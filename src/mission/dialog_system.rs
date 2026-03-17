@@ -96,12 +96,12 @@ pub fn update_typewriter(
     mut body_q: Query<&mut Text, (With<DialogBodyText>,
         Without<DialogSpeakerText>, Without<DialogSkipHint>)>,
     mut speaker_color_q: Query<&mut TextColor,
-        (With<DialogSpeakerText>, Without<DialogBodyText>)>,
+        (With<DialogSpeakerText>, Without<DialogBodyText>, Without<DialogSkipHint>)>,
     mut speaker_text_q: Query<&mut Text,
-        (With<DialogSpeakerText>, Without<DialogBodyText>)>,
+        (With<DialogSpeakerText>, Without<DialogBodyText>, Without<DialogSkipHint>)>,
     mut circle_q: Query<(&mut BackgroundColor, &mut BoxShadow),
         With<DialogAnnaCircle>>,
-    mut hint_q: Query<(&mut Text, &mut TextColor), With<DialogSkipHint>>,
+    mut hint_q: Query<(&mut Text, &mut TextColor), (With<DialogSkipHint>, Without<DialogBodyText>, Without<DialogSpeakerText>)>,
 ) {
     let active = match state.active_scene.as_mut() {
         Some(a) => a,

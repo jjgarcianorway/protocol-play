@@ -5,19 +5,40 @@ use super::constants::*;
 use super::types::*;
 use super::effects;
 
-/// Spawn the main game UI: deposit slots, HUD, stars.
-pub fn spawn_delivery_ui(
-    mut commands: Commands,
-    font: Res<DeliveryFont>,
-    mut state: ResMut<DeliveryState>,
+/// Called from setup_delivery (Startup) with the font handle directly.
+pub fn spawn_delivery_ui_with_font(
+    commands: &mut Commands,
+    font: &Handle<Font>,
+    state: &mut ResMut<DeliveryState>,
 ) {
-    let f = &font.0;
+    do_spawn_delivery_ui(commands, font, state);
+}
+
+/// Re-spawn UI when transitioning back to Playing from Results (replay).
+/// Uses Option<Res> to survive the initial OnEnter (font not yet available).
+pub fn respawn_delivery_ui(
+    mut commands: Commands,
+    font: Option<Res<DeliveryFont>>,
+    mut state: ResMut<DeliveryState>,
+    existing: Query<Entity, With<DeliveryRoot>>,
+) {
+    // Skip if UI already exists (initial Startup already spawned it)
+    if existing.iter().count() > 0 { return; }
+    let Some(font) = font else { return; };
+    do_spawn_delivery_ui(&mut commands, &font.0, &mut state);
+}
+
+fn do_spawn_delivery_ui(
+    commands: &mut Commands,
+    f: &Handle<Font>,
+    state: &mut ResMut<DeliveryState>,
+) {
     let tf = |size: f32| TextFont { font: f.clone(), font_size: size, ..default() };
 
     state.game_started = true;
 
     // Star background
-    effects::spawn_star_background(&mut commands);
+    effects::spawn_star_background(commands);
 
     // Root container
     commands.spawn((
@@ -29,8 +50,8 @@ pub fn spawn_delivery_ui(
         DeliveryRoot,
     ));
 
-    spawn_hud(&mut commands, &tf);
-    spawn_deposit_slots(&mut commands, &tf);
+    spawn_hud(commands, &tf);
+    spawn_deposit_slots(commands, &tf);
 
     // Intro text (fades out)
     commands.spawn((

@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use bevy::prelude::*;
-use rand::Rng;
 use super::constants::*;
 use super::types::*;
 
 /// Fill the entire grid with random crystals, drawing from the pile.
 pub fn fill_grid(grid: &mut GridState, pile: &mut CrystalPile) {
     let mut rng = rand::thread_rng();
+    use rand::Rng;
     for row in 0..grid.height {
         for col in 0..grid.width {
             if grid.cells[row][col].is_none() && pile.remaining > 0 {
@@ -58,7 +57,6 @@ pub fn remove_cells(grid: &mut GridState, cells: &[(usize, usize)]) -> u32 {
 pub fn apply_gravity(grid: &mut GridState) -> bool {
     let mut moved = false;
     for col in 0..grid.width {
-        // Compact column downward
         let mut write = grid.height;
         for row in (0..grid.height).rev() {
             if grid.cells[row][col].is_some() {
@@ -70,7 +68,6 @@ pub fn apply_gravity(grid: &mut GridState) -> bool {
                 }
             }
         }
-        // Remaining cells above are already None
         while write > 0 {
             write -= 1;
             grid.cells[write][col] = None;
@@ -79,9 +76,9 @@ pub fn apply_gravity(grid: &mut GridState) -> bool {
     moved
 }
 
-/// Find all connected groups of 2+ same-color crystals.
+/// Find all connected groups that meet the cascade minimum (4+).
 /// Returns groups sorted by size (largest first).
-pub fn find_all_groups(grid: &GridState) -> Vec<(CrystalColor, Vec<(usize, usize)>)> {
+pub fn find_cascade_groups(grid: &GridState) -> Vec<(CrystalColor, Vec<(usize, usize)>)> {
     let mut visited = vec![vec![false; grid.width]; grid.height];
     let mut groups = Vec::new();
     for row in 0..grid.height {
@@ -95,7 +92,7 @@ pub fn find_all_groups(grid: &GridState) -> Vec<(CrystalColor, Vec<(usize, usize
             for &(r, c) in &group {
                 visited[r][c] = true;
             }
-            if group.len() >= 2 {
+            if group.len() >= CASCADE_MIN_GROUP {
                 groups.push((color, group));
             }
         }
@@ -105,9 +102,9 @@ pub fn find_all_groups(grid: &GridState) -> Vec<(CrystalColor, Vec<(usize, usize
 }
 
 /// Refill empty cells from the pile (top rows first).
-/// Returns number of cells filled.
 pub fn refill_from_pile(grid: &mut GridState, pile: &mut CrystalPile) -> u32 {
     let mut rng = rand::thread_rng();
+    use rand::Rng;
     let mut filled = 0u32;
     for row in 0..grid.height {
         for col in 0..grid.width {

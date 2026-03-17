@@ -5,7 +5,7 @@ pub const CAMERA_Z: f32 = 50.0;
 pub const CAMERA_FOV: f32 = 45.0;
 
 // Ship dynamics
-pub const SHIP_INERTIA: f32 = 6.0;
+pub const SHIP_INERTIA: f32 = 12.0;
 pub const SHIP_MAX_TILT: f32 = 1.4;
 pub const SHIP_MAX_PITCH: f32 = 0.3;
 pub const SHIP_TILT_SPEED: f32 = 8.0;
@@ -25,7 +25,7 @@ pub const ASTEROID_MIN_SPEED: f32 = 2.0;
 pub const ASTEROID_MAX_SPEED: f32 = 7.0;
 pub const ASTEROID_MIN_ROT_SPEED: f32 = 0.2;
 pub const ASTEROID_MAX_ROT_SPEED: f32 = 1.5;
-pub const ASTEROID_SPAWN_INTERVAL: f32 = 1.2;
+pub const ASTEROID_SPAWN_INTERVAL: f32 = 0.8;
 pub const ASTEROID_SPAWN_BUFFER: f32 = 8.0;
 pub const ASTEROID_DESPAWN_BUFFER: f32 = 8.0;
 pub const ASTEROID_COLORS: [(f32, f32, f32); 8] = [
@@ -42,7 +42,7 @@ pub const ASTEROID_COLORS: [(f32, f32, f32); 8] = [
 // Damage
 pub const SHIELD_MAX: f32 = 200.0;
 pub const LIFE_MAX: f32 = 100.0;
-pub const SHIELD_REGEN_RATE: f32 = 1.0;
+pub const SHIELD_REGEN_RATE: f32 = 0.15;
 pub const DAMAGE_SIZE_FACTOR: f32 = 0.8;
 pub const DAMAGE_SPEED_FACTOR: f32 = 0.15;
 pub const DAMAGE_GLANCING_MULT: f32 = 0.4;
@@ -130,15 +130,15 @@ pub const PARTICLE_EMISSIVE: f32 = 18.0;
 pub const PARTICLE_SPREAD: f32 = 0.5;
 
 // Difficulty
-pub const DIFFICULTY_TIME_SCALE: f32 = 0.0015;
-pub const DIFFICULTY_CRYSTAL_SCALE: f32 = 0.000005;
-pub const DIFFICULTY_MAX_SPAWN_MULT: f32 = 2.5;
-pub const DIFFICULTY_MAX_SPEED_MULT: f32 = 1.5;
+pub const DIFFICULTY_TIME_SCALE: f32 = 0.003;
+pub const DIFFICULTY_CRYSTAL_SCALE: f32 = 0.00001;
+pub const DIFFICULTY_MAX_SPAWN_MULT: f32 = 3.5;
+pub const DIFFICULTY_MAX_SPEED_MULT: f32 = 2.0;
 pub const DIFFICULTY_SIDE_SPAWN_CHANCE: f32 = 0.25;
 
 // Asteroid-asteroid collision
 pub const ASTEROID_BOUNCE_FACTOR: f32 = 0.8;
-pub const ASTEROID_SEPARATION_SPEED: f32 = 3.0;
+pub const ASTEROID_SEPARATION_SPEED: f32 = 6.0;
 
 // Lighting
 pub const DIR_LIGHT_DIR: [f32; 3] = [-0.4, -0.6, -0.8];
@@ -187,8 +187,8 @@ pub const SPARK_EMISSIVE: f32 = 15.0;
 pub const SPARK_COLOR: (f32, f32, f32) = (1.0, 0.7, 0.2);
 
 // Shield bubble
-pub const SHIELD_BUBBLE_RADIUS: f32 = 1.4;
-pub const SHIELD_BUBBLE_MAX_ALPHA: f32 = 0.15;
+pub const SHIELD_BUBBLE_RADIUS: f32 = 1.8;
+pub const SHIELD_BUBBLE_MAX_ALPHA: f32 = 0.04;
 pub const SHIELD_BUBBLE_EMISSIVE: f32 = 2.0;
 pub const SHIELD_BUBBLE_COLOR: (f32, f32, f32) = (0.4, 0.7, 1.0);
 pub const SHIELD_BUBBLE_PULSE_SPEED: f32 = 2.0;

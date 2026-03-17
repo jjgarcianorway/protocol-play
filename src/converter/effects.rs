@@ -1,117 +1,111 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use bevy::prelude::*;
+use rand::Rng;
 use super::constants::*;
 use super::types::*;
 
-/// Spawn burst particles from a cell position toward the resource tank.
-pub fn spawn_burst_particles(
+/// Spawn simple pop particles from a cell position (spread outward, fade fast).
+pub fn spawn_pop_particles(
     commands: &mut Commands,
     cell_pos: Vec2,
-    tank_pos: Vec2,
     color: CrystalColor,
-    count: u32,
 ) {
     let (r, g, b) = color.rgb();
-    let base_color = Color::srgb(r, g, b);
-    for i in 0..count.min(6) {
-        let offset = Vec2::new(
-            (i as f32 - 2.5) * 4.0,
-            (i as f32 % 3.0 - 1.0) * 4.0,
-        );
-        let start = cell_pos + offset;
+    let mut rng = rand::thread_rng();
+    for _ in 0..POP_PARTICLE_COUNT {
+        let angle = rng.gen_range(0.0..std::f32::consts::TAU);
+        let speed = rng.gen_range(40.0..POP_PARTICLE_SPREAD * 3.0);
+        let vel = Vec2::new(angle.cos() * speed, angle.sin() * speed);
+        let size = rng.gen_range(POP_PARTICLE_SIZE * 0.5..POP_PARTICLE_SIZE * 1.2);
         commands.spawn((
             Node {
                 position_type: PositionType::Absolute,
-                left: Val::Px(start.x),
-                top: Val::Px(start.y),
-                width: Val::Px(PARTICLE_SIZE),
-                height: Val::Px(PARTICLE_SIZE),
-                border_radius: BorderRadius::all(Val::Px(PARTICLE_SIZE / 2.0)),
+                left: Val::Px(cell_pos.x - size / 2.0),
+                top: Val::Px(cell_pos.y - size / 2.0),
+                width: Val::Px(size),
+                height: Val::Px(size),
+                border_radius: BorderRadius::all(Val::Px(size / 2.0)),
                 ..default()
             },
-            BackgroundColor(base_color),
-            BurstParticle {
-                target: tank_pos,
-                start,
-                lifetime: 0.0,
-                max_lifetime: PARTICLE_LIFETIME + i as f32 * 0.05,
-                color_index: color.index(),
+            BackgroundColor(Color::srgba(r, g, b, 1.0)),
+            PopParticle {
+                velocity: vel,
+                lifetime: POP_PARTICLE_LIFETIME,
             },
         ));
     }
 }
 
-/// Update burst particles — move toward target tank, despawn when done.
-pub fn update_burst_particles(
+/// Update pop particles — move outward and fade.
+pub fn update_pop_particles(
     mut commands: Commands,
     time: Res<Time>,
-    mut query: Query<(Entity, &mut Node, &mut BurstParticle, &mut BackgroundColor)>,
-    mut tanks: ResMut<ResourceTanks>,
+    mut query: Query<(Entity, &mut Node, &mut PopParticle, &mut BackgroundColor)>,
 ) {
     let dt = time.delta_secs();
     for (entity, mut node, mut particle, mut bg) in query.iter_mut() {
-        particle.lifetime += dt;
-        let t = (particle.lifetime / particle.max_lifetime).clamp(0.0, 1.0);
-
-        let ease = t * t;
-        let pos = particle.start.lerp(particle.target, ease);
-
-        node.left = Val::Px(pos.x);
-        node.top = Val::Px(pos.y);
-
-        let alpha = if t > 0.7 { 1.0 - (t - 0.7) / 0.3 } else { 1.0 };
-        let c = CRYSTAL_COLORS[particle.color_index];
-        *bg = BackgroundColor(Color::srgba(c.0, c.1, c.2, alpha));
-
-        if t >= 1.0 {
-            tanks.levels[particle.color_index] += 0.5;
+        particle.lifetime -= dt;
+        if particle.lifetime <= 0.0 {
             commands.entity(entity).despawn();
+            continue;
+        }
+        let t = 1.0 - (particle.lifetime / POP_PARTICLE_LIFETIME);
+        // Move outward
+        if let Val::Px(x) = node.left {
+            node.left = Val::Px(x + particle.velocity.x * dt);
+        }
+        if let Val::Px(y) = node.top {
+            node.top = Val::Px(y + particle.velocity.y * dt);
+        }
+        // Fade out
+        let alpha = (1.0 - t).max(0.0);
+        if let Color::Srgba(ref mut c) = bg.0 {
+            c.alpha = alpha;
         }
     }
 }
 
-/// Spawn cascade feedback text ("Cascade x2!", etc.)
-pub fn spawn_cascade_text(
+/// Spawn floating "+N" text near a tank.
+pub fn spawn_tank_float(
     commands: &mut Commands,
     font: &Handle<Font>,
-    cascade_count: u32,
+    index: usize,
+    amount: f32,
 ) {
-    let label = format!("Cascade x{}!", cascade_count);
-    let scale = 1.0 + (cascade_count as f32 - 1.0) * 0.15;
-    let font_size = CASCADE_TEXT_FONT * scale.min(1.6);
+    let (r, g, b) = CRYSTAL_COLORS[index];
+    let label = format!("+{:.0}", amount);
+    // Position near the tank area (right side of screen)
     commands.spawn((
         Node {
             position_type: PositionType::Absolute,
-            width: Val::Percent(100.0),
+            right: Val::Px(40.0 + (4 - index) as f32 * (TANK_WIDTH + TANK_GAP)),
             top: Val::Percent(35.0),
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
             ..default()
         },
-        CascadeText { lifetime: CASCADE_TEXT_LIFETIME },
+        TankFloatText { lifetime: TANK_FLOAT_LIFETIME },
     )).with_child((
         Text::new(label),
-        TextFont { font: font.clone(), font_size, ..default() },
-        TextColor(Color::srgba(1.0, 0.9, 0.3, 1.0)),
+        TextFont { font: font.clone(), font_size: TANK_FLOAT_FONT, ..default() },
+        TextColor(Color::srgba(
+            (r + 0.2).min(1.0), (g + 0.2).min(1.0), (b + 0.2).min(1.0), 1.0,
+        )),
     ));
 }
 
-/// Animate cascade text (rise + fade out).
-pub fn animate_cascade_text(
+/// Animate floating tank text (rise + fade out).
+pub fn animate_tank_floats(
     time: Res<Time>,
-    mut query: Query<(Entity, &mut CascadeText, &mut Node)>,
+    mut query: Query<(Entity, &mut TankFloatText, &mut Node)>,
     mut commands: Commands,
 ) {
     let dt = time.delta_secs();
-    for (entity, mut ct, mut node) in query.iter_mut() {
-        ct.lifetime -= dt;
-        if ct.lifetime <= 0.0 {
+    for (entity, mut ft, mut node) in query.iter_mut() {
+        ft.lifetime -= dt;
+        if ft.lifetime <= 0.0 {
             commands.entity(entity).despawn();
-        } else {
-            if let Val::Percent(pct) = node.top {
-                node.top = Val::Percent(pct - CASCADE_TEXT_RISE_SPEED * dt * 0.05);
-            }
+        } else if let Val::Percent(pct) = node.top {
+            node.top = Val::Percent(pct - TANK_FLOAT_RISE * dt * 0.05);
         }
     }
 }

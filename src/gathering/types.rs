@@ -240,6 +240,8 @@ pub struct GatheringFont(pub Handle<Font>);
 pub struct HitFlash {
     pub timer: f32,
 }
+#[derive(Component)]
+pub struct HitFlashOverlay;
 
 #[derive(Resource, Default)]
 pub struct NearMissFlash {

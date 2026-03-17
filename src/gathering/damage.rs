@@ -17,32 +17,25 @@ pub fn update_shield_regen(
 
 pub fn update_hit_flash(
     mut hit_flash: ResMut<HitFlash>,
-    ship_q: Query<Entity, With<Ship>>,
-    children_q: Query<&Children>,
-    material_q: Query<&MeshMaterial3d<StandardMaterial>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut flash_q: Query<&mut BackgroundColor, With<HitFlashOverlay>>,
     time: Res<Time>,
+    mut commands: Commands,
 ) {
-    if hit_flash.timer <= 0.0 { return; }
+    if hit_flash.timer <= 0.0 {
+        // Remove overlay if exists and timer done
+        for mut bg in flash_q.iter_mut() { bg.0 = Color::NONE; }
+        return;
+    }
     hit_flash.timer = (hit_flash.timer - time.delta_secs()).max(0.0);
-    let flash_t = hit_flash.timer / HIT_FLASH_DURATION;
-
-    let Ok(ship_entity) = ship_q.single() else { return; };
-    // Walk children of the ship scene to find all meshes
-    let mut stack = vec![ship_entity];
-    while let Some(entity) = stack.pop() {
-        if let Ok(mat_handle) = material_q.get(entity) {
-            if let Some(mat) = materials.get_mut(&mat_handle.0) {
-                let intensity = flash_t * 12.0;
-                let r = 1.0 * intensity;
-                let g = 0.6 * intensity;
-                let b = 0.5 * intensity;
-                mat.emissive = LinearRgba::new(r, g, b, 1.0);
-            }
-        }
-        if let Ok(children) = children_q.get(entity) {
-            for child in children.iter() { stack.push(child); }
-        }
+    let alpha = (hit_flash.timer / HIT_FLASH_DURATION).clamp(0.0, 1.0) * 0.25;
+    if flash_q.is_empty() {
+        // Spawn screen-space red overlay
+        commands.spawn((HitFlashOverlay, Node {
+            position_type: PositionType::Absolute, width: Val::Percent(100.0),
+            height: Val::Percent(100.0), ..default()
+        }, BackgroundColor(Color::srgba(0.9, 0.1, 0.05, alpha)), ZIndex(5)));
+    } else {
+        for mut bg in flash_q.iter_mut() { bg.0 = Color::srgba(0.9, 0.1, 0.05, alpha); }
     }
 }
 

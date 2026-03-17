@@ -20,7 +20,7 @@ pub fn build_app(app: &mut App) {
     .insert_resource(DeliveryState::default())
     .init_state::<DeliveryPhase>()
     .add_systems(Startup, setup_delivery)
-    .add_systems(OnEnter(DeliveryPhase::Playing), ui::spawn_delivery_ui)
+    .add_systems(OnEnter(DeliveryPhase::Playing), ui::respawn_delivery_ui)
     .add_systems(Update, (
         pods::spawn_pods,
         pods::move_pods,
@@ -70,6 +70,8 @@ fn setup_delivery(
 
     let font_bytes = include_bytes!("../../assets/fonts/FiraSans-Regular.ttf").to_vec();
     let font = fonts.add(Font::try_from_bytes(font_bytes).unwrap());
+
+    // Insert font resource immediately for use by other systems
     commands.insert_resource(DeliveryFont(font.clone()));
 
     let vignette = create_vignette(&mut images);
@@ -90,9 +92,12 @@ fn setup_delivery(
         ..default()
     }).with_child((
         Text::new(format!("v{}", env!("CARGO_PKG_VERSION"))),
-        TextFont { font, font_size: 11.0, ..default() },
+        TextFont { font: font.clone(), font_size: 11.0, ..default() },
         TextColor(Color::srgba(1.0, 1.0, 1.0, 0.35)),
     ));
+
+    // Spawn the game UI directly (font handle available as local)
+    ui::spawn_delivery_ui_with_font(&mut commands, &font, &mut state);
 }
 
 fn create_vignette(images: &mut Assets<Image>) -> Handle<Image> {

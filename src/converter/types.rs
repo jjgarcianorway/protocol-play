@@ -51,7 +51,7 @@ pub enum ConverterPhase {
 pub enum GridPhase {
     Idle,          // Player can click
     #[allow(dead_code)]
-    Bursting,      // Chain is bursting (animated)
+    Bursting,      // Chain is pulsing/popping (reserved)
     Gravity,       // Crystals falling
     CascadeCheck,  // Checking for auto-trigger groups
     Refilling,     // New crystals sliding in from top
@@ -65,6 +65,7 @@ pub struct GridState {
     pub height: usize,
     pub phase: GridPhase,
     pub phase_timer: f32,
+    pub cascade_steps: u32,  // Track cascade depth for limiting
 }
 
 impl Default for GridState {
@@ -75,6 +76,7 @@ impl Default for GridState {
             height: GRID_ROWS,
             phase: GridPhase::Idle,
             phase_timer: 0.0,
+            cascade_steps: 0,
         }
     }
 }
@@ -125,9 +127,6 @@ pub struct GridCell {
 pub struct ChainSizeLabel;
 
 #[derive(Component)]
-pub struct ChainMultLabel;
-
-#[derive(Component)]
 pub struct TankFill(pub usize);
 
 #[derive(Component)]
@@ -135,26 +134,13 @@ pub struct TankLabel(pub usize);
 
 #[derive(Component)]
 pub struct TankFlash {
+    #[allow(dead_code)]
+    pub index: usize,
     pub timer: f32,
 }
 
 #[derive(Component)]
-pub struct TankGlassOverlay;
-
-#[derive(Component)]
 pub struct PileCountText;
-
-#[derive(Component)]
-pub struct PileFill;
-
-#[derive(Component)]
-pub struct BurstParticle {
-    pub target: Vec2,
-    pub start: Vec2,
-    pub lifetime: f32,
-    pub max_lifetime: f32,
-    pub color_index: usize,
-}
 
 #[derive(Component)]
 pub struct ResultsScreen;
@@ -166,12 +152,20 @@ pub struct ReturnButton;
 pub struct ConverterRoot;
 
 #[derive(Component)]
-pub struct CascadeText {
+pub struct StarDot;
+
+/// Floating "+N" text on tanks
+#[derive(Component)]
+pub struct TankFloatText {
     pub lifetime: f32,
 }
 
+/// Pop particle (simple colored dot that spreads outward and fades)
 #[derive(Component)]
-pub struct StarDot;
+pub struct PopParticle {
+    pub velocity: Vec2,
+    pub lifetime: f32,
+}
 
 // === Helper: efficiency multiplier ===
 pub fn efficiency_mult(chain_size: u32) -> f32 {

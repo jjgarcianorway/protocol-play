@@ -96,7 +96,7 @@ pub fn group_tiles(tiles: impl Iterator<Item = TileKind>) -> Vec<(TileKind, u8)>
     g.sort_by(|(a, _), (b, _)| tile_sort_key(a).cmp(&tile_sort_key(b)));
     g
 }
-fn set_tool_from_kind(k: TileKind, tool: &mut ResMut<SelectedTool>, inv: &mut ResMut<InventoryState>) {
+pub fn set_tool_from_kind(k: TileKind, tool: &mut ResMut<SelectedTool>, inv: &mut ResMut<InventoryState>) {
     let (t, dir, ci) = match k {
         TileKind::Source(c, d) => (Tool::Source, Some(d), Some(c)),
         TileKind::Goal(c) => (Tool::Goal, None, Some(c)),
