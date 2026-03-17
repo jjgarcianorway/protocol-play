@@ -9,6 +9,8 @@ mod icon_render;
 #[cfg(feature = "player")] mod player;
 #[cfg(feature = "gathering")] mod gathering;
 #[cfg(feature = "converter")] mod converter;
+#[cfg(feature = "delivery")] mod delivery;
+#[cfg(feature = "mission")] mod mission;
 
 use bevy::prelude::*;
 use bevy::post_process::bloom::Bloom;
@@ -36,12 +38,26 @@ fn main() {
         let _ = std::env::set_current_dir(&d);
     }
 
+    #[cfg(feature = "mission")] {
+        let mut app = App::new();
+        app.add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window { title: "protocol: play — Mission Control".into(), ..default() }), ..default() }));
+        app.set_error_handler(bevy::ecs::error::warn);
+        mission::build_app(&mut app); app.run(); return;
+    }
     #[cfg(feature = "converter")] {
         let mut app = App::new();
         app.add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window { title: "The Converter".into(), ..default() }), ..default() }));
         app.set_error_handler(bevy::ecs::error::warn);
         converter::build_app(&mut app); app.run(); return;
+    }
+    #[cfg(feature = "delivery")] {
+        let mut app = App::new();
+        app.add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window { title: "The Delivery".into(), ..default() }), ..default() }));
+        app.set_error_handler(bevy::ecs::error::warn);
+        delivery::build_app(&mut app); app.run(); return;
     }
     #[cfg(feature = "gathering")] {
         let mut app = App::new();
