@@ -247,6 +247,7 @@ pub fn poll_running_game(
     mut running: ResMut<RunningGame>,
     mut ship: ResMut<ShipStatus>,
     mut gs: ResMut<GameState>,
+    mut qs: ResMut<super::questions::QuestionState>,
 ) {
     let child = match running.0.as_mut() {
         Some(c) => c,
@@ -257,6 +258,9 @@ pub fn poll_running_game(
         Ok(Some(status)) => {
             info!("Child game exited with: {}", status);
             running.0 = None;
+
+            // Reset question state so we check for pending questions
+            super::questions::reset_question_check(&mut qs);
 
             // Reload GameState from disk (child may have updated it)
             let fresh = load_game_state();

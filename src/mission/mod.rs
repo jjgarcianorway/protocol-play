@@ -8,6 +8,10 @@ mod anna;
 mod anna_messages;
 mod story;
 mod resources;
+mod question_data;
+mod questions;
+mod endings;
+mod endings_anim;
 
 use bevy::prelude::*;
 use bevy::post_process::bloom::Bloom;
@@ -40,6 +44,7 @@ pub fn build_app(app: &mut App) {
     .insert_resource(AnnaState::default())
     .insert_resource(DrainTimer::default())
     .insert_resource(RunningGame::default())
+    .insert_resource(questions::QuestionState::default())
     .add_systems(Startup, setup_mission)
     .add_systems(Update, (
         dashboard::animate_resource_bars,
@@ -53,7 +58,20 @@ pub fn build_app(app: &mut App) {
         anna::anna_click_dismiss,
         anna::update_anna_glow,
         twinkle_stars,
-    ));
+    ))
+    .add_systems(Update, (
+        questions::check_pending_question,
+        questions::question_option_hover,
+        questions::question_option_click,
+        questions::update_reaction_overlay,
+        final_voyage_click,
+    ))
+    .add_systems(Update, (
+        endings_anim::animate_ending_screen,
+        endings_anim::animate_ending_stats,
+        endings_anim::animate_ending_glow,
+        endings_anim::new_journey_hover,
+    ).run_if(resource_exists::<endings::EndingState>));
 }
 
 fn setup_mission(
@@ -131,6 +149,34 @@ fn setup_mission(
         anna::spawn_anna_panel(overlay, &font);
     });
 
+    // Final Voyage button (only if bot_level >= 149)
+    if ship_status.bot_level >= 149 {
+        commands.spawn((
+            Button,
+            Node {
+                position_type: PositionType::Absolute,
+                bottom: Val::Px(100.0),
+                left: Val::Percent(50.0),
+                padding: UiRect::axes(Val::Px(28.0), Val::Px(14.0)),
+                border: UiRect::all(Val::Px(2.0)),
+                border_radius: BorderRadius::all(Val::Px(10.0)),
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.15, 0.12, 0.08, 0.9)),
+            BorderColor::all(Color::srgba(0.8, 0.7, 0.4, 0.7)),
+            BoxShadow::new(
+                Color::srgba(0.9, 0.8, 0.4, 0.3),
+                Val::ZERO, Val::ZERO,
+                Val::Px(5.0), Val::Px(15.0),
+            ),
+            endings::FinalVoyageBtn,
+        )).with_child((
+            Text::new("Final Voyage"),
+            TextFont { font: font.clone(), font_size: 18.0, ..default() },
+            TextColor(Color::srgb(0.95, 0.85, 0.5)),
+        ));
+    }
+
     // Version label
     commands.spawn(Node {
         position_type: PositionType::Absolute,
@@ -186,6 +232,24 @@ fn twinkle_stars(
     for (star, mut transform) in query.iter_mut() {
         let scale = 0.7 + 0.3 * (t * star.speed + star.phase).sin();
         transform.scale = Vec3::splat(scale);
+    }
+}
+
+/// System: handle Final Voyage button click — trigger ending sequence.
+fn final_voyage_click(
+    query: Query<&Interaction, (Changed<Interaction>, With<endings::FinalVoyageBtn>)>,
+    mut commands: Commands,
+    gs: Res<GameState>,
+    font: Res<MissionFont>,
+    ending_q: Query<Entity, With<endings::EndingScreen>>,
+) {
+    // Don't trigger if ending already showing
+    if !ending_q.is_empty() { return; }
+
+    for interaction in query.iter() {
+        if *interaction == Interaction::Pressed {
+            endings::spawn_ending_screen(&mut commands, &font.0, &gs);
+        }
     }
 }
 
