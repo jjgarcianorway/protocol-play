@@ -59,7 +59,9 @@ pub const INITIAL_FALL_DURATION: f32 = 2.5;
 pub const MIN_FALL_DURATION: f32 = 0.8;
 pub const INITIAL_SPAWN_INTERVAL: f32 = 2.0;
 pub const MIN_SPAWN_INTERVAL: f32 = 0.6;
-pub const TOTAL_PODS: u32 = 100;
+pub const TOTAL_PODS: u32 = 100; // fallback when no GameState resources
+pub const MIN_PODS: u32 = 50;
+pub const MAX_PODS: u32 = 200;
 pub const ROUTE_ANIM_DURATION: f32 = 0.3;
 
 // Scoring and streaks

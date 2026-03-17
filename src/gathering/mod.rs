@@ -15,12 +15,23 @@ mod stats;
 mod pause;
 mod effects;
 mod warnings;
+mod new_earth;
 
 use bevy::prelude::*;
 use bevy::post_process::bloom::Bloom;
 use constants::*;
 use types::*;
 use game_over::*;
+
+/// Run condition: NewEarthMode resource is NOT present.
+fn not_new_earth(mode: Option<Res<new_earth::NewEarthMode>>) -> bool {
+    mode.is_none()
+}
+
+/// Run condition: NewEarthMode resource IS present.
+fn is_new_earth(mode: Option<Res<new_earth::NewEarthMode>>) -> bool {
+    mode.is_some()
+}
 
 pub fn build_app(app: &mut App) {
     let best = stats::load_best();
@@ -45,7 +56,8 @@ pub fn build_app(app: &mut App) {
         .insert_resource(game_over::TryAgainTriggered::default())
         .insert_resource(best)
         .init_state::<GatheringState>()
-        .add_systems(Startup, setup_gathering)
+        .add_systems(Startup, (setup_gathering, new_earth::check_new_earth_mode))
+        // Normal gameplay systems — only when NOT in NewEarthMode
         .add_systems(Update, (
             ship::move_ship,
             asteroids::spawn_asteroids,
@@ -66,7 +78,7 @@ pub fn build_app(app: &mut App) {
             damage::update_bars,
             damage::update_hit_flash.after(collision::check_collisions),
             damage::update_near_miss_flash.after(collision::check_near_misses),
-        ))
+        ).run_if(not_new_earth))
         .add_systems(Update, (
             difficulty::update_difficulty,
             difficulty::update_background_color.after(difficulty::update_difficulty),
@@ -87,7 +99,7 @@ pub fn build_app(app: &mut App) {
             pause::toggle_pause,
             pause::resume_button_interaction,
             pause::resume_button_hover,
-        ))
+        ).run_if(not_new_earth))
         .add_systems(Update, (
             warnings::update_warning_indicators,
             ship::update_magnet_ring,
@@ -96,7 +108,22 @@ pub fn build_app(app: &mut App) {
             ship::move_damage_particles,
             effects::spawn_asteroid_trails,
             effects::move_trail_particles,
-        ));
+        ).run_if(not_new_earth))
+        // New Earth cutscene systems — only when IN NewEarthMode
+        .add_systems(Update, (
+            new_earth::tick_new_earth_timer,
+            new_earth::spawn_new_earth,
+            new_earth::grow_earth,
+            new_earth::new_earth_sequence,
+            new_earth::update_white_fade,
+            new_earth::update_new_earth_text,
+            new_earth::auto_fly_ship,
+            new_earth::scroll_stars_slow,
+            new_earth::hide_hud,
+            new_earth::gentle_intro_fade,
+            ship::spawn_engine_particles,
+            ship::move_engine_particles,
+        ).run_if(is_new_earth));
 }
 
 fn setup_gathering(

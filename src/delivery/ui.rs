@@ -57,7 +57,7 @@ pub fn spawn_delivery_ui(
                 TextColor(Color::srgba(1.0, 1.0, 1.0, 0.95)),
             ));
             col.spawn((
-                Text::new(format!("{} pods to deliver", TOTAL_PODS)),
+                Text::new(format!("{} pods to deliver", state.total_pods)),
                 tf(HUD_FONT),
                 TextColor(Color::srgba(1.0, 1.0, 0.7, 0.8)),
             ));

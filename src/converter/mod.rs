@@ -49,7 +49,19 @@ fn setup_converter(
     mut commands: Commands,
     mut fonts: ResMut<Assets<Font>>,
     mut images: ResMut<Assets<Image>>,
+    mut pile: ResMut<CrystalPile>,
 ) {
+    // Load GameState and set pile size from total crystals
+    let gs = crate::save_state::load_game_state();
+    let crystal_count = gs.total_crystals();
+    let pile_size = if crystal_count > 0 {
+        crystal_count.max(MIN_PILE_SIZE)
+    } else {
+        INITIAL_PILE_SIZE
+    };
+    pile.total = pile_size;
+    pile.remaining = pile_size;
+
     commands.spawn((
         Camera3d::default(),
         Bloom {

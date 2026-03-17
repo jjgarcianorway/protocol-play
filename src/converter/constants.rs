@@ -37,12 +37,13 @@ pub const EFFICIENCY_TABLE: [(u32, f32); 6] = [
     (16, 3.0),
 ];
 
-// Crystal pile
+// Crystal pile (fallback when no GameState crystals available)
 pub const INITIAL_PILE_SIZE: u64 = 500;
+pub const MIN_PILE_SIZE: u64 = 100;
 
 // Timing
 pub const GRAVITY_DELAY: f32 = 0.15;
-pub const CASCADE_DELAY: f32 = 0.5;
+pub const CASCADE_DELAY: f32 = 0.4;
 pub const PARTICLE_LIFETIME: f32 = 0.6;
 pub const PARTICLE_SIZE: f32 = 8.0;
 

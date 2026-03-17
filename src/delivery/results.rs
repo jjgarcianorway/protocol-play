@@ -146,7 +146,18 @@ pub fn return_button_interaction(
     for (interaction, mut bg) in interaction_q.iter_mut() {
         match *interaction {
             Interaction::Pressed => {
+                // Reload GameState for updated resource levels
+                let gs = crate::save_state::load_game_state();
+                let resource_sum = (gs.power + gs.life_support + gs.cryo
+                    + gs.shields + gs.repair) as u32;
+                let pod_count = if resource_sum > 0 {
+                    resource_sum.clamp(MIN_PODS, MAX_PODS)
+                } else {
+                    TOTAL_PODS
+                };
+
                 *state = DeliveryState::default();
+                state.total_pods = pod_count;
 
                 for entity in results_q.iter() {
                     commands.entity(entity).despawn();

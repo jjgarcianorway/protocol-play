@@ -165,9 +165,18 @@ pub fn return_button_interaction(
     for (interaction, mut bg) in interaction_q.iter_mut() {
         match *interaction {
             Interaction::Pressed => {
+                // Reload GameState for updated crystal counts
+                let gs = crate::save_state::load_game_state();
+                let crystal_count = gs.total_crystals();
+                let pile_size = if crystal_count > 0 {
+                    crystal_count.max(MIN_PILE_SIZE)
+                } else {
+                    INITIAL_PILE_SIZE
+                };
+
                 // Reset everything
                 *grid_state = GridState::default();
-                *pile = CrystalPile::default();
+                *pile = CrystalPile { total: pile_size, remaining: pile_size };
                 *tanks = ResourceTanks::default();
                 *stats = ConversionStats::default();
                 grid_state.phase = GridPhase::Refilling;

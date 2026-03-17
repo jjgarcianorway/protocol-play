@@ -45,6 +45,10 @@ pub struct GameState {
     // New Game+ tracking
     #[serde(default)]
     pub playthrough_count: u32,
+
+    // Ending flag — player reached New Earth
+    #[serde(default)]
+    pub reached_new_earth: bool,
 }
 
 impl Default for GameState {
@@ -71,6 +75,7 @@ impl Default for GameState {
             decisions: Vec::new(),
             story_flags: Vec::new(),
             playthrough_count: 0,
+            reached_new_earth: false,
         }
     }
 }
