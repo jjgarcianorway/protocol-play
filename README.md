@@ -4,7 +4,7 @@ A game built with [Bevy 0.18](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.33.0** — Asteroid variety, near-miss shield recovery, dust trails, crystal scaling
+**v0.34.0** — Smart solver, code cleanup, Converter design doc
 
 ### Bot Game (Editor + Player)
 - **149 campaign levels** across 13 chapters, each introducing a new mechanic

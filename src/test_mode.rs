@@ -5,7 +5,6 @@ use crate::constants::*;
 use crate::types::*;
 use crate::ui_helpers::*;
 use crate::board::spawn_tile;
-
 pub fn mark_button_interaction(
     mut play_mode: ResMut<PlayMode>,
     interaction_query: Query<&Interaction, (With<MarkButton>, Changed<Interaction>)>,
@@ -46,7 +45,6 @@ pub fn handle_mark_click(
     let Some((entity, _, kind, has_marker, children)) = tiles.iter()
         .find(|(_, c, _, _, _)| c.col == col && c.row == row) else { return };
     if matches!(kind, TileKind::Empty | TileKind::Floor | TileKind::Source(_, _) | TileKind::Goal(_)) { return; }
-
     if has_marker.is_some() {
         commands.entity(entity).remove::<InventoryMarker>();
         if let Some(ch) = children {
@@ -54,7 +52,6 @@ pub fn handle_mark_click(
         }
     } else { add_marker(&mut commands, entity, &assets); }
 }
-
 fn tilekind_to_icon(kind: &TileKind, i: &InventoryIcons) -> Option<Handle<Image>> {
     match kind {
         TileKind::Source(ci, d) => Some(i.source_color_dir(*ci, *d)),
@@ -75,7 +72,6 @@ fn tilekind_to_icon(kind: &TileKind, i: &InventoryIcons) -> Option<Handle<Image>
         _ => None,
     }
 }
-
 fn tile_sort_key(k: &TileKind) -> (u8, usize, u8) {
     match k {
         TileKind::Floor => (0, 0, 0), TileKind::Source(c, d) => (1, *c, d.index() as u8),
@@ -100,7 +96,6 @@ pub fn group_tiles(tiles: impl Iterator<Item = TileKind>) -> Vec<(TileKind, u8)>
     g.sort_by(|(a, _), (b, _)| tile_sort_key(a).cmp(&tile_sort_key(b)));
     g
 }
-
 fn set_tool_from_kind(k: TileKind, tool: &mut ResMut<SelectedTool>, inv: &mut ResMut<InventoryState>) {
     let (t, dir, ci) = match k {
         TileKind::Source(c, d) => (Tool::Source, Some(d), Some(c)),
@@ -127,7 +122,6 @@ pub fn add_marker(commands: &mut Commands, entity: Entity, assets: &GameAssets) 
         ));
     });
 }
-
 pub fn test_button_interaction(
     mut commands: Commands,
     mut play_mode: ResMut<PlayMode>,
@@ -147,7 +141,6 @@ pub fn test_button_interaction(
     for interaction in &interaction_query {
         if *interaction != Interaction::Pressed { continue; }
         if *play_mode != PlayMode::Editing && *play_mode != PlayMode::Marking { continue; }
-
         saved_board.tiles.clear();
         for (_, c, k, m) in &tiles { saved_board.tiles.push((c.col, c.row, *k, m.is_some())); }
         saved_board.inv_state = inv_state.clone(); saved_board.selected_tool = selected_tool.0;
@@ -170,7 +163,6 @@ pub fn test_button_interaction(
         *play_mode = PlayMode::TestEditing;
     }
 }
-
 fn spawn_test_banner(commands: &mut Commands, f: &Handle<Font>) {
     commands.spawn((Node { position_type: PositionType::Absolute, top: Val::Px(BANNER_SLIDE_HIDE), width: Val::Percent(100.0),
         height: Val::Px(BANNER_HEIGHT), justify_content: JustifyContent::Center, align_items: AlignItems::Center, ..default() },
@@ -178,7 +170,6 @@ fn spawn_test_banner(commands: &mut Commands, f: &Handle<Font>) {
         UiTopAnim { target: TOP_SLIDE_SHOW + PLAY_BTN_SIZE + 6.0, despawn_at_target: false },
     )).with_child((Text::new("TEST MODE"), gf(DIALOG_TITLE_FONT, f), TextColor(rgb(TEST_BANNER_TEXT))));
 }
-
 fn spawn_test_buttons(commands: &mut Commands, f: &Handle<Font>) {
     let (tf, tc) = (gf(LABEL_FONT, f), TextColor(Color::WHITE));
     let mut btn = text_btn_node(); btn.border_radius = BorderRadius::all(Val::Px(UI_CORNER_RADIUS));
@@ -192,15 +183,13 @@ fn spawn_test_buttons(commands: &mut Commands, f: &Handle<Font>) {
         p.spawn((Button, StopTestButton, btn, BackgroundColor(rgb(STOP_TEST_BTN_BG)))).with_child((Text::new("Stop Test"), tf, tc));
     });
 }
-
 pub fn spawn_test_inventory(commands: &mut Commands, test_inv: &TestInventory, icons: &InventoryIcons, animate: bool, f: &Handle<Font>) {
     let start_bottom = if animate { INV_SLIDE_HIDE } else { INV_SLIDE_SHOW };
     let mut ec = commands.spawn((Node { position_type: PositionType::Absolute, bottom: Val::Px(start_bottom),
         width: Val::Percent(100.0), justify_content: JustifyContent::Center, ..default() }, TestInventoryContainer));
     if animate { ec.insert(UiBottomAnim { target: INV_SLIDE_SHOW, despawn_at_target: false }); }
-    // Compute effective slot size: scale down if items don't fit horizontally
-    let n = test_inv.items.len() + 1; // +1 for delete button
-    let max_vw = 96.0; // leave margin
+    let n = test_inv.items.len() + 1;
+    let max_vw = 96.0;
     let max_slot = (max_vw - INVENTORY_PAD_VW * 2.0 - INVENTORY_GAP_VW * (n as f32 - 1.0)) / n as f32;
     let eff_slot = max_slot.min(SLOT_VW);
     let eff_height = eff_slot * SLOT_HEIGHT_VW / SLOT_VW;
@@ -215,14 +204,10 @@ pub fn spawn_test_inventory(commands: &mut Commands, test_inv: &TestInventory, i
             border_radius: BorderRadius::all(Val::Px(UI_CORNER_RADIUS)), ..default() },
             BackgroundColor(rgba(TEST_INVENTORY_BG)),
         )).with_children(|c| {
-            let sn = Node {
-                width: Val::Vw(eff_slot), height: Val::Vw(eff_height),
-                border: UiRect::all(Val::Px(SLOT_BORDER_PX)),
-                justify_content: JustifyContent::Center, align_items: AlignItems::Center,
-                overflow: Overflow::clip(),
-                border_radius: BorderRadius::all(Val::Px(UI_CORNER_RADIUS)),
-                ..default()
-            };
+            let sn = Node { width: Val::Vw(eff_slot), height: Val::Vw(eff_height),
+                border: UiRect::all(Val::Px(SLOT_BORDER_PX)), justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center, overflow: Overflow::clip(),
+                border_radius: BorderRadius::all(Val::Px(UI_CORNER_RADIUS)), ..default() };
             let in_node = Node { width: Val::Vw(eff_icon), height: Val::Vw(eff_icon), ..default() };
             for (i, (kind, count)) in test_inv.items.iter().enumerate() {
                 let Some(icon) = tilekind_to_icon(kind, icons) else { continue };
@@ -244,7 +229,6 @@ pub fn spawn_test_inventory(commands: &mut Commands, test_inv: &TestInventory, i
         });
     });
 }
-
 pub fn stop_test_interaction(
     mut commands: Commands,
     mut play_mode: ResMut<PlayMode>,
@@ -279,7 +263,6 @@ pub fn stop_test_interaction(
     for e in &top_btns { commands.entity(e).insert(UiTopAnim { target: BANNER_SLIDE_HIDE, despawn_at_target: true }); }
     *play_mode = PlayMode::Editing;
 }
-
 pub fn reset_test_interaction(
     mut commands: Commands,
     play_mode: Res<PlayMode>,
@@ -306,7 +289,6 @@ pub fn reset_test_interaction(
         spawn_test_inventory(&mut commands, &test_inv, &icons, false, &font.0);
     }
 }
-
 pub fn sync_editor_buttons_visibility(
     play_mode: Res<PlayMode>, mut bar: Query<&mut Visibility, With<TopControlsBar>>,
     mut buttons: Query<&mut BackgroundColor, Or<(With<MarkButton>, With<TestButton>, With<BoardButton>, With<LoadButton>)>>,
@@ -317,7 +299,6 @@ pub fn sync_editor_buttons_visibility(
     let alpha = if *play_mode == PlayMode::Playing { DISABLED_BTN_ALPHA } else { 1.0 };
     for mut bg in &mut buttons { bg.0.set_alpha(alpha); }
 }
-
 pub fn test_inventory_interaction(
     mut test_inv: ResMut<TestInventory>,
     slots: Query<(&Interaction, &TestInventorySlot), Changed<Interaction>>,
@@ -345,7 +326,6 @@ pub fn test_inventory_interaction(
         *border = border_for(sel);
     }
 }
-
 pub fn handle_test_tile_click(
     mut commands: Commands,
     mouse: Res<ButtonInput<MouseButton>>,
@@ -377,7 +357,6 @@ pub fn handle_test_tile_click(
         } return;
     };
     let Some((entity, _, kind)) = tiles.iter().find(|(_, c, _)| c.col == col && c.row == row) else { return };
-
     let mut changed = false;
     if test_inv.remove_mode {
         if matches!(kind, TileKind::Empty | TileKind::Floor) { return; }
@@ -395,16 +374,15 @@ pub fn handle_test_tile_click(
         let is_empty = matches!(kind, TileKind::Empty);
         let replaceable = !is_empty && saved_test.tiles.iter().any(|&(c, r, k)| c == col && r == row && matches!(k, TileKind::Empty));
         if !is_empty && !replaceable { return; }
-        if replaceable { // return replaced tile to inventory
+        if replaceable {
             if let Some(e) = test_inv.items.iter_mut().find(|(k, _)| *k == *kind) { e.1 += 1; }
             else { test_inv.items.push((*kind, 1)); test_inv.items.sort_by(|(a, _), (b, _)| tile_sort_key(a).cmp(&tile_sort_key(b))); }
         }
-        // Re-find the selected tile kind after potential sort shifted indices
         let idx = test_inv.items.iter().position(|(k, _)| *k == tile_kind).unwrap();
         test_inv.selected = Some(idx);
         commands.entity(entity).despawn();
         let placed = crate::board::spawn_tile_at_scale(&mut commands, col, row, board_size.0, tile_kind, &assets, Vec3::ZERO);
-        add_marker(&mut commands, placed, &assets); // yellow marker on player-placed tiles
+        add_marker(&mut commands, placed, &assets);
         test_inv.items[idx].1 -= 1;
         if test_inv.items[idx].1 == 0 {
             test_inv.items.remove(idx);

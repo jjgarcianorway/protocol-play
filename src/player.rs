@@ -107,13 +107,10 @@ pub fn setup_player(
 fn spawn_error_message(commands: &mut Commands, f: &Handle<Font>) {
     commands.spawn(Node { position_type: PositionType::Absolute, width: Val::Percent(100.0),
         height: Val::Percent(100.0), justify_content: JustifyContent::Center,
-        align_items: AlignItems::Center, flex_direction: FlexDirection::Column,
-        row_gap: Val::Px(12.0), ..default() })
+        align_items: AlignItems::Center, flex_direction: FlexDirection::Column, row_gap: Val::Px(12.0), ..default() })
     .with_children(|p| {
-        p.spawn((Text::new("No level files found"), gf(DIALOG_TITLE_FONT, f),
-            TextColor(rgb(SIM_ERROR_COLOR))));
-        p.spawn((Text::new("Place .json level files next to the executable."),
-            gf(DIALOG_BODY_FONT, f), TextColor(Color::WHITE)));
+        p.spawn((Text::new("No level files found"), gf(DIALOG_TITLE_FONT, f), TextColor(rgb(SIM_ERROR_COLOR))));
+        p.spawn((Text::new("Place .json level files next to the executable."), gf(DIALOG_BODY_FONT, f), TextColor(Color::WHITE)));
     });
 }
 
@@ -192,10 +189,8 @@ fn spawn_player_buttons(commands: &mut Commands, f: &Handle<Font>, levels: &Play
     let mut btn = text_btn_node(); btn.border_radius = BorderRadius::all(Val::Px(UI_CORNER_RADIUS));
     let nav = Node { padding: UiRect::axes(Val::Px(TEXT_BTN_PAD.0), Val::Px(TEXT_BTN_PAD.1)), border_radius: BorderRadius::all(Val::Px(UI_CORNER_RADIUS)), ..default() };
     let level = &levels.levels[levels.current];
-    let suffix = if progress.completed { " (completed)" }
-        else if progress.board_state.is_some() { " (in progress)" } else { "" };
+    let suffix = if progress.completed { " (completed)" } else if progress.board_state.is_some() { " (in progress)" } else { "" };
     let label = format!("{}{suffix} ({}/{})", level.name, levels.current + 1, levels.levels.len());
-
     let start_top = if animate { -50.0 } else { TOP_SLIDE_SHOW };
     let mut ec = commands.spawn((Node { position_type: PositionType::Absolute, left: Val::Px(10.0), top: Val::Px(start_top),
         flex_direction: FlexDirection::Row, column_gap: Val::Px(4.0), align_items: AlignItems::Center, ..default() },
@@ -333,8 +328,7 @@ pub fn handle_level_complete(
     saved_test: Res<SavedTestState>, mut ch_state: ResMut<ChapterState>,
     mut selected_tool: ResMut<SelectedTool>,
 ) {
-    if levels.levels.is_empty() { return; }
-    if !validated.is_changed() || !validated.0 { return; }
+    if levels.levels.is_empty() || !validated.is_changed() || !validated.0 { return; }
     validated.0 = false;
     let idx = levels.current;
     if progress.data[idx].completed { return; }
@@ -378,11 +372,9 @@ pub fn populate_stats(
     if levels.levels.is_empty() { return; }
     if !matches!(sim_result.result, Some(crate::simulation::SimResult::Success)) { return; }
     if sim_result.overlay_spawned || !sim_result.stats_lines.is_empty() { return; }
-
     sim_result.stats_lines.push(format_time(stats.editing_time as u64));
     sim_result.stats_lines.push(format_attempts(stats.play_count));
     if stats.reset_count > 0 { sim_result.stats_lines.push(format_resets(stats.reset_count)); }
-
     let saved_set: std::collections::HashSet<(u32, u32)> = saved_test.tiles.iter()
         .filter(|(_, _, k)| !matches!(k, TileKind::Empty)).map(|(c, r, _)| (*c, *r)).collect();
     let placed: Vec<_> = tiles.iter()

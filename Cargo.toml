@@ -1,6 +1,6 @@
 [package]
 name = "protocol-play"
-version = "0.33.0"
+version = "0.34.0"
 edition = "2024"
 license = "GPL-3.0-or-later"
 description = "protocol: play - a game built with Bevy"
@@ -28,6 +28,10 @@ path = "src/gen_campaign.rs"
 [[bin]]
 name = "solve-campaign"
 path = "src/solve_campaign.rs"
+
+[[bin]]
+name = "smart-solver"
+path = "src/smart_solver.rs"
 
 [[bin]]
 name = "generate-icons"

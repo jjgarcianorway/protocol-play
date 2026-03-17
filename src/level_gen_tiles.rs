@@ -153,8 +153,6 @@ fn try_arrow_at(
     }
     false
 }
-
-// === Teleport — min 2 Manhattan distance, prefer far destinations ===
 fn try_teleport_at(
     grid: &mut HashMap<(u32, u32), TileKind>, solution: &mut HashSet<(u32, u32)>,
     col: &mut i32, row: &mut i32, dir: &Direction, size: u32, rng: &mut impl Rng,

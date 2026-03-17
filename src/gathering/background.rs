@@ -68,7 +68,7 @@ pub fn spawn_nebula_planes(
     meshes: &mut Assets<Mesh>,
     materials: &mut Assets<StandardMaterial>,
     images: &mut Assets<Image>,
-    bounds: &ViewBounds,
+    _bounds: &ViewBounds,
 ) {
     for &(z, alpha, r, g, b) in &NEBULA_CONFIGS {
         let tex = create_nebula_texture(images, r, g, b);

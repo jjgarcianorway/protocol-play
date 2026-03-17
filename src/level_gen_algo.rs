@@ -7,10 +7,8 @@ use crate::constants::*;
 use crate::types::*;
 use crate::level_gen_sim::simulate_headless;
 use crate::level_gen_tiles::*;
-// === Configuration ===
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum HolePlacement { Edges, Middle, Both }
-
 impl HolePlacement {
     pub fn label(self) -> &'static str {
         match self { Self::Edges => "Edges", Self::Middle => "Middle", Self::Both => "Both" }
@@ -26,38 +24,27 @@ impl HolePlacement {
         match self { Self::Edges => on_edge, Self::Middle => !on_edge, Self::Both => true }
     }
 }
-
 #[derive(Clone)]
 pub struct GenConfig {
-    pub board_size: u32,
-    pub num_bots: u32,
-    pub hole_percent: u32,
-    pub hole_placement: HolePlacement,
-    pub difficulty: u32,
-    pub weights: [u32; GEN_NUM_WEIGHTS],
-    pub unique_solution: bool,
-    pub inventory_target: u32,
-    pub door_chains: u32,
-    pub path_sharing: bool,
-    pub confusion_tiles: bool,
+    pub board_size: u32, pub num_bots: u32, pub hole_percent: u32,
+    pub hole_placement: HolePlacement, pub difficulty: u32,
+    pub weights: [u32; GEN_NUM_WEIGHTS], pub unique_solution: bool,
+    pub inventory_target: u32, pub door_chains: u32,
+    pub path_sharing: bool, pub confusion_tiles: bool,
     #[allow(dead_code)] pub required_tile: Option<fn(&TileKind) -> bool>,
 }
-// === Generator state ===
 pub enum GenPhase {
     Idle,
     Running { attempt: usize, config: GenConfig, seed: u64,
         best: Option<(Vec<(u32, u32, TileKind, bool)>, u32)> },
-    Done(Vec<(u32, u32, TileKind, bool)>, u32, u64), // tiles, rating, seed
+    Done(Vec<(u32, u32, TileKind, bool)>, u32, u64),
     Failed,
 }
-
 #[derive(Resource)]
 pub struct GeneratorState { pub phase: GenPhase }
-
 impl Default for GeneratorState {
     fn default() -> Self { Self { phase: GenPhase::Idle } }
 }
-// === Core generation ===
 pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(u32, u32, TileKind, bool)>, u32)> {
     let size = config.board_size;
     let diff = config.difficulty as f32 / 100.0;
@@ -65,14 +52,10 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
     let mut solution_positions: HashSet<(u32, u32)> = HashSet::new();
     let mut bot_floor_paths: Vec<Vec<(u32, u32)>> = Vec::new();
     let total_cells = (size * size) as usize;
-
-    // For 3+ bots, auto-enable path sharing; scale paths to balance density vs generation
     let sharing = config.path_sharing || config.num_bots >= 3;
     let nb = config.num_bots as f32;
     let bot_scale = if config.num_bots <= 2 { 1.0 } else { (2.5 / nb).max(0.4) };
     let cell_budget = total_cells * 2 / (config.num_bots.max(2) as usize + 1);
-
-    // Spread colors apart — skip enough to avoid similar pairs (e.g. orange/gold)
     let ideal_step = NUM_COLORS / config.num_bots.max(1) as usize;
     let color_step = if config.num_bots <= 3 { ideal_step.max(3) } else { ideal_step.max(2) };
     let color_offset: usize = rng.gen_range(0..NUM_COLORS);
@@ -80,7 +63,6 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
         let ci = (bot_idx as usize * color_step + color_offset) % NUM_COLORS;
         let (sc, sr, sd) = pick_start(size, rng, &grid)?;
         grid.insert((sc, sr), TileKind::Source(ci, sd));
-
         let mut col = sc as i32;
         let mut row = sr as i32;
         let mut dir = sd;
@@ -96,15 +78,12 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
         let mut path_history: Vec<(i32, i32, Direction)> = vec![(sc as i32, sr as i32, sd)];
         let mut floor_path: Vec<(u32, u32)> = Vec::new();
         let base_chance = 0.15 + diff * 0.35;
-
         for _ in 0..(target + 15) {
             let (dc, dr) = dir.grid_delta();
             let (nc, nr) = (col + dc, row + dr);
-            // Allow walking on existing Floor tiles (shared paths between bots)
             let next_tile = if in_bounds(nc, nr, size) { grid.get(&(nc as u32, nr as u32)).copied() } else { None };
             let can_advance = in_bounds(nc, nr, size)
                 && (next_tile.is_none() || (sharing && next_tile == Some(TileKind::Floor)));
-
             if !can_advance || steps >= target {
                 if steps >= min_len && turns > 0 {
                     if try_place_goal_lookback(&mut grid, col, row, current_color, &path_history) {
@@ -125,19 +104,13 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
                 }
                 return None;
             }
-
             col = nc; row = nr;
-            if next_tile.is_none() {
-                grid.insert((nc as u32, nr as u32), TileKind::Floor);
-            }
+            if next_tile.is_none() { grid.insert((nc as u32, nr as u32), TileKind::Floor); }
             floor_path.push((nc as u32, nr as u32));
-            steps += 1;
-            straight_run += 1;
+            steps += 1; straight_run += 1;
             path_history.push((col, row, dir));
-
-            // Straight run range before placing a mechanic — based on board size + randomization
-            let min_gap = 1 + (size / 3) as u32; // 2 (3x3) to 4 (12x12)
-            let max_gap = min_gap + 1 + (diff * 2.0) as u32; // adds 1-3 based on difficulty
+            let min_gap = 1 + (size / 3) as u32;
+            let max_gap = min_gap + 1 + (diff * 2.0) as u32;
             let gap_target = rng.gen_range(min_gap..=max_gap);
             if steps > 1 && steps < target - 1 && straight_run >= gap_target {
                 let straight_bonus = ((straight_run - gap_target) as f32 * 0.12).min(0.35);
@@ -156,25 +129,18 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
                 }
             }
         }
-
         if !goal_placed
             && !try_place_goal_lookback(&mut grid, col, row, current_color, &path_history)
         { return None; }
         if turns == 0 { return None; }
         bot_floor_paths.push(floor_path);
     }
-
-    // Reject if paths cover less than 15% of the board (too concentrated)
     let total_floor: usize = bot_floor_paths.iter().map(|p| p.len()).sum();
     let coverage = total_floor as f32 / (size * size) as f32;
     if coverage < 0.25 && size >= 5 { return None; }
-
-    // === Door chain interactions ===
     if config.door_chains > 0 && config.weights[8] > 0 {
         place_door_chains(&mut grid, &mut solution_positions, &bot_floor_paths, rng, config.door_chains as usize);
     }
-
-    // Purposeful hole placement — score cells by edge proximity and path distance
     let empties: Vec<(u32, u32)> = (0..size).flat_map(|r| (0..size).map(move |c| (c, r)))
         .filter(|p| !grid.contains_key(p)).collect();
     if config.hole_percent > 0 && !empties.is_empty() {
@@ -202,36 +168,29 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
     for r in 0..size { for c in 0..size {
         if !grid.contains_key(&(c, r)) { grid.insert((c, r), TileKind::Floor); }
     }}
-
     let mut tiles: Vec<(u32, u32, TileKind, bool)> = grid.iter()
-        .map(|(&(c, r), &k)| (c, r, k, solution_positions.contains(&(c, r))))
-        .collect();
-
+        .map(|(&(c, r), &k)| (c, r, k, solution_positions.contains(&(c, r)))).collect();
     let all: Vec<_> = tiles.iter().map(|(c, r, k, _)| (*c, *r, *k)).collect();
-    if !simulate_headless(size, &all) { return None; } // must succeed with all tiles
+    if !simulate_headless(size, &all) { return None; }
     let mut without: Vec<_> = tiles.iter()
         .filter(|(_, _, _, sol)| !sol).map(|(c, r, k, _)| (*c, *r, *k)).collect();
     for &(c, r) in &solution_positions { without.push((c, r, TileKind::Floor)); }
-    if simulate_headless(size, &without) { return None; } // must fail overall
-
-    // Strip solution tiles down to inventory_target (not to absolute minimum).
-    // This keeps enough tiles for the player to have a satisfying puzzle.
+    if simulate_headless(size, &without) { return None; }
     {
         let tgt = if config.inventory_target > 0 { config.inventory_target as usize } else { 1 };
         let mut sol_vec: Vec<(u32, u32)> = solution_positions.iter().copied().collect();
         shuffle(&mut sol_vec, rng);
         let mut essential: HashSet<(u32, u32)> = solution_positions.clone();
         for &pos in &sol_vec {
-            if essential.len() <= tgt { break; } // keep at least target tiles
+            if essential.len() <= tgt { break; }
             essential.remove(&pos);
             let test: Vec<_> = tiles.iter().map(|(c, r, k, _)| {
                 if essential.contains(&(*c, *r)) { (*c, *r, TileKind::Floor) } else { (*c, *r, *k) }
             }).collect();
-            if simulate_headless(size, &test) { essential.insert(pos); } // still needed
+            if simulate_headless(size, &test) { essential.insert(pos); }
         }
         for t in &mut tiles { t.3 = essential.contains(&(t.0, t.1)); }
     }
-
     if config.unique_solution {
         let inv: Vec<(u32, u32)> = tiles.iter()
             .filter(|(_, _, _, s)| *s).map(|(c, r, _, _)| (*c, *r)).collect();
@@ -254,19 +213,15 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
             }
         }
     }
-
-    // Reject if ANY bot is pre-solved after stripping
     {
         let stripped: Vec<_> = tiles.iter().map(|(c, r, k, sol)| {
             (*c, *r, if *sol { TileKind::Floor } else { *k })
         }).collect();
-        // Quick check: test each bot individually only if there are 2+ bots
         let sources: Vec<(u32, u32, usize)> = stripped.iter()
             .filter_map(|(c, r, k)| if let TileKind::Source(ci, _) = k { Some((*c, *r, *ci)) } else { None })
             .collect();
         if sources.len() > 1 {
             for &(sc, sr, sci) in &sources {
-                // Only check bots near their goal (within manhattan distance of board_size/2)
                 let goal_near = stripped.iter().any(|(c, r, k)| {
                     if let TileKind::Goal(gi) = k { *gi == sci && ((*c as i32 - sc as i32).unsigned_abs() + (*r as i32 - sr as i32).unsigned_abs()) <= size / 2 }
                     else { false }
@@ -281,19 +236,13 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
             }
         }
     }
-
-    // Reject if required_tile is set but not in inventory (must be placeable, not baked in)
     if let Some(req) = config.required_tile {
-        let has_required_in_inv = tiles.iter().any(|(_, _, k, sol)| *sol && req(k));
-        if !has_required_in_inv { return None; }
+        if !tiles.iter().any(|(_, _, k, sol)| *sol && req(k)) { return None; }
     }
-
     if config.confusion_tiles { add_confusion_tiles(&mut tiles, size, rng); }
     let rating = rate_difficulty(&tiles, config.num_bots, size);
     Some((tiles, rating))
 }
-
-// === Door chain placement — prefer path crossing points ===
 fn place_door_chains(
     grid: &mut HashMap<(u32, u32), TileKind>, solution: &mut HashSet<(u32, u32)>,
     bot_paths: &[Vec<(u32, u32)>], rng: &mut impl Rng, chain_count: usize,
@@ -305,7 +254,6 @@ fn place_door_chains(
         if nb >= 2 {
             let a = rng.gen_range(0..nb);
             let b = (a + 1 + rng.gen_range(0..nb - 1)) % nb;
-            // Find positions where bot paths are close (within 3 cells)
             let mut cross_pairs: Vec<((u32, u32), (u32, u32))> = Vec::new();
             for &sp in &path_sets[a] { for &dp in &path_sets[b] {
                 let dist = (sp.0 as i32 - dp.0 as i32).unsigned_abs()
@@ -335,7 +283,6 @@ fn place_door_chains(
         }
     }
 }
-
 fn try_place_switch_door(
     grid: &mut HashMap<(u32, u32), TileKind>, solution: &mut HashSet<(u32, u32)>,
     sw_path: &[(u32, u32)], dr_path: &[(u32, u32)], rng: &mut impl Rng, cross: bool,
@@ -353,8 +300,6 @@ fn try_place_switch_door(
     solution.insert(sp);
     true
 }
-
-// === Difficulty rating ===
 fn rate_difficulty(tiles: &[(u32, u32, TileKind, bool)], num_bots: u32, board_size: u32) -> u32 {
     let (mut mechanics, mut type_set, mut has_but) = (0u32, 0u32, false);
     let (mut door_count, mut switch_count, mut inv_count) = (0u32, 0u32, 0u32);
@@ -378,27 +323,17 @@ fn rate_difficulty(tiles: &[(u32, u32, TileKind, bool)], num_bots: u32, board_si
             _ => {}
         }
     }
-    // Path efficiency: levels where each solution tile matters more
     let sol_count = tiles.iter().filter(|(_, _, _, s)| *s).count() as f32;
     let path_tiles = tiles.iter().filter(|(_, _, k, _)| !matches!(k, TileKind::Floor | TileKind::Empty)).count() as f32;
-    let efficiency_bonus = if sol_count > 0.0 && path_tiles > 0.0 {
-        (path_tiles / sol_count / 3.0).min(1.0) * 5.0 } else { 0.0 };
+    let efficiency_bonus = if sol_count > 0.0 && path_tiles > 0.0 { (path_tiles / sol_count / 3.0).min(1.0) * 5.0 } else { 0.0 };
     let diversity = type_set.count_ones();
     let density = (mechanics as f32 / cells * 150.0).min(25.0);
-    // Door chains: multiple switch/door pairs = exponential complexity
     let chain_bonus = (switch_count.min(door_count) as f32 * 6.0).min(18.0);
-    let score = density
-        + diversity as f32 * 5.0
-        + if has_but { 8.0 } else { 0.0 }
-        + chain_bonus
-        + ((num_bots - 1) as f32 * 8.0).min(20.0)
-        + (mechanics as f32 * 1.0).min(10.0)
-        + (inv_count as f32 * 0.5).min(7.0)
-        + efficiency_bonus;
+    let score = density + diversity as f32 * 5.0 + if has_but { 8.0 } else { 0.0 }
+        + chain_bonus + ((num_bots - 1) as f32 * 8.0).min(20.0)
+        + (mechanics as f32 * 1.0).min(10.0) + (inv_count as f32 * 0.5).min(7.0) + efficiency_bonus;
     (score as u32).min(100)
 }
-
-// === Generator system (best-of-N: picks closest to target difficulty) ===
 pub fn update_generator(mut state: ResMut<GeneratorState>) {
     let phase = std::mem::replace(&mut state.phase, GenPhase::Idle);
     let GenPhase::Running { attempt: start, config, seed, mut best } = phase else {

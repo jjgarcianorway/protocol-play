@@ -8,8 +8,6 @@ use crate::constants::*;
 use crate::types::*;
 use crate::textures::load_png_texture;
 
-#[derive(Component)] pub struct IconCamera;
-
 /// Create a placeholder transparent icon image.
 pub fn create_placeholder(images: &mut Assets<Image>) -> Handle<Image> {
     let size = Extent3d { width: ICON_SIZE, height: ICON_SIZE, depth_or_array_layers: 1 };
@@ -106,60 +104,4 @@ pub fn tile_filename(kind: TileKind) -> String {
         TileKind::ArrowBut(ci, d) => format!("arrowbut_{ci}_{}", d.short()),
         TileKind::Empty => "empty".into(),
     }
-}
-
-fn build_render_queue(icons: &InventoryIcons) -> Vec<(Handle<Image>, String, TileKind)> {
-    let mut q: Vec<(Handle<Image>, String, TileKind)> = Vec::with_capacity(320);
-    let mut push = |h: Handle<Image>, k: TileKind| { q.push((h, tile_filename(k), k)); };
-    push(icons.floor.clone(), TileKind::Floor);
-    push(icons.source.clone(), TileKind::Source(0, Direction::North));
-    push(icons.goal.clone(), TileKind::Goal(0));
-    push(icons.turn.clone(), TileKind::Turn(0, Direction::North));
-    push(icons.turnbut.clone(), TileKind::TurnBut(0, Direction::North));
-    for d in Direction::all() { push(icons.source_dir_icons[d.index()].clone(), TileKind::Source(0, d)); }
-    for ci in 0..NUM_COLORS {
-        for d in Direction::all() { push(icons.source_color_icons[ci * 4 + d.index()].clone(), TileKind::Source(ci, d)); }
-    }
-    for ci in 0..NUM_COLORS { push(icons.goal_color_icons[ci].clone(), TileKind::Goal(ci)); }
-    for d in Direction::all() { push(icons.turn_dir_icons[d.index()].clone(), TileKind::Turn(0, d)); }
-    for ci in 0..NUM_COLORS {
-        for d in Direction::all() { push(icons.turn_color_icons[ci * 4 + d.index()].clone(), TileKind::Turn(ci, d)); }
-    }
-    for d in Direction::all() { push(icons.turn_color_icons[NUM_COLORS * 4 + d.index()].clone(), TileKind::Turn(NUM_COLORS, d)); }
-    for d in Direction::all() { push(icons.turnbut_dir_icons[d.index()].clone(), TileKind::TurnBut(0, d)); }
-    for ci in 0..NUM_COLORS {
-        for d in Direction::all() { push(icons.turnbut_color_icons[ci * 4 + d.index()].clone(), TileKind::TurnBut(ci, d)); }
-    }
-    push(icons.teleport.clone(), TileKind::Teleport(0, 0));
-    for ci in 0..NUM_COLORS { push(icons.teleport_color_icons[ci].clone(), TileKind::Teleport(ci, 0)); }
-    push(icons.teleport_color_icons[NUM_COLORS].clone(), TileKind::Teleport(NUM_COLORS, 0));
-    push(icons.teleportbut.clone(), TileKind::TeleportBut(0, 0));
-    for ci in 0..NUM_COLORS { push(icons.teleportbut_color_icons[ci].clone(), TileKind::TeleportBut(ci, 0)); }
-    push(icons.bounce.clone(), TileKind::Bounce(0));
-    for ci in 0..NUM_COLORS { push(icons.bounce_color_icons[ci].clone(), TileKind::Bounce(ci)); }
-    push(icons.bounce_color_icons[NUM_COLORS].clone(), TileKind::Bounce(NUM_COLORS));
-    push(icons.bouncebot.clone(), TileKind::BounceBut(0));
-    for ci in 0..NUM_COLORS { push(icons.bouncebot_color_icons[ci].clone(), TileKind::BounceBut(ci)); }
-    push(icons.door.clone(), TileKind::Door(false));
-    push(icons.door_open.clone(), TileKind::Door(true));
-    push(icons.door_closed.clone(), TileKind::Door(false));
-    push(icons.switch.clone(), TileKind::Switch);
-    for ci in 0..NUM_COLORS { push(icons.switch_color_icons[ci].clone(), TileKind::ColorSwitch(ci)); }
-    push(icons.switch_color_icons[NUM_COLORS].clone(), TileKind::Switch);
-    push(icons.switchbut.clone(), TileKind::ColorSwitchBut(0));
-    for ci in 0..NUM_COLORS { push(icons.switchbut_color_icons[ci].clone(), TileKind::ColorSwitchBut(ci)); }
-    push(icons.painter.clone(), TileKind::Painter(0));
-    for ci in 0..NUM_COLORS { push(icons.painter_color_icons[ci].clone(), TileKind::Painter(ci)); }
-    push(icons.arrow.clone(), TileKind::Arrow(0, Direction::North));
-    for d in Direction::all() { push(icons.arrow_dir_icons[d.index()].clone(), TileKind::Arrow(0, d)); }
-    for ci in 0..NUM_COLORS {
-        for d in Direction::all() { push(icons.arrow_color_icons[ci * 4 + d.index()].clone(), TileKind::Arrow(ci, d)); }
-    }
-    for d in Direction::all() { push(icons.arrow_color_icons[NUM_COLORS * 4 + d.index()].clone(), TileKind::Arrow(NUM_COLORS, d)); }
-    push(icons.arrowbut.clone(), TileKind::ArrowBut(0, Direction::North));
-    for d in Direction::all() { push(icons.arrowbut_dir_icons[d.index()].clone(), TileKind::ArrowBut(0, d)); }
-    for ci in 0..NUM_COLORS {
-        for d in Direction::all() { push(icons.arrowbut_color_icons[ci * 4 + d.index()].clone(), TileKind::ArrowBut(ci, d)); }
-    }
-    q
 }

@@ -11,14 +11,8 @@ pub enum Tool {
     #[default] Floor, Source, Goal, Turn, TurnBut, Teleport, TeleportBut, Bounce, BounceBut,
     Door, Switch, ColorSwitch, ColorSwitchBut, Painter, Arrow, ArrowBut, Delete,
 }
-
 #[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
-pub enum Direction {
-    North,
-    East,
-    South,
-    West,
-}
+pub enum Direction { North, East, South, West }
 
 impl Direction {
     pub fn rotation(self) -> f32 {
@@ -38,21 +32,12 @@ impl Direction {
     }
 
     pub fn grid_delta(self) -> (i32, i32) {
-        match self {
-            Direction::North => (0, -1),
-            Direction::East => (1, 0),
-            Direction::South => (0, 1),
-            Direction::West => (-1, 0),
-        }
+        match self { Direction::North => (0, -1), Direction::East => (1, 0),
+            Direction::South => (0, 1), Direction::West => (-1, 0) }
     }
-
     pub fn opposite(self) -> Direction {
-        match self {
-            Direction::North => Direction::South,
-            Direction::East => Direction::West,
-            Direction::South => Direction::North,
-            Direction::West => Direction::East,
-        }
+        match self { Direction::North => Direction::South, Direction::East => Direction::West,
+            Direction::South => Direction::North, Direction::West => Direction::East }
     }
 
     /// Returns exit direction for a bot with travel direction `self` entering a Turn with `turn_dir`.

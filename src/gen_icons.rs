@@ -78,7 +78,7 @@ fn setup_icon_scene(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut images: ResMut<Assets<Image>>,
-    board_size: Res<BoardSize>,
+    _board_size: Res<BoardSize>,
 ) {
     // Same tile height as the real game
     let floor_texture = create_tile_texture(&mut images, TILE_TEX_SIZE, TILE_TEX_BORDER);
