@@ -70,7 +70,10 @@ pub fn build_app(app: &mut App) {
         endings_anim::animate_ending_screen,
         endings_anim::animate_ending_stats,
         endings_anim::animate_ending_glow,
+    ).run_if(resource_exists::<endings::EndingState>))
+    .add_systems(Update, (
         endings_anim::new_journey_hover,
+        endings_anim::new_journey_click,
     ).run_if(resource_exists::<endings::EndingState>));
 }
 

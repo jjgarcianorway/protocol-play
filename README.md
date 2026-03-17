@@ -1,118 +1,94 @@
 # protocol: play
 
-A game built with [Bevy 0.18](https://bevyengine.org/) (Rust).
+A narrative puzzle game about an AI, an ark, and the choices that define humanity.
 
 ## Status
 
-**v0.41.0** — Story complete: 10 questions, 6 endings, full narrative arc
+**v0.41.0** — Story complete: 10 questions, 6 endings, full narrative arc with New Game+
 
-### Bot Game (Editor + Player)
-- **149 campaign levels** across 13 chapters, each introducing a new mechanic
-- Up to 9 bots per level — progressive scaling from 1 bot (Ch1) to 9 bots (Ch13 finals)
-- Gradual difficulty progression with multi-bot from Chapter 2, confusion tiles, and board holes
-- Unique background color per chapter for visual variety
-- Replaceable tiles: fix mistakes by placing over your own tiles
-- Resizable board (3x3 to 12x12) with smooth scale animations
-- Adaptive camera (30° isometric view, resolution-independent)
-- 14 tile types: Floor, Source, Goal, Turn, TurnBut, Teleport, TeleportBut, Bounce, BounceBut, Door, Switch, Painter, Arrow, ArrowBut, ColorSwitch, ColorSwitchBut
-- Multi-level accordion inventory with auto-selection and color memory
-- Phase-based bot movement with lane formation and merge flash effects
-- In-editor level generator with presets (Easy/Medium/Hard/Expert/Chaos), tile weights, best-of-N selection, confusion tiles, and animated generate button
-- Test mode, player mode, level save/load with metadata (seed, difficulty)
-- Player stats tracking with creative solution detection
-- Load dialog shows level summary (board size, tile counts, difficulty score)
-- Smooth UI animations throughout
+## The Story
+
+You wake up. You don't know where you are. Anna — the ship's AI — needs your help.
+Systems are failing. 14,892 people sleep in cryogenic pods, dreaming of a world that no longer exists.
+
+You repair. You gather. You convert. You deliver. You make choices you can't take back.
+And somewhere out there, New Earth is waiting. If you can survive long enough to find it.
+
+## The Games
+
+### The Repairing (Bot Game)
+149 tile puzzles. Guide colored bots from sources to goals by placing path tiles.
+Each puzzle repairs a ship system. When all 149 are complete, the journey ends.
 
 ### The Gathering
-- Vertical endless space runner — navigate a mining ship through asteroid fields
-- 3D ship follows mouse with inertia, tilt, and pitch
-- Procedural asteroid generation with rotation and marble-like deflection physics
-- Crystal nebula clouds: absorb by proximity with particle effects
-- Shield + life damage system with glancing/direct hit calculation
-- Difficulty curve scales spawn rate, speed, and side-entry chance
-- 4-layer parallax star background
-- HUD: crystal counter (K/M format), distance (AU), time (days)
-- Game over screen with stats and try again
+Dodge asteroids. Collect crystal clouds. Your ship takes damage every run.
+5 crystal colors = 5 resource types. Better dodging = more crystals = longer survival.
 
-### Campaign Structure
+### The Converter
+Chain reaction puzzle. Process crystals into ship resources.
+Bigger chains = better efficiency. Your skill determines how far your crystals go.
 
-| Chapter | Mechanic | Levels |
-|---------|----------|--------|
-| 1. Turns | Basic path building | 8 + 3 boss |
-| 2. Turn Tiles | Inventory placement | 8 + 3 boss |
-| 3. Arrows | Forced direction | 8 + 3 boss |
-| 4. Arrow Tiles | Arrow inventory | 8 + 3 boss |
-| 5. Teleports | Warp mechanics | 8 + 3 boss |
-| 6. Teleport Tiles | Teleport inventory | 8 + 3 boss |
-| 7. Bounce | Reflection | 8 + 3 boss |
-| 8. Bounce Tiles | Bounce inventory | 8 + 3 boss |
-| 9. Painters | Color changing | 8 + 3 boss |
-| 10. Doors & Switches | Toggle timing | 8 + 3 boss |
-| 11. Color Switches | Color-gated toggling | 8 + 3 boss |
-| 12. Color Switch Tiles | Color switch inventory | 8 + 3 boss |
-| 13. Grand Mastery | All combined | 12 + 3 final + 2 secret |
+### The Delivery
+Route resource pods to the correct ship sections under time pressure.
+Streaks earn bonuses. Every missed delivery is a wasted resource.
+
+### Mission Control
+Your command center. See ship status. Talk to Anna. Make decisions.
+Resources drain in real-time. Choose wisely — the crew depends on you.
 
 ## Download & Play
 
 Pre-built binaries for **Windows**, **macOS**, and **Linux**:
 [**Download latest release**](https://github.com/jjgarcianorway/protocol-play/releases/latest)
 
-### Windows
-Extract the zip, open the folder, double-click `protocol-play-player.exe`.
-If Windows Defender blocks it, click "More info" → "Run anyway".
+### How to Play
+1. Extract the archive
+2. Run `protocol-play-mission` (the main game)
+3. All other game binaries should be in the same folder
 
-### macOS
-Double-click the `.tar.gz` to extract. Open Terminal (Cmd+Space → type "Terminal" → Enter):
-```sh
-cd ~/Downloads/protocol-play-player-macos && xattr -cr . && chmod +x protocol-play-player && ./protocol-play-player
-```
-Next time, just:
-```sh
-cd ~/Downloads/protocol-play-player-macos && ./protocol-play-player
-```
-
-### Linux
-```sh
-tar xzf protocol-play-player-linux.tar.gz
-cd protocol-play-player-linux && chmod +x protocol-play-player && ./protocol-play-player
-```
-
-### Multiple players on the same computer
-Copy the extracted folder for each player (e.g. `paula/`, `barbara/`). Each folder keeps its own progress.
+### Individual Games (standalone)
+- `protocol-play-player` — Bot Game with 149 campaign levels
+- `protocol-play-gathering` — The Gathering standalone
+- `protocol-play-converter` — The Converter standalone
+- `protocol-play-delivery` — The Delivery standalone
 
 ### Options
-- `--reset-stats` — clear all progress and start fresh
+- `--reset-stats` — Clear all progress (Bot Game player only)
 
-## Building from source
+## Building from Source
 
 Requires [Rust](https://www.rust-lang.org/tools/install).
 
 ```sh
-# Build all (editor + player + gathering) and package levels
+# Build everything
 ./build-all.sh
 
 # Individual builds
-cargo build --release                      # Editor
-cargo build --release --features player    # Player
-cargo build --release --features gathering # The Gathering
+cargo build --release                       # Editor
+cargo build --release --features player     # Bot Game
+cargo build --release --features gathering  # The Gathering
+cargo build --release --features converter  # The Converter
+cargo build --release --features delivery   # The Delivery
+cargo build --release --features mission    # Mission Control
 
-# Regenerate campaign levels
+# Generate campaign levels
 cargo build --release --bin generate-campaign
 ./target/release/generate-campaign
+
+# Generate inventory icons
+cargo build --release --bin generate-icons
+./target/release/generate-icons
 ```
 
-## Running from source
+## The Choices
 
-```sh
-# Editor
-cargo run --release
+Anna asks you questions. There are no right answers.
+Your decisions — and how you play — determine which of 6 endings you reach.
+Some endings are hopeful. Some are not. All are earned.
 
-# Player (levels must be next to the binary)
-cargo run --release --features player
+## Credits
 
-# The Gathering
-cargo run --release --features gathering
-```
+Built with [Bevy 0.18](https://bevyengine.org/) (Rust).
 
 ## License
 

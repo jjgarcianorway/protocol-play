@@ -251,6 +251,17 @@ pub fn spawn_ending_screen(
                 EndingAnnaGlow,
             ));
 
+            // Playthrough complete label
+            col.spawn((
+                Text::new(format!(
+                    "Playthrough #{} complete",
+                    gs.playthrough_count + 1,
+                )),
+                TextFont { font: font.clone(), font_size: TITLE_FONT, ..default() },
+                TextColor(Color::srgba(0.45, 0.5, 0.6, 0.0)),
+                EndingTitle,
+            ));
+
             // Ending title
             col.spawn((
                 Text::new(format!("Ending: {}", ending.title())),

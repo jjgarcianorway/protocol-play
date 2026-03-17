@@ -41,6 +41,10 @@ pub struct GameState {
 
     // Story flags (for Anna's questions later)
     pub story_flags: Vec<String>,
+
+    // New Game+ tracking
+    #[serde(default)]
+    pub playthrough_count: u32,
 }
 
 impl Default for GameState {
@@ -66,8 +70,16 @@ impl Default for GameState {
             story_seen: Vec::new(),
             decisions: Vec::new(),
             story_flags: Vec::new(),
+            playthrough_count: 0,
         }
     }
+}
+
+/// Reset state for New Game+ — keeps playthrough_count (incremented) and resets everything else.
+pub fn reset_for_new_game(state: &mut GameState) {
+    let next_playthrough = state.playthrough_count + 1;
+    *state = GameState::default();
+    state.playthrough_count = next_playthrough;
 }
 
 impl GameState {
@@ -78,13 +90,17 @@ impl GameState {
     }
 }
 
-/// Path to the game state file (next to executable).
-pub fn game_state_path() -> PathBuf {
+/// Directory next to the executable.
+pub fn exe_dir() -> PathBuf {
     std::env::current_exe()
         .ok()
         .and_then(|p| p.parent().map(|d| d.to_path_buf()))
         .unwrap_or_else(|| PathBuf::from("."))
-        .join("game_state.json")
+}
+
+/// Path to the game state file (next to executable).
+pub fn game_state_path() -> PathBuf {
+    exe_dir().join("game_state.json")
 }
 
 /// Load game state from disk, or return defaults for a new game.
