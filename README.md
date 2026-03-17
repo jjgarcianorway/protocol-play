@@ -4,7 +4,7 @@ A game built with [Bevy 0.18](https://bevyengine.org/) (Rust).
 
 ## Status
 
-**v0.29.1** — Gemini high-contrast colors, icon camera matched to game
+**v0.30.0** — No pre-solved bots, greener greens, distinct colors
 
 ### Bot Game (Editor + Player)
 - **149 campaign levels** across 13 chapters, each introducing a new mechanic

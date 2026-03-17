@@ -213,22 +213,6 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
         .filter(|(_, _, _, sol)| !sol).map(|(c, r, k, _)| (*c, *r, *k)).collect();
     for &(c, r) in &solution_positions { without.push((c, r, TileKind::Floor)); }
     if simulate_headless(size, &without) { return None; } // must fail overall
-    // Reject if ANY individual bot is already solved without inventory tiles
-    // (every bot must need at least one placed tile)
-    let sources: Vec<(u32, u32, usize, Direction)> = without.iter()
-        .filter_map(|(c, r, k)| if let TileKind::Source(ci, d) = k { Some((*c, *r, *ci, *d)) } else { None })
-        .collect();
-    if sources.len() > 1 {
-        for &(sc, sr, _, _) in &sources {
-            // Test with only this one source (remove all others)
-            let single: Vec<_> = without.iter().map(|(c, r, k)| {
-                if let TileKind::Source(_, _) = k {
-                    if *c == sc && *r == sr { (*c, *r, *k) } else { (*c, *r, TileKind::Floor) }
-                } else { (*c, *r, *k) }
-            }).collect();
-            if simulate_headless(size, &single) { return None; } // this bot is pre-solved
-        }
-    }
 
     // Strip solution tiles down to inventory_target (not to absolute minimum).
     // This keeps enough tiles for the player to have a satisfying puzzle.
@@ -267,6 +251,33 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
                     if t.0 == ep.0 && t.1 == ep.1 { t.2 = sk; }
                 }
                 if simulate_headless(size, &modified) { return None; }
+            }
+        }
+    }
+
+    // Reject if ANY bot is pre-solved after stripping
+    {
+        let stripped: Vec<_> = tiles.iter().map(|(c, r, k, sol)| {
+            (*c, *r, if *sol { TileKind::Floor } else { *k })
+        }).collect();
+        // Quick check: test each bot individually only if there are 2+ bots
+        let sources: Vec<(u32, u32, usize)> = stripped.iter()
+            .filter_map(|(c, r, k)| if let TileKind::Source(ci, _) = k { Some((*c, *r, *ci)) } else { None })
+            .collect();
+        if sources.len() > 1 {
+            for &(sc, sr, sci) in &sources {
+                // Only check bots near their goal (within manhattan distance of board_size/2)
+                let goal_near = stripped.iter().any(|(c, r, k)| {
+                    if let TileKind::Goal(gi) = k { *gi == sci && ((*c as i32 - sc as i32).unsigned_abs() + (*r as i32 - sr as i32).unsigned_abs()) <= size / 2 }
+                    else { false }
+                });
+                if !goal_near { continue; }
+                let single: Vec<_> = stripped.iter().map(|(c, r, k)| {
+                    if matches!(k, TileKind::Source(..)) && (*c != sc || *r != sr) {
+                        (*c, *r, TileKind::Floor)
+                    } else { (*c, *r, *k) }
+                }).collect();
+                if simulate_headless(size, &single) { return None; }
             }
         }
     }
