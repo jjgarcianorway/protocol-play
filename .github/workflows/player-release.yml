@@ -110,8 +110,8 @@ jobs:
             Player build with 149 campaign levels across 13 chapters.
 
             **Windows**: Extract the zip, open the folder, run `protocol-play-player.exe`.
-            **macOS**: Extract, open the folder, then: `chmod +x protocol-play-player && ./protocol-play-player`
-            **Linux**: Extract, open the folder, then: `chmod +x protocol-play-player && ./protocol-play-player`
+            **macOS**: Extract, then in Terminal: `cd ~/Downloads && tar xzf protocol-play-player-macos.tar.gz && xattr -cr . && chmod +x protocol-play-player && ./protocol-play-player`
+            **Linux**: Extract, then: `tar xzf protocol-play-player-linux.tar.gz && chmod +x protocol-play-player && ./protocol-play-player`
 
             Use `--reset-stats` to clear all progress and start fresh.
           files: |
