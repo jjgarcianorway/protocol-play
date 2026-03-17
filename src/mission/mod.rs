@@ -20,6 +20,10 @@ mod dialog_scenes_act1;
 mod dialog_scenes_act2;
 mod dialog_scenes_act3;
 mod dialog_scenes_act4;
+mod dialog_scenes_crew;
+mod dialog_scenes_crew_ng;
+pub mod world_seed;
+pub mod crew_stories;
 
 use bevy::prelude::*;
 use bevy::post_process::bloom::Bloom;
@@ -29,8 +33,21 @@ use constants::*;
 use types::*;
 use crate::save_state::{load_game_state, GameState};
 
+/// Cached world state — generated once on startup from the seed.
+#[derive(Resource)]
+pub struct CachedWorldState {
+    pub world: world_seed::WorldState,
+    pub crew: Vec<crew_stories::CrewMember>,
+}
+
 pub fn build_app(app: &mut App) {
     let gs = load_game_state();
+
+    // Generate world from seed (deterministic, cached for the session)
+    let world = world_seed::generate_world(gs.world_seed);
+    let crew = crew_stories::generate_crew(gs.world_seed);
+    let cached = CachedWorldState { world, crew };
+
     let ship = ShipStatus {
         power: gs.power,
         life_support: gs.life_support,
@@ -54,6 +71,7 @@ pub fn build_app(app: &mut App) {
     .insert_resource(RunningGame::default())
     .insert_resource(questions::QuestionState::default())
     .insert_resource(dialog_types::DialogState::default())
+    .insert_resource(cached)
     .add_systems(Startup, setup_mission)
     .add_systems(Update, (
         dashboard::animate_resource_bars,

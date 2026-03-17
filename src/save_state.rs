@@ -49,6 +49,18 @@ pub struct GameState {
     // Ending flag — player reached New Earth
     #[serde(default)]
     pub reached_new_earth: bool,
+
+    // World seed — generated on first game, preserved across sessions
+    #[serde(default)]
+    pub world_seed: u64,
+
+    // Crew members the player has learned about (pod numbers)
+    #[serde(default)]
+    pub discovered_crew: Vec<u32>,
+
+    // Ark names the player has learned about
+    #[serde(default)]
+    pub discovered_arks: Vec<String>,
 }
 
 impl Default for GameState {
@@ -76,15 +88,29 @@ impl Default for GameState {
             story_flags: Vec::new(),
             playthrough_count: 0,
             reached_new_earth: false,
+            world_seed: 0,
+            discovered_crew: Vec::new(),
+            discovered_arks: Vec::new(),
         }
     }
 }
 
-/// Reset state for New Game+ — keeps playthrough_count (incremented) and resets everything else.
+/// Reset state for New Game+ — keeps playthrough_count (incremented) and world seed.
+/// Pass `keep_seed = true` for "Same World" or `false` for "New World".
 pub fn reset_for_new_game(state: &mut GameState) {
+    let next_playthrough = state.playthrough_count + 1;
+    let seed = state.world_seed;
+    *state = GameState::default();
+    state.playthrough_count = next_playthrough;
+    state.world_seed = seed;
+}
+
+/// Reset for New Game+ with a fresh world seed.
+pub fn reset_for_new_world(state: &mut GameState) {
     let next_playthrough = state.playthrough_count + 1;
     *state = GameState::default();
     state.playthrough_count = next_playthrough;
+    state.world_seed = rand::random::<u64>();
 }
 
 impl GameState {
@@ -109,12 +135,19 @@ pub fn game_state_path() -> PathBuf {
 }
 
 /// Load game state from disk, or return defaults for a new game.
+/// On first load, generates a world seed if none exists.
 pub fn load_game_state() -> GameState {
     let path = game_state_path();
-    fs::read_to_string(&path)
+    let mut state: GameState = fs::read_to_string(&path)
         .ok()
         .and_then(|json| serde_json::from_str(&json).ok())
-        .unwrap_or_default()
+        .unwrap_or_default();
+    // Generate world seed on first ever game
+    if state.world_seed == 0 {
+        state.world_seed = rand::random::<u64>();
+        save_game_state(&state);
+    }
+    state
 }
 
 /// Save game state to disk (pretty-printed JSON).

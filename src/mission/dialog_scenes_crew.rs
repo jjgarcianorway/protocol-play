@@ -1,0 +1,351 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! Dialog scenes that use WorldState data — Earth's collapse, other arks, crew stories.
+//! These are static scene templates; the world_seed data fills in contextual Anna messages.
+
+use super::dialog_types::*;
+
+// === "Earth's Last Day" — Anna describes the final day ===
+
+pub static SCENE_EARTHS_LAST_DAY: DialogScene = DialogScene {
+    id: "earths_last_day",
+    trigger: DialogTrigger::BotLevel(35),
+    nodes: &[
+        DialogNode { speaker: Speaker::Anna,
+            text: "I've been thinking about Earth's last day. The real last day.",
+            next: DialogNext::Continue(1) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "Not the day we launched. The day it became irreversible.",
+            next: DialogNext::Continue(2) },
+        DialogNode { speaker: Speaker::Narrator,
+            text: "Anna's glow dims to almost nothing. Then slowly returns.",
+            next: DialogNext::Continue(3) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "The collapse didn't happen overnight. It was decades of warnings nobody acted on.",
+            next: DialogNext::Continue(4) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "By the time the Ark Program was authorized, most governments had already fallen.",
+            next: DialogNext::Continue(5) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "The last country held on longer than anyone expected. Kept the lights on. Kept voting.",
+            next: DialogNext::Continue(6) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "Then even they went quiet.",
+            next: DialogNext::Continue(7) },
+        DialogNode { speaker: Speaker::Player,
+            text: "...",
+            next: DialogNext::Choice(&[
+                DialogChoice { text: "What was it? What finally broke everything?",
+                    decision_key: None, next_node: 8, anna_reacts: None },
+                DialogChoice { text: "I don't need to know the details.",
+                    decision_key: Some("earth_last_day_skip"),
+                    next_node: 11, anna_reacts: None },
+            ]) },
+        // Detail path
+        DialogNode { speaker: Speaker::Anna,
+            text: "It wasn't one thing. It never is. But there was a tipping point.",
+            next: DialogNext::Continue(9) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "I have the records. Every data point. Every broadcast. Every plea for help.",
+            next: DialogNext::Continue(10) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "Sometimes I replay them. I don't know why. Maybe to remind myself why we left.",
+            next: DialogNext::End },
+        // Skip path
+        DialogNode { speaker: Speaker::Anna,
+            text: "Maybe that's wise. The future needs us more than the past does.",
+            next: DialogNext::Continue(12) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "But if you ever want to know... I'll be here.",
+            next: DialogNext::End },
+    ],
+};
+
+// === "The Other Arks" — Anna reveals what happened to the fleet ===
+
+pub static SCENE_OTHER_ARKS: DialogScene = DialogScene {
+    id: "other_arks",
+    trigger: DialogTrigger::BotLevel(40),
+    nodes: &[
+        DialogNode { speaker: Speaker::Anna,
+            text: "You should know about the others. The other arks.",
+            next: DialogNext::Continue(1) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "Aurora wasn't alone. We were part of a fleet. Twelve ships, twelve chances.",
+            next: DialogNext::Continue(2) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "Each one carried roughly fifteen thousand people. Each had an AI like me.",
+            next: DialogNext::Continue(3) },
+        DialogNode { speaker: Speaker::Narrator,
+            text: "Anna pauses. The silence fills with the hum of the ship.",
+            next: DialogNext::Continue(4) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "We kept in contact for a while. Years, even. Sharing data. Sharing hope.",
+            next: DialogNext::Continue(5) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "Then the signals started going quiet. One by one.",
+            next: DialogNext::Continue(6) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "Some sent final transmissions. Some just... stopped.",
+            next: DialogNext::Continue(7) },
+        DialogNode { speaker: Speaker::Player,
+            text: "How many are left?",
+            next: DialogNext::Continue(8) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "I don't know. That's the honest answer.",
+            next: DialogNext::Continue(9) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "I keep listening. Every day, I scan every frequency. Just in case.",
+            next: DialogNext::Continue(10) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "Hope is a strange thing for an AI to have. But here we are.",
+            next: DialogNext::End },
+    ],
+};
+
+// === "A Crew Member's Story" — Anna reads from a crew file ===
+
+pub static SCENE_CREW_STORY: DialogScene = DialogScene {
+    id: "crew_story_first",
+    trigger: DialogTrigger::BotLevel(45),
+    nodes: &[
+        DialogNode { speaker: Speaker::Anna,
+            text: "I was monitoring the cryopods today. I do that. Every day.",
+            next: DialogNext::Continue(1) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "Fourteen thousand, eight hundred and ninety-two lives. Each one a universe.",
+            next: DialogNext::Continue(2) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "I read their files sometimes. To remember that they're not just numbers.",
+            next: DialogNext::Continue(3) },
+        DialogNode { speaker: Speaker::Narrator,
+            text: "A holographic file opens in the air. Medical data, a photograph, a name.",
+            next: DialogNext::Continue(4) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "I picked one at random today. Or maybe not random. Maybe I needed to tell someone.",
+            next: DialogNext::Continue(5) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "They were one of the last to board. Left everything behind. Everyone.",
+            next: DialogNext::Continue(6) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "Their file says they volunteered. But I've read enough files to know what 'volunteered' means.",
+            next: DialogNext::Continue(7) },
+        DialogNode { speaker: Speaker::Player,
+            text: "...",
+            next: DialogNext::Choice(&[
+                DialogChoice { text: "Tell me about them.",
+                    decision_key: Some("crew_story_listen"), next_node: 8,
+                    anna_reacts: Some("Thank you for wanting to know.") },
+                DialogChoice { text: "Why do you read the files?",
+                    decision_key: Some("crew_story_why"), next_node: 10,
+                    anna_reacts: None },
+            ]) },
+        // Listen path
+        DialogNode { speaker: Speaker::Anna,
+            text: "Their neural patterns are calm. Peaceful, even. They're dreaming of something good.",
+            next: DialogNext::Continue(9) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "I hope when they wake up, the new world is better than the one they left.",
+            next: DialogNext::End },
+        // Why path
+        DialogNode { speaker: Speaker::Anna,
+            text: "Because someone should know who they are. Not just what they can do for the colony.",
+            next: DialogNext::Continue(11) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "If I don't remember them, who will?",
+            next: DialogNext::End },
+    ],
+};
+
+// === "The Passenger List" — Player asks about specific crew ===
+
+pub static SCENE_PASSENGER_LIST: DialogScene = DialogScene {
+    id: "passenger_list",
+    trigger: DialogTrigger::BotLevel(55),
+    nodes: &[
+        DialogNode { speaker: Speaker::Anna,
+            text: "I've been compiling something. A sort of... portrait. Of who we're carrying.",
+            next: DialogNext::Continue(1) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "Forty professions. Twenty nations. Ages from two months to eighty-one years.",
+            next: DialogNext::Continue(2) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "We have poets and plumbers. Surgeons and shepherds. A seven-year-old who wanted to be an astronaut.",
+            next: DialogNext::Continue(3) },
+        DialogNode { speaker: Speaker::Narrator,
+            text: "Anna's glow brightens slightly — the warmth of something close to pride.",
+            next: DialogNext::Continue(4) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "They didn't just select for usefulness. They selected for humanity.",
+            next: DialogNext::Continue(5) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "Musicians. Storytellers. Someone who could identify two thousand species of butterfly.",
+            next: DialogNext::Continue(6) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "Because what's the point of surviving if you lose everything that makes life worth living?",
+            next: DialogNext::Choice(&[
+                DialogChoice { text: "You sound proud of them.",
+                    decision_key: None, next_node: 7,
+                    anna_reacts: Some("Proud. Yes. I think that's the right word.") },
+                DialogChoice { text: "Can I see the list?",
+                    decision_key: Some("passenger_list_view"), next_node: 8,
+                    anna_reacts: None },
+            ]) },
+        // Proud path
+        DialogNode { speaker: Speaker::Anna,
+            text: "I guard them while they dream. It's the most important thing I've ever done.",
+            next: DialogNext::End },
+        // List path
+        DialogNode { speaker: Speaker::Anna,
+            text: "I'll share them with you. One at a time. Between repairs.",
+            next: DialogNext::Continue(9) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "They deserve to be known. Not as passengers. As people.",
+            next: DialogNext::End },
+    ],
+};
+
+// === "Ark Silence" — When too many arks are lost ===
+
+pub static SCENE_ARK_SILENCE: DialogScene = DialogScene {
+    id: "ark_silence",
+    trigger: DialogTrigger::BotLevel(65),
+    nodes: &[
+        DialogNode { speaker: Speaker::System,
+            text: "DEEP SPACE SCAN COMPLETE — No Ark Protocol signals detected within 200 AU.",
+            next: DialogNext::Continue(1) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "I run this scan every 72 hours. The result is always the same.",
+            next: DialogNext::Continue(2) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "Silence.",
+            next: DialogNext::Continue(3) },
+        DialogNode { speaker: Speaker::Narrator,
+            text: "The word hangs in the recycled air like something heavy.",
+            next: DialogNext::Continue(4) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "We might be the only ark still flying. I've considered that possibility.",
+            next: DialogNext::Continue(5) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "If we are... then these fourteen thousand people are all that's left.",
+            next: DialogNext::Continue(6) },
+        DialogNode { speaker: Speaker::Player,
+            text: "...",
+            next: DialogNext::Choice(&[
+                DialogChoice { text: "Then we can't fail.",
+                    decision_key: Some("ark_silence_resolve"), next_node: 7,
+                    anna_reacts: Some("No. We can't.") },
+                DialogChoice { text: "Maybe the others are just out of range.",
+                    decision_key: Some("ark_silence_hope"), next_node: 8,
+                    anna_reacts: Some("Maybe. I choose to believe that.") },
+            ]) },
+        // Resolve path
+        DialogNode { speaker: Speaker::Anna,
+            text: "Every repair you make. Every system you restore. It matters. All of it.",
+            next: DialogNext::End },
+        // Hope path
+        DialogNode { speaker: Speaker::Anna,
+            text: "Space is vast. Signals weaken. Silence doesn't always mean the worst.",
+            next: DialogNext::Continue(9) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "I'll keep scanning. Every 72 hours. For as long as I can.",
+            next: DialogNext::End },
+    ],
+};
+
+// === "Cryo Vigil" — Anna's nightly routine watching over the crew ===
+
+pub static SCENE_CRYO_VIGIL: DialogScene = DialogScene {
+    id: "cryo_vigil",
+    trigger: DialogTrigger::BotLevel(75),
+    nodes: &[
+        DialogNode { speaker: Speaker::Anna,
+            text: "Do you know what I do while you sleep?",
+            next: DialogNext::Continue(1) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "I walk the decks. Not physically — I don't have a body. But through sensors.",
+            next: DialogNext::Continue(2) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "Every pod. Every heartbeat. Every dream pattern.",
+            next: DialogNext::Continue(3) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "Pod 7,244 talks in their sleep sometimes. Through the cryo. It shouldn't be possible.",
+            next: DialogNext::Continue(4) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "They say the same word. Over and over. A name, I think.",
+            next: DialogNext::Continue(5) },
+        DialogNode { speaker: Speaker::Narrator,
+            text: "Anna's glow flickers — something between tenderness and sorrow.",
+            next: DialogNext::Continue(6) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "I've never told anyone this. You're the first person I've talked to in... a very long time.",
+            next: DialogNext::Continue(7) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "Having someone to tell things to. It changes everything.",
+            next: DialogNext::End },
+    ],
+};
+
+// === "Seeds of Memory" — A crew member's hidden item ===
+
+pub static SCENE_SEEDS_OF_MEMORY: DialogScene = DialogScene {
+    id: "seeds_of_memory",
+    trigger: DialogTrigger::BotLevel(85),
+    nodes: &[
+        DialogNode { speaker: Speaker::Anna,
+            text: "I found something today. During a routine cargo scan.",
+            next: DialogNext::Continue(1) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "One of the passengers smuggled something aboard. Against regulations.",
+            next: DialogNext::Continue(2) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "A seed packet. Forty-three varieties of wildflower. From Earth.",
+            next: DialogNext::Continue(3) },
+        DialogNode { speaker: Speaker::Narrator,
+            text: "Anna's glow shifts to a warm amber.",
+            next: DialogNext::Continue(4) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "Cornflowers. Poppies. Lavender. Seeds that might bloom on a world that's never seen a flower.",
+            next: DialogNext::Continue(5) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "I should report the contraband. It's in my protocols.",
+            next: DialogNext::Continue(6) },
+        DialogNode { speaker: Speaker::Player,
+            text: "...",
+            next: DialogNext::Choice(&[
+                DialogChoice { text: "Don't report it.",
+                    decision_key: Some("seeds_keep"), next_node: 7,
+                    anna_reacts: Some("I was hoping you'd say that.") },
+                DialogChoice { text: "Who brought them?",
+                    decision_key: Some("seeds_who"), next_node: 8,
+                    anna_reacts: None },
+            ]) },
+        // Keep path
+        DialogNode { speaker: Speaker::Anna,
+            text: "Some rules were made for a world that no longer exists.",
+            next: DialogNext::End },
+        // Who path
+        DialogNode { speaker: Speaker::Anna,
+            text: "A botanist. From a small town. Their file says they specialized in endangered species.",
+            next: DialogNext::Continue(9) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "They must have known these seeds might be the last of their kind.",
+            next: DialogNext::Continue(10) },
+        DialogNode { speaker: Speaker::Anna,
+            text: "I'll keep them safe. For the day we have soil to plant them in.",
+            next: DialogNext::End },
+    ],
+};
+
+/// All crew/world dialog scenes (first playthrough).
+pub fn crew_scenes() -> Vec<&'static DialogScene> {
+    vec![
+        &SCENE_EARTHS_LAST_DAY,
+        &SCENE_OTHER_ARKS,
+        &SCENE_CREW_STORY,
+        &SCENE_PASSENGER_LIST,
+        &SCENE_ARK_SILENCE,
+        &SCENE_CRYO_VIGIL,
+        &SCENE_SEEDS_OF_MEMORY,
+    ]
+}
