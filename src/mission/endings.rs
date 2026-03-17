@@ -65,76 +65,9 @@ pub fn determine_ending(state: &GameState) -> Ending {
 }
 
 /// Get the narrative paragraphs for an ending.
-pub fn ending_paragraphs(ending: Ending, crew_count: u32) -> Vec<String> {
-    let lost = 14892_u32.saturating_sub(crew_count);
-    match ending {
-        Ending::Golden => vec![
-            "New Earth.".to_string(),
-            "Green hills, blue oceans. 14,000 people wake to sunrise.".to_string(),
-            "Anna's voice, gentle: \"Welcome home.\"".to_string(),
-            "You stand among them -- human, tired, alive.".to_string(),
-            "The children run toward the light.".to_string(),
-            "Someone asks your name. You tell them. They smile.".to_string(),
-            "This is the beginning.".to_string(),
-        ],
-        Ending::Bittersweet => vec![
-            "You found it. New Earth.".to_string(),
-            "The crew wakes, blinking. They see you and hesitate.".to_string(),
-            "Your eyes glow faintly -- nanorepair changed you more than Anna promised."
-                .to_string(),
-            "\"Who are you?\" a child asks.".to_string(),
-            "\"I'm the one who brought you here,\" you say.".to_string(),
-            "Anna whispers in your mind: \"We did it. Together.\"".to_string(),
-            "You watch them walk into the sunlight.".to_string(),
-            "You stay on the ship. It's home now.".to_string(),
-        ],
-        Ending::TheCost => vec![
-            "New Earth.".to_string(),
-            "But the celebrations are quiet.".to_string(),
-            format!("{} people didn't make it.", lost),
-            "Their cryopods failed while you struggled with resources.".to_string(),
-            "Anna reads their names. Every single one. It takes hours.".to_string(),
-            "\"Was it worth it?\" she asks.".to_string(),
-            "You look at the survivors, building shelters, planting seeds.".to_string(),
-            "\"Ask them,\" you say.".to_string(),
-        ],
-        Ending::TheMachine => vec![
-            "You barely remember what hunger felt like. Or cold.".to_string(),
-            "The augmentations took those away, along with... other things.".to_string(),
-            "The crew looks at you with gratitude and fear.".to_string(),
-            "\"Thank you,\" they say, keeping distance.".to_string(),
-            "Anna understands: \"You gave up your humanity to save theirs.\""
-                .to_string(),
-            "The colony thrives.".to_string(),
-            "You watch from the ship's bridge, forever.".to_string(),
-        ],
-        Ending::LastHope => vec![
-            "A small group. Too small, maybe. But alive.".to_string(),
-            format!(
-                "\"We need at least 500 for genetic diversity,\" Anna says quietly. You have {}.",
-                crew_count
-            ),
-            "The math is cruel. But they're determined.".to_string(),
-            "They name the settlement \"Second Chance.\"".to_string(),
-            "You help them build.".to_string(),
-            "Some nights, you stare at the stars and wonder about the ones you lost."
-                .to_string(),
-        ],
-        Ending::Drift => vec![
-            "The ship is quiet. Too quiet.".to_string(),
-            "Anna's voice fades in and out.".to_string(),
-            "\"I'm sorry,\" she says.".to_string(),
-            "\"I'm sorry I woke you. I'm sorry I couldn't--\"".to_string(),
-            "Static.".to_string(),
-            format!(
-                "The remaining {} crew sleep on, drifting.",
-                crew_count
-            ),
-            "Maybe someone will find them.".to_string(),
-            "Maybe the universe is kinder than you think.".to_string(),
-            "Maybe.".to_string(),
-        ],
-    }
+/// Uses extended generational narratives from endings_extended.
+pub fn ending_paragraphs(ending: Ending, gs: &GameState) -> Vec<String> {
+    super::endings_extended::extended_paragraphs(ending, gs)
 }
 
 // === Ending Screen State ===
@@ -199,7 +132,7 @@ pub fn spawn_ending_screen(
     gs: &GameState,
 ) {
     let ending = determine_ending(gs);
-    let paragraphs = ending_paragraphs(ending, gs.crew_count);
+    let paragraphs = ending_paragraphs(ending, gs);
     let glow = ending.glow_color();
 
     commands.insert_resource(EndingState {

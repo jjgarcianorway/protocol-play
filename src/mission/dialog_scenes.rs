@@ -9,6 +9,9 @@ use super::dialog_scenes_act3;
 use super::dialog_scenes_act4;
 use super::dialog_scenes_crew;
 use super::dialog_scenes_crew_ng;
+use super::dialog_scenes_philosophy;
+use super::dialog_scenes_philosophy2;
+use super::dialog_scenes_hidden;
 
 /// Return all dialog scenes from all acts.
 pub fn all_scenes() -> Vec<&'static DialogScene> {
@@ -19,5 +22,8 @@ pub fn all_scenes() -> Vec<&'static DialogScene> {
     scenes.extend(dialog_scenes_act4::act4_scenes());
     scenes.extend(dialog_scenes_crew::crew_scenes());
     scenes.extend(dialog_scenes_crew_ng::crew_ng_scenes());
+    scenes.extend(dialog_scenes_philosophy::philosophy_scenes_1());
+    scenes.extend(dialog_scenes_philosophy2::philosophy_scenes_2());
+    scenes.extend(dialog_scenes_hidden::hidden_scenes());
     scenes
 }
