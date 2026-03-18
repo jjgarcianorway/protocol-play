@@ -155,9 +155,12 @@ pub fn move_crystals(
             }
         }
 
-        // Emit pollen-like particles during absorption
+        // Emit pollen-like particles only while ship is in absorption range
         if cloud.remaining < 1.0 {
-            if let Some(sp) = ship_pos {
+            if let Some(sp) = ship_pos.filter(|sp| {
+                tf.translation.truncate().distance(sp.truncate())
+                    < CRYSTAL_ABSORB_RANGE + cloud.radius * cloud.remaining
+            }) {
                 cloud.particle_timer += dt;
                 let interval = 1.0 / PARTICLE_EMIT_RATE;
                 while cloud.particle_timer >= interval {

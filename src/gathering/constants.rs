@@ -171,10 +171,10 @@ pub const ENGINE_OFFSETS: [(f32, f32, f32); 3] = [
 // Background nebula planes
 pub const NEBULA_SCROLL_SPEED_MULT: f32 = 0.3;
 pub const NEBULA_CONFIGS: [(f32, f32, f32, f32, f32); 3] = [
-    // (z, alpha, r, g, b)
-    (-50.0, 0.07, 0.05, 0.25, 0.35),  // teal
-    (-47.0, 0.08, 0.2, 0.08, 0.35),   // purple
-    (-53.0, 0.06, 0.08, 0.12, 0.35),  // deep blue
+    // (z, alpha, r, g, b) — far behind everything
+    (-70.0, 0.06, 0.05, 0.25, 0.35),  // teal
+    (-65.0, 0.07, 0.2, 0.08, 0.35),   // purple
+    (-75.0, 0.05, 0.08, 0.12, 0.35),  // deep blue
 ];
 pub const NEBULA_SIZE: f32 = 50.0;
 
