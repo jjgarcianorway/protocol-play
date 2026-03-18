@@ -59,7 +59,8 @@ pub fn create_vignette(images: &mut Assets<Image>) -> Handle<Image> {
     }
     images.add(Image::new(
         Extent3d { width: size, height: size, depth_or_array_layers: 1 },
-        TextureDimension::D2, data, TextureFormat::Rgba8UnormSrgb, default(),
+        TextureDimension::D2, data, TextureFormat::Rgba8UnormSrgb,
+        default(),
     ))
 }
 
@@ -120,7 +121,8 @@ fn create_nebula_texture(images: &mut Assets<Image>, r: f32, g: f32, b: f32) -> 
     }
     images.add(Image::new(
         Extent3d { width: size, height: size, depth_or_array_layers: 1 },
-        TextureDimension::D2, data, TextureFormat::Rgba8UnormSrgb, default(),
+        TextureDimension::D2, data, TextureFormat::Rgba8UnormSrgb,
+        default(),
     ))
 }
 

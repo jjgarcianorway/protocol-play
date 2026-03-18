@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #![allow(dead_code)]
 use bevy::prelude::*;
-use crate::constants::*;
-use crate::types::*;
-use crate::ui_helpers::*;
+use crate::{constants::*, types::*, ui_helpers::*};
 use crate::board::spawn_tile;
 pub fn mark_button_interaction(
     mut play_mode: ResMut<PlayMode>,
@@ -327,22 +325,14 @@ pub fn test_inventory_interaction(
     }
 }
 pub fn handle_test_tile_click(
-    mut commands: Commands,
-    mouse: Res<ButtonInput<MouseButton>>,
-    hovered: Res<HoveredCell>,
-    play_mode: Res<PlayMode>,
-    mut test_inv: ResMut<TestInventory>,
-    mut selected_tool: ResMut<SelectedTool>,
-    mut inv_state: ResMut<InventoryState>,
-    board_size: Res<BoardSize>,
+    mut commands: Commands, mouse: Res<ButtonInput<MouseButton>>,
+    hovered: Res<HoveredCell>, play_mode: Res<PlayMode>,
+    mut test_inv: ResMut<TestInventory>, mut selected_tool: ResMut<SelectedTool>,
+    mut inv_state: ResMut<InventoryState>, board_size: Res<BoardSize>,
     tiles: Query<(Entity, &TileCoord, &TileKind), (With<Tile>, Without<DespawnAtZeroScale>)>,
-    assets: Res<GameAssets>,
-    ui_interactions: Query<&Interaction, With<Button>>,
-    icons: Res<InventoryIcons>,
-    test_container: Query<Entity, With<TestInventoryContainer>>,
-    mut ghost_cell: ResMut<GhostCell>,
-    saved_test: Res<SavedTestState>,
-    font: Res<GameFont>,
+    assets: Res<GameAssets>, ui_interactions: Query<&Interaction, With<Button>>,
+    icons: Res<InventoryIcons>, test_container: Query<Entity, With<TestInventoryContainer>>,
+    mut ghost_cell: ResMut<GhostCell>, saved_test: Res<SavedTestState>, font: Res<GameFont>,
 ) {
     if *play_mode != PlayMode::TestEditing { return; }
     if !mouse.just_pressed(MouseButton::Left) { return; }

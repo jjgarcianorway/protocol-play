@@ -8,6 +8,10 @@ use super::types::*;
 #[derive(Component)]
 pub struct ResumeButton;
 
+/// Tracks the pause overlay fade-in progress (0.0 = invisible, 1.0 = fully visible).
+#[derive(Component)]
+pub struct PauseFadeIn(pub f32);
+
 pub fn toggle_pause(
     keys: Res<ButtonInput<KeyCode>>,
     mut paused: ResMut<Paused>,
@@ -48,7 +52,10 @@ pub fn resume_button_interaction(
 }
 
 pub fn resume_button_hover(
-    mut query: Query<(&Interaction, &mut BackgroundColor), (Changed<Interaction>, With<ResumeButton>)>,
+    mut query: Query<
+        (&Interaction, &mut BackgroundColor),
+        (Changed<Interaction>, With<ResumeButton>),
+    >,
 ) {
     for (interaction, mut bg) in query.iter_mut() {
         bg.0 = match interaction {
@@ -59,9 +66,24 @@ pub fn resume_button_hover(
     }
 }
 
+/// Smoothly fade in the pause overlay instead of popping it in.
+pub fn update_pause_fade(
+    mut query: Query<(&mut PauseFadeIn, &mut BackgroundColor), With<PauseScreen>>,
+    time: Res<Time>,
+) {
+    let dt = time.delta_secs();
+    for (mut fade, mut bg) in query.iter_mut() {
+        if fade.0 >= 1.0 { continue; }
+        fade.0 = (fade.0 + dt / PAUSE_FADE_IN_SECS).min(1.0);
+        let alpha = fade.0 * PAUSE_OVERLAY_ALPHA;
+        bg.0 = Color::srgba(0.0, 0.0, 0.05, alpha);
+    }
+}
+
 fn spawn_pause_overlay(commands: &mut Commands, font: &Handle<Font>) {
     commands.spawn((
         PauseScreen,
+        PauseFadeIn(0.0),
         Node {
             position_type: PositionType::Absolute,
             width: Val::Percent(100.0),
@@ -72,7 +94,7 @@ fn spawn_pause_overlay(commands: &mut Commands, font: &Handle<Font>) {
             row_gap: Val::Px(24.0),
             ..default()
         },
-        BackgroundColor(Color::srgba(0.0, 0.0, 0.05, PAUSE_OVERLAY_ALPHA)),
+        BackgroundColor(Color::srgba(0.0, 0.0, 0.05, 0.0)),
         ZIndex(25),
     )).with_children(|parent| {
         parent.spawn((

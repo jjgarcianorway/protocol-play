@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use bevy::image::Image;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use crate::constants::*;
+
 fn make_image(images: &mut Assets<Image>, data: Vec<u8>, size: u32) -> Handle<Image> {
     images.add(Image::new(
         Extent3d { width: size, height: size, depth_or_array_layers: 1 },

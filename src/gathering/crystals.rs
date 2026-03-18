@@ -5,6 +5,7 @@ use rand::Rng;
 use super::constants::*;
 use super::types::*;
 use super::types::GatheringFont;
+use crate::sound::{SoundPalette, SoundSettings, play_sound, SoundType};
 
 #[derive(Component)]
 pub struct NebulaLayer;
@@ -262,14 +263,11 @@ pub fn move_particles(
 pub fn absorb_crystals(
     ship_q: Query<&Transform, With<Ship>>,
     mut crystal_q: Query<(&mut CrystalCloud, &Transform, Entity)>,
-    mut state: ResMut<ShipState>,
-    time: Res<Time>,
-    paused: Res<Paused>,
-    mut commands: Commands,
-    font: Res<GatheringFont>,
+    mut state: ResMut<ShipState>, time: Res<Time>, paused: Res<Paused>,
+    mut commands: Commands, font: Res<GatheringFont>,
     cameras: Query<(&Camera, &GlobalTransform)>,
-    mut chain: ResMut<CrystalChain>,
-    difficulty: Res<Difficulty>,
+    mut chain: ResMut<CrystalChain>, difficulty: Res<Difficulty>,
+    palette: Option<Res<SoundPalette>>, snd_settings: Res<SoundSettings>,
 ) -> Result {
     if !state.alive || paused.0 { return Ok(()); }
     let ship_tf = ship_q.single()?;
@@ -317,6 +315,10 @@ pub fn absorb_crystals(
                             chain.multiplier > 1.0, cloud.color,
                         );
                     }
+                }
+                if let Some(ref pal) = palette {
+                    play_sound(&mut commands, pal, SoundType::CrystalCollect(cloud.color.index()), &snd_settings);
+                    if chain.multiplier > 1.0 { play_sound(&mut commands, pal, SoundType::ChainBonus(chain.multiplier as usize), &snd_settings); }
                 }
                 advance_chain(&mut chain);
             }

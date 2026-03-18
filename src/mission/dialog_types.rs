@@ -28,6 +28,8 @@ pub enum DialogTrigger {
     PlaythroughAndLevel(u32, u32),
     /// When crew drops below this threshold.
     CrewLoss(u32),
+    /// All listed decisions must be present + minimum bot level.
+    AllDecisionsAndLevel(&'static [&'static str], u32),
 }
 
 /// Who is speaking a line.
@@ -172,6 +174,54 @@ pub struct DialogPanelGlow;
 /// Skip indicator ("Click to continue" / "Click to skip").
 #[derive(Component)]
 pub struct DialogSkipHint;
+
+// === Anna glow mood colors (emotion, NOT judgement of player choices) ===
+
+/// Default calm blue — Anna's baseline.
+pub const ANNA_MOOD_CALM: (f32, f32, f32) = (0.4, 0.7, 1.0);
+/// Warm gold/amber — trust, fondness, happiness.
+pub const ANNA_MOOD_WARM: (f32, f32, f32) = (0.9, 0.75, 0.4);
+/// Dim blue — sadness, vulnerability, grief.
+pub const ANNA_MOOD_DIM: (f32, f32, f32) = (0.2, 0.3, 0.45);
+/// Bright blue — excitement, pride, hope.
+pub const ANNA_MOOD_BRIGHT: (f32, f32, f32) = (0.6, 0.85, 1.0);
+/// Conflicted amber — uncertainty, inner conflict.
+pub const ANNA_MOOD_CONFLICTED: (f32, f32, f32) = (0.8, 0.6, 0.3);
+/// Soft violet/lavender — vulnerability, tenderness.
+pub const ANNA_MOOD_VULNERABLE: (f32, f32, f32) = (0.5, 0.4, 0.7);
+/// Joyful gold — happiness, laughter.
+pub const ANNA_MOOD_JOY: (f32, f32, f32) = (0.9, 0.85, 0.5);
+/// Clinical white — analytical, detached.
+pub const ANNA_MOOD_CLINICAL: (f32, f32, f32) = (0.8, 0.82, 0.85);
+/// Steel grey — resolve, severity, unresolved tension.
+pub const ANNA_MOOD_GREY: (f32, f32, f32) = (0.45, 0.48, 0.52);
+/// Deep green — awe, something unprecedented.
+pub const ANNA_MOOD_GREEN: (f32, f32, f32) = (0.3, 0.7, 0.45);
+/// Warning red — alarm, protective anger (Anna's emotion, not player error).
+pub const ANNA_MOOD_RED: (f32, f32, f32) = (0.85, 0.3, 0.25);
+/// Cold/pale blue — institutional, distant.
+pub const ANNA_MOOD_COLD: (f32, f32, f32) = (0.55, 0.7, 0.85);
+
+/// Smooth transition speed (1.0 / seconds to transition).
+pub const ANNA_GLOW_LERP_SPEED: f32 = 2.5;
+
+/// Runtime state for Anna's dialog glow mood — smooth color transitions.
+#[derive(Resource)]
+pub struct AnnaGlowMood {
+    /// Current displayed color (lerped each frame).
+    pub current: (f32, f32, f32),
+    /// Target color we're transitioning toward.
+    pub target: (f32, f32, f32),
+}
+
+impl Default for AnnaGlowMood {
+    fn default() -> Self {
+        Self {
+            current: ANNA_MOOD_CALM,
+            target: ANNA_MOOD_CALM,
+        }
+    }
+}
 
 // === Constants ===
 

@@ -58,6 +58,7 @@ pub fn build_app(app: &mut App) {
         .insert_resource(best)
         .init_state::<GatheringState>()
         .insert_resource(crate::anna_comments::AnnaComments::default())
+        .insert_resource(anna::AnnaReactiveFlags::default())
         .add_systems(Startup, (setup_gathering, new_earth::check_new_earth_mode,
             anna::setup_gathering_anna.after(setup_gathering)))
         // Normal gameplay systems — only when NOT in NewEarthMode
@@ -95,6 +96,8 @@ pub fn build_app(app: &mut App) {
             game_over::update_intro_fade,
             game_over::try_again_cleanup.after(try_again_interaction),
             spawn_game_over_screen.after(check_game_over).after(try_again_interaction),
+        ).run_if(not_new_earth))
+        .add_systems(Update, (
             ship::restore_cursor.run_if(|s: Res<State<GatheringState>>| *s.get() == GatheringState::GameOver),
             ship::update_shield_bubble,
             ship::spawn_engine_particles,
@@ -102,6 +105,10 @@ pub fn build_app(app: &mut App) {
             pause::toggle_pause,
             pause::resume_button_interaction,
             pause::resume_button_hover,
+        ).run_if(not_new_earth))
+        .add_systems(Update, (
+            game_over::update_game_over_fade,
+            pause::update_pause_fade,
         ).run_if(not_new_earth))
         .add_systems(Update, (
             crate::anna_comments::tick_anna_comments,

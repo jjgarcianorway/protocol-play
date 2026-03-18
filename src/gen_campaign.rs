@@ -10,6 +10,7 @@ mod board;
 mod ui_helpers;
 mod slot_ui;
 mod inventory;
+pub mod sound;
 mod systems;
 mod simulation;
 mod messages;

@@ -137,12 +137,52 @@ pub fn despawn_dialog_overlay(commands: &mut Commands, query: &Query<Entity, Wit
     }
 }
 
+/// Detect Anna's emotional mood from narrator glow descriptions.
+/// Ordered by specificity — specific phrases checked before broad keywords.
+fn detect_anna_mood(text: &str) -> Option<(f32, f32, f32)> {
+    let t = text.to_lowercase();
+    if !t.contains("glow") && !t.contains("dims") && !t.contains("flicker") { return None; }
+    // Complete absence
+    if t.contains("completely dark") || t.contains("glow is gone") { return Some(ANNA_MOOD_DIM); }
+    // Specific named colors
+    if t.contains("clinical white") || t.contains("hard, clinical") { return Some(ANNA_MOOD_CLINICAL); }
+    if t.contains("steel grey") || t.contains("steel gray") || t.contains("heavy grey") { return Some(ANNA_MOOD_GREY); }
+    if t.contains("warning red") || t.contains("flickers red") { return Some(ANNA_MOOD_RED); }
+    if t.contains("deep green") || t.contains("gold and green") { return Some(ANNA_MOOD_GREEN); }
+    if t.contains("cold") && t.contains("glow") { return Some(ANNA_MOOD_COLD); }
+    if t.contains("lavender") || t.contains("violet") { return Some(ANNA_MOOD_VULNERABLE); }
+    // Dimming
+    if t.contains("glow dims") || t.contains("almost nothing") || t.contains("barely visible")
+        || t.contains("dims to") || t.contains("dims her glow")
+        || t.contains("near-darkness") || t.contains("single point") { return Some(ANNA_MOOD_DIM); }
+    // Conflicted / unstable
+    if t.contains("conflicted") || t.contains("fractured") || t.contains("strobing")
+        || t.contains("unresolved") || t.contains("arrhythmic") || t.contains("stutters") { return Some(ANNA_MOOD_CONFLICTED); }
+    // Warm / joyful gold
+    if t.contains("warm gold") || t.contains("warm amber") || t.contains("soft gold")
+        || t.contains("sunrise") || t.contains("glow warms") || t.contains("warmest blue") { return Some(ANNA_MOOD_JOY); }
+    if t.contains("amber") { return Some(ANNA_MOOD_WARM); }
+    // Brightening
+    if t.contains("glow brightens") || t.contains("burns bright")
+        || t.contains("glow fills") || t.contains("glow blooms") { return Some(ANNA_MOOD_BRIGHT); }
+    // Calming
+    if t.contains("glow softens") || t.contains("glow steadies") || t.contains("calm") { return Some(ANNA_MOOD_CALM); }
+    // Flickering / shifting (general unease)
+    if t.contains("glow flickers") || t.contains("glow flares") || t.contains("glow pulses")
+        || t.contains("glow shifts") || t.contains("glow contracts")
+        || t.contains("glow tightens") || t.contains("glow hardens") { return Some(ANNA_MOOD_CONFLICTED); }
+    None
+}
+
 /// Update speaker display for current node.
+/// `node_text` is the current dialog text — used to detect glow mood changes.
 pub fn update_speaker_display(
     speaker: Speaker,
+    node_text: &str,
     speaker_q: &mut Query<&mut TextColor, (With<DialogSpeakerText>, Without<DialogBodyText>, Without<DialogSkipHint>)>,
     speaker_text_q: &mut Query<&mut Text, (With<DialogSpeakerText>, Without<DialogBodyText>, Without<DialogSkipHint>)>,
     circle_q: &mut Query<(&mut BackgroundColor, &mut BoxShadow), With<DialogAnnaCircle>>,
+    glow_mood: &mut ResMut<AnnaGlowMood>,
 ) {
     let (label, color) = match speaker {
         Speaker::Anna => ("ANNA", DIALOG_ANNA_COLOR),
@@ -158,9 +198,19 @@ pub fn update_speaker_display(
         *text = Text::new(label);
     }
 
-    // Update circle visibility/color
+    // Detect mood from narrator glow descriptions
+    if speaker == Speaker::Narrator {
+        if let Some(mood_color) = detect_anna_mood(node_text) {
+            glow_mood.target = mood_color;
+        }
+    } else if speaker == Speaker::Anna {
+        // When Anna speaks, reset to calm blue (unless narrator set a mood)
+        glow_mood.target = ANNA_MOOD_CALM;
+    }
+
+    // Update circle visibility/color — use mood for Anna, speaker color for System
     let circle_color = match speaker {
-        Speaker::Anna => Some(DIALOG_ANNA_COLOR),
+        Speaker::Anna => Some(glow_mood.current),
         Speaker::System => Some(DIALOG_SYSTEM_COLOR),
         _ => None,
     };
@@ -221,110 +271,70 @@ pub fn spawn_choice_buttons(
 }
 
 /// Clear choice buttons from the container.
-pub fn clear_choice_buttons(
-    commands: &mut Commands,
-    btn_q: &Query<Entity, With<DialogChoiceBtn>>,
-) {
-    for entity in btn_q.iter() {
-        commands.entity(entity).despawn();
-    }
+pub fn clear_choice_buttons(commands: &mut Commands, btn_q: &Query<Entity, With<DialogChoiceBtn>>) {
+    for entity in btn_q.iter() { commands.entity(entity).despawn(); }
+}
+
+fn choice_color(hover: bool) -> (Color, Color) {
+    let (bg, bd) = if hover { (DIALOG_CHOICE_HOVER, DIALOG_CHOICE_HOVER_BORDER) }
+                   else { (DIALOG_CHOICE_BG, DIALOG_CHOICE_BORDER) };
+    (Color::srgba(bg.0, bg.1, bg.2, bg.3), Color::srgba(bd.0, bd.1, bd.2, bd.3))
 }
 
 /// System: hover effects on dialog choice buttons.
 pub fn dialog_choice_hover(
-    mut query: Query<
-        (&Interaction, &mut BackgroundColor, &mut BorderColor),
-        (Changed<Interaction>, With<DialogChoiceBtn>),
-    >,
+    mut query: Query<(&Interaction, &mut BackgroundColor, &mut BorderColor),
+        (Changed<Interaction>, With<DialogChoiceBtn>)>,
 ) {
     for (interaction, mut bg, mut border) in query.iter_mut() {
-        match interaction {
-            Interaction::Hovered | Interaction::Pressed => {
-                *bg = BackgroundColor(Color::srgba(
-                    DIALOG_CHOICE_HOVER.0, DIALOG_CHOICE_HOVER.1,
-                    DIALOG_CHOICE_HOVER.2, DIALOG_CHOICE_HOVER.3,
-                ));
-                *border = BorderColor::all(Color::srgba(
-                    DIALOG_CHOICE_HOVER_BORDER.0, DIALOG_CHOICE_HOVER_BORDER.1,
-                    DIALOG_CHOICE_HOVER_BORDER.2, DIALOG_CHOICE_HOVER_BORDER.3,
-                ));
-            }
-            Interaction::None => {
-                *bg = BackgroundColor(Color::srgba(
-                    DIALOG_CHOICE_BG.0, DIALOG_CHOICE_BG.1,
-                    DIALOG_CHOICE_BG.2, DIALOG_CHOICE_BG.3,
-                ));
-                *border = BorderColor::all(Color::srgba(
-                    DIALOG_CHOICE_BORDER.0, DIALOG_CHOICE_BORDER.1,
-                    DIALOG_CHOICE_BORDER.2, DIALOG_CHOICE_BORDER.3,
-                ));
-            }
-        }
+        let hover = matches!(interaction, Interaction::Hovered | Interaction::Pressed);
+        let (bc, bdc) = choice_color(hover);
+        *bg = BackgroundColor(bc);
+        *border = BorderColor::all(bdc);
     }
 }
 
 /// System: animate dialog panel glow based on current speaker.
 pub fn animate_dialog_glow(
-    time: Res<Time>,
-    state: Res<DialogState>,
+    time: Res<Time>, state: Res<DialogState>,
     mut query: Query<&mut BoxShadow, With<DialogPanelGlow>>,
 ) {
-    let active = match &state.active_scene {
-        Some(a) => a,
-        None => return,
-    };
-    let node = match active.scene.nodes.get(active.node_index) {
-        Some(n) => n,
-        None => return,
-    };
-
-    let t = time.elapsed_secs();
+    let active = match &state.active_scene { Some(a) => a, None => return };
+    let node = match active.scene.nodes.get(active.node_index) { Some(n) => n, None => return };
     let (r, g, b) = match node.speaker {
-        Speaker::Anna => DIALOG_ANNA_COLOR,
-        Speaker::System => DIALOG_SYSTEM_COLOR,
-        Speaker::Narrator => DIALOG_NARRATOR_COLOR,
-        Speaker::Player => DIALOG_PLAYER_COLOR,
+        Speaker::Anna => DIALOG_ANNA_COLOR, Speaker::System => DIALOG_SYSTEM_COLOR,
+        Speaker::Narrator => DIALOG_NARRATOR_COLOR, Speaker::Player => DIALOG_PLAYER_COLOR,
     };
-
-    let pulse = 0.10 + 0.06 * (t * 1.5).sin();
+    let pulse = 0.10 + 0.06 * (time.elapsed_secs() * 1.5).sin();
     for mut shadow in query.iter_mut() {
-        *shadow = BoxShadow::new(
-            Color::srgba(r, g, b, pulse),
-            Val::ZERO, Val::ZERO,
-            Val::Px(DIALOG_GLOW_SPREAD), Val::Px(DIALOG_GLOW_BLUR),
-        );
+        *shadow = BoxShadow::new(Color::srgba(r, g, b, pulse), Val::ZERO, Val::ZERO,
+            Val::Px(DIALOG_GLOW_SPREAD), Val::Px(DIALOG_GLOW_BLUR));
     }
 }
 
-/// System: animate Anna's circle in dialog during emotional moments.
+/// System: animate Anna's circle with smooth mood color transitions + pulse.
 pub fn animate_dialog_circle(
-    time: Res<Time>,
-    state: Res<DialogState>,
+    time: Res<Time>, state: Res<DialogState>,
+    mut glow_mood: ResMut<AnnaGlowMood>,
     mut query: Query<(&mut BackgroundColor, &mut BoxShadow), With<DialogAnnaCircle>>,
 ) {
-    let active = match &state.active_scene {
-        Some(a) => a,
-        None => return,
-    };
-    let node = match active.scene.nodes.get(active.node_index) {
-        Some(n) => n,
-        None => return,
-    };
-    if node.speaker != Speaker::Anna { return; }
-
+    let active = match &state.active_scene { Some(a) => a, None => return };
+    let node = match active.scene.nodes.get(active.node_index) { Some(n) => n, None => return };
+    // Smoothly lerp current color toward target
+    let speed = ANNA_GLOW_LERP_SPEED * time.delta_secs();
+    glow_mood.current.0 += (glow_mood.target.0 - glow_mood.current.0) * speed;
+    glow_mood.current.1 += (glow_mood.target.1 - glow_mood.current.1) * speed;
+    glow_mood.current.2 += (glow_mood.target.2 - glow_mood.current.2) * speed;
+    // Only animate the circle when Anna or Narrator is speaking
+    if node.speaker != Speaker::Anna && node.speaker != Speaker::Narrator { return; }
     let t = time.elapsed_secs();
-    let brightness = 0.8 + 0.2 * (t * 1.2).sin();
-    let (r, g, b) = DIALOG_ANNA_COLOR;
-    let cr = r * brightness;
-    let cg = g * brightness;
-    let cb = b * brightness;
-
+    let brightness = 0.85 + 0.15 * (t * 1.2).sin();
+    let (r, g, b) = glow_mood.current;
+    let (cr, cg, cb) = (r * brightness, g * brightness, b * brightness);
     for (mut bg, mut shadow) in query.iter_mut() {
         *bg = BackgroundColor(Color::srgb(cr, cg, cb));
-        *shadow = BoxShadow::new(
-            Color::srgba(cr, cg, cb, 0.5 * brightness),
-            Val::ZERO, Val::ZERO, Val::Px(5.0), Val::Px(12.0),
-        );
+        *shadow = BoxShadow::new(Color::srgba(cr, cg, cb, 0.5 * brightness),
+            Val::ZERO, Val::ZERO, Val::Px(5.0), Val::Px(12.0));
     }
 }
 
@@ -333,24 +343,12 @@ pub fn update_skip_hint(
     state: &DialogState,
     hint_q: &mut Query<(&mut Text, &mut TextColor), (With<DialogSkipHint>, Without<DialogBodyText>, Without<DialogSpeakerText>)>,
 ) {
-    let active = match &state.active_scene {
-        Some(a) => a,
-        None => return,
-    };
-
+    let active = match &state.active_scene { Some(a) => a, None => return };
     for (mut text, mut color) in hint_q.iter_mut() {
-        if active.reaction_text.is_some() {
-            *text = Text::new("");
-            *color = TextColor(Color::srgba(0.5, 0.55, 0.65, 0.0));
-        } else if !active.text_complete {
-            *text = Text::new("Click to skip");
-            *color = TextColor(Color::srgba(0.5, 0.55, 0.65, 0.5));
-        } else if active.choices_visible {
-            *text = Text::new("");
-            *color = TextColor(Color::srgba(0.5, 0.55, 0.65, 0.0));
-        } else {
-            *text = Text::new("Click to continue");
-            *color = TextColor(Color::srgba(0.5, 0.55, 0.65, 0.6));
-        }
+        let (t, a) = if active.reaction_text.is_some() || active.choices_visible { ("", 0.0) }
+            else if !active.text_complete { ("Click to skip", 0.5) }
+            else { ("Click to continue", 0.6) };
+        *text = Text::new(t);
+        *color = TextColor(Color::srgba(0.5, 0.55, 0.65, a));
     }
 }

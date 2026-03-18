@@ -49,17 +49,26 @@ pub fn update_near_miss_flash(
     time: Res<Time>,
 ) {
     if near_miss_flash.timer <= 0.0 { return; }
+    let prev_timer = near_miss_flash.timer;
     near_miss_flash.timer = (near_miss_flash.timer - time.delta_secs()).max(0.0);
     let flash_t = near_miss_flash.timer / NEAR_MISS_FLASH_DURATION;
+    let just_ended = prev_timer > 0.0 && near_miss_flash.timer <= 0.0;
 
     let Ok(ship_entity) = ship_q.single() else { return; };
     let mut stack = vec![ship_entity];
     while let Some(entity) = stack.pop() {
         if let Ok(mat_handle) = material_q.get(entity) {
             if let Some(mat) = materials.get_mut(&mat_handle.0) {
-                let (r, g, b) = NEAR_MISS_FLASH_COLOR;
-                let intensity = flash_t * 6.0;
-                mat.emissive = LinearRgba::new(r * intensity, g * intensity, b * intensity, 1.0);
+                if just_ended {
+                    // Clear emissive when flash ends so ship doesn't glow forever
+                    mat.emissive = LinearRgba::new(0.0, 0.0, 0.0, 1.0);
+                } else {
+                    let (r, g, b) = NEAR_MISS_FLASH_COLOR;
+                    let intensity = flash_t * 6.0;
+                    mat.emissive = LinearRgba::new(
+                        r * intensity, g * intensity, b * intensity, 1.0,
+                    );
+                }
             }
         }
         if let Ok(children) = children_q.get(entity) {

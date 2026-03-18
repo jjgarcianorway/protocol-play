@@ -61,6 +61,18 @@ pub struct GameState {
     // Ark names the player has learned about
     #[serde(default)]
     pub discovered_arks: Vec<String>,
+
+    // Orben card games completed
+    #[serde(default)]
+    pub orben_games_played: u32,
+
+    // Language code ("en", "es", etc.)
+    #[serde(default = "default_language")]
+    pub language: String,
+}
+
+fn default_language() -> String {
+    "en".to_string()
 }
 
 impl Default for GameState {
@@ -91,6 +103,8 @@ impl Default for GameState {
             world_seed: 0,
             discovered_crew: Vec::new(),
             discovered_arks: Vec::new(),
+            orben_games_played: 0,
+            language: "en".to_string(),
         }
     }
 }
@@ -111,6 +125,14 @@ pub fn reset_for_new_world(state: &mut GameState) {
     *state = GameState::default();
     state.playthrough_count = next_playthrough;
     state.world_seed = rand::random::<u64>();
+}
+
+/// Reset for New Game+ with a specific custom seed (for seed sharing).
+pub fn reset_for_custom_seed(state: &mut GameState, seed: u64) {
+    let next_playthrough = state.playthrough_count + 1;
+    *state = GameState::default();
+    state.playthrough_count = next_playthrough;
+    state.world_seed = seed;
 }
 
 impl GameState {
@@ -134,26 +156,109 @@ pub fn game_state_path() -> PathBuf {
     exe_dir().join("game_state.json")
 }
 
+/// Path to a specific profile save file (1-5).
+pub fn profile_path(index: usize) -> PathBuf {
+    exe_dir().join(format!("profile_{index}.json"))
+}
+
+/// Path to the current profile tracking file.
+pub fn current_profile_path() -> PathBuf {
+    exe_dir().join("current_profile.json")
+}
+
+/// Load the active profile index (1-5). Returns 1 if no profile file exists.
+pub fn load_active_profile() -> usize {
+    let path = current_profile_path();
+    fs::read_to_string(&path)
+        .ok()
+        .and_then(|json| serde_json::from_str::<serde_json::Value>(&json).ok())
+        .and_then(|v| v.get("active")?.as_u64())
+        .map(|n| (n as usize).clamp(1, 5))
+        .unwrap_or(1)
+}
+
+/// Save the active profile index (1-5).
+pub fn save_active_profile(index: usize) {
+    let path = current_profile_path();
+    let json = format!("{{\"active\": {index}}}");
+    let _ = fs::write(&path, json);
+}
+
 /// Load game state from disk, or return defaults for a new game.
 /// On first load, generates a world seed if none exists.
 pub fn load_game_state() -> GameState {
     let path = game_state_path();
-    let mut state: GameState = fs::read_to_string(&path)
+    load_game_state_from(&path)
+}
+
+/// Load game state from a specific path.
+pub fn load_game_state_from(path: &PathBuf) -> GameState {
+    let mut state: GameState = fs::read_to_string(path)
         .ok()
         .and_then(|json| serde_json::from_str(&json).ok())
         .unwrap_or_default();
     // Generate world seed on first ever game
     if state.world_seed == 0 {
         state.world_seed = rand::random::<u64>();
-        save_game_state(&state);
+        save_game_state_to(&state, path);
     }
     state
 }
 
 /// Save game state to disk (pretty-printed JSON).
+/// Also syncs to the active profile file.
 pub fn save_game_state(state: &GameState) {
     let path = game_state_path();
+    save_game_state_to(state, &path);
+    // Also sync to the active profile
+    let active = load_active_profile();
+    let prof = profile_path(active);
+    if prof != path {
+        save_game_state_to(state, &prof);
+    }
+}
+
+/// Save game state to a specific path.
+pub fn save_game_state_to(state: &GameState, path: &PathBuf) {
     if let Ok(json) = serde_json::to_string_pretty(state) {
-        let _ = fs::write(&path, json);
+        let _ = fs::write(path, json);
+    }
+}
+
+/// Load game state for a specific profile (1-5).
+pub fn load_profile_game_state(index: usize) -> GameState {
+    let path = profile_path(index);
+    if path.exists() {
+        load_game_state_from(&path)
+    } else {
+        GameState::default()
+    }
+}
+
+/// Save game state for a specific profile (1-5).
+pub fn save_profile_game_state(index: usize, state: &GameState) {
+    let path = profile_path(index);
+    save_game_state_to(state, &path);
+}
+
+/// Delete a profile's save file.
+pub fn delete_profile(index: usize) {
+    let path = profile_path(index);
+    let _ = fs::remove_file(&path);
+}
+
+/// Check if a profile save file exists and has meaningful progress.
+pub fn profile_exists(index: usize) -> bool {
+    let path = profile_path(index);
+    path.exists()
+}
+
+/// Migrate legacy game_state.json to profile_1.json if no profiles exist yet.
+pub fn migrate_legacy_save() {
+    let legacy = game_state_path();
+    let profile1 = profile_path(1);
+    if legacy.exists() && !profile1.exists() {
+        let _ = fs::copy(&legacy, &profile1);
+        save_active_profile(1);
     }
 }

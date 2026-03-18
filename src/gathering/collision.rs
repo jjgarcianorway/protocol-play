@@ -3,6 +3,7 @@
 use bevy::prelude::*;
 use super::constants::*;
 use super::types::*;
+use crate::sound::{SoundPalette, SoundSettings, play_sound, SoundType};
 
 #[derive(Component)]
 pub struct HitCooldown(pub f32);
@@ -10,11 +11,9 @@ pub struct HitCooldown(pub f32);
 pub fn check_collisions(
     ship_q: Query<&Transform, With<Ship>>,
     asteroid_q: Query<(Entity, &Transform, &Asteroid), Without<HitCooldown>>,
-    mut state: ResMut<ShipState>,
-    mut shake: ResMut<ScreenShake>,
-    mut hit_flash: ResMut<HitFlash>,
-    paused: Res<Paused>,
-    mut commands: Commands,
+    mut state: ResMut<ShipState>, mut shake: ResMut<ScreenShake>,
+    mut hit_flash: ResMut<HitFlash>, paused: Res<Paused>, mut commands: Commands,
+    palette: Option<Res<SoundPalette>>, snd_settings: Res<SoundSettings>,
 ) -> Result {
     if !state.alive || paused.0 { return Ok(()); }
     let ship_tf = ship_q.single()?;
@@ -49,8 +48,9 @@ pub fn check_collisions(
             state.hits_taken += 1;
             state.control_loss_timer = CONTROL_LOSS_DURATION;
             shake.intensity = (shake.intensity + damage * 0.15).min(3.0);
+            if let Some(ref pal) = palette { play_sound(&mut commands, pal, SoundType::ShieldHit, &snd_settings); }
             hit_flash.timer = HIT_FLASH_DURATION;
-            commands.entity(entity).insert(HitCooldown(0.5));
+            commands.entity(entity).insert(HitCooldown(HIT_COOLDOWN_SECS));
 
             spawn_damage_direction(&mut commands, ship_pos, ast_pos);
 
@@ -67,12 +67,10 @@ pub fn check_collisions(
 pub fn check_near_misses(
     ship_q: Query<&Transform, With<Ship>>,
     asteroid_q: Query<(Entity, &Transform, &Asteroid), (Without<HitCooldown>, Without<NearMissCooldown>)>,
-    mut state: ResMut<ShipState>,
-    mut near_miss_flash: ResMut<NearMissFlash>,
-    paused: Res<Paused>,
-    mut commands: Commands,
-    font: Res<GatheringFont>,
-    cameras: Query<(&Camera, &GlobalTransform)>,
+    mut state: ResMut<ShipState>, mut near_miss_flash: ResMut<NearMissFlash>,
+    paused: Res<Paused>, mut commands: Commands,
+    font: Res<GatheringFont>, cameras: Query<(&Camera, &GlobalTransform)>,
+    palette: Option<Res<SoundPalette>>, snd_settings: Res<SoundSettings>,
 ) -> Result {
     if !state.alive || paused.0 { return Ok(()); }
     let ship_tf = ship_q.single()?;
@@ -91,6 +89,7 @@ pub fn check_near_misses(
             state.near_misses += 1;
             near_miss_flash.timer = NEAR_MISS_FLASH_DURATION;
             commands.entity(entity).insert(NearMissCooldown(NEAR_MISS_COOLDOWN));
+            if let Some(ref pal) = palette { play_sound(&mut commands, pal, SoundType::NearMiss, &snd_settings); }
 
             // Spawn floating text
             if let Ok((camera, cam_gt)) = cameras.single() {
@@ -175,7 +174,7 @@ fn spawn_damage_direction(commands: &mut Commands, ship_pos: Vec2, ast_pos: Vec2
     commands.spawn((
         DamageDirectionIndicator { timer: DAMAGE_DIR_FADE_TIME },
         node,
-        BackgroundColor(Color::srgba(1.0, 0.1, 0.05, DAMAGE_DIR_ALPHA)),
+        BackgroundColor(Color::srgba(DAMAGE_DIR_COLOR.0, DAMAGE_DIR_COLOR.1, DAMAGE_DIR_COLOR.2, DAMAGE_DIR_ALPHA)),
         ZIndex(9),
     ));
 }
@@ -193,7 +192,7 @@ pub fn update_damage_direction(
             continue;
         }
         let alpha = (indicator.timer / DAMAGE_DIR_FADE_TIME) * DAMAGE_DIR_ALPHA;
-        bg.0 = Color::srgba(1.0, 0.1, 0.05, alpha);
+        bg.0 = Color::srgba(DAMAGE_DIR_COLOR.0, DAMAGE_DIR_COLOR.1, DAMAGE_DIR_COLOR.2, alpha);
     }
 }
 

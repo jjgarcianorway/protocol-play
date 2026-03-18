@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use bevy::prelude::*;
-use crate::constants::*;
-use crate::types::*;
-use crate::ui_helpers::*;
+use crate::{constants::*, types::*, ui_helpers::*};
 use crate::board::tile_world_pos;
 use crate::messages::{pick_error_msg, pick_success_msg};
+use crate::sound::{SoundPalette, SoundSettings, play_sound, SoundType};
 
 // === Simulation types (moved from types.rs for line budget) ===
 #[derive(Clone, Copy, PartialEq)] #[allow(dead_code)]
@@ -27,8 +26,7 @@ pub enum SimResult { Error(&'static str), Success }
 #[derive(Resource, Default)]
 pub struct SimulationResult {
     pub result: Option<SimResult>, pub overlay_spawned: bool,
-    pub stop_requested: bool, pub test_success_exit: bool,
-    pub stats_lines: Vec<String>,
+    pub stop_requested: bool, pub test_success_exit: bool, pub stats_lines: Vec<String>,
 }
 #[derive(Component)] pub struct SimulationOverlay;
 #[derive(Component)] pub struct SimOverlayButton;
@@ -313,9 +311,14 @@ pub fn spawn_simulation_overlay(
     existing: Query<Entity, With<SimulationOverlay>>, font: Res<GameFont>,
     play_mode: Res<PlayMode>, test_inv: Res<TestInventory>,
     bots: Query<&Bot>,
+    palette: Option<Res<SoundPalette>>, snd_settings: Res<SoundSettings>,
 ) {
     if sim_result.result.is_none() || sim_result.overlay_spawned || !existing.is_empty() { return; }
     sim_result.overlay_spawned = true;
+    if let Some(ref pal) = palette {
+        let snd = if matches!(sim_result.result, Some(SimResult::Success)) { SoundType::LevelComplete } else { SoundType::LevelFail };
+        play_sound(&mut commands, pal, snd, &snd_settings);
+    }
     let in_test = matches!(*play_mode, PlayMode::TestPlaying);
     let pieces_left = test_inv.items.iter().map(|(_, c)| *c as usize).sum::<usize>();
     let bot_count = bots.iter().count();
@@ -375,25 +378,17 @@ pub fn paint_bots(
                 let (fr, fg, fb) = SOURCE_COLORS[tr.from_color];
                 let (tor, tog, tob) = SOURCE_COLORS[tr.to_color];
                 let t = tr.progress;
-                m.base_color = Color::srgb(fr + (tor - fr) * t, fg + (tog - fg) * t, fb + (tob - fb) * t);
+                m.base_color = Color::srgb(fr+(tor-fr)*t, fg+(tog-fg)*t, fb+(tob-fb)*t);
             }
-            if tr.progress >= 1.0 {
-                *mat = MeshMaterial3d(assets.bot_materials[tr.to_color].clone());
-                commands.entity(entity).remove::<BotColorTransition>();
-            }
+            if tr.progress >= 1.0 { *mat = MeshMaterial3d(assets.bot_materials[tr.to_color].clone()); commands.entity(entity).remove::<BotColorTransition>(); }
         } else if matches!(mov.phase, BotPhase::Cruising | BotPhase::Accelerating) {
             if let Some(TileKind::Painter(ci)) = tiles.iter()
                 .find(|(c, _)| c.col as i32 == mov.col && c.row as i32 == mov.row).map(|(_, k)| *k)
             { if ci != mov.color_index {
-                    let old_color = mov.color_index;
-                    let (r, g, b) = SOURCE_COLORS[old_color];
-                    let unique = materials.add(StandardMaterial { base_color: Color::srgb(r, g, b), ..default() });
-                    *mat = MeshMaterial3d(unique.clone());
-                    // Update logical color immediately — visual transition is cosmetic only
-                    mov.color_index = ci;
-                    commands.entity(entity).insert(BotColorTransition {
-                        from_color: old_color, to_color: ci, progress: 0.0, material: unique,
-                    });
+                let old = mov.color_index; let (r, g, b) = SOURCE_COLORS[old];
+                let unique = materials.add(StandardMaterial { base_color: Color::srgb(r, g, b), ..default() });
+                *mat = MeshMaterial3d(unique.clone()); mov.color_index = ci;
+                commands.entity(entity).insert(BotColorTransition { from_color: old, to_color: ci, progress: 0.0, material: unique });
             }}
         }
     }

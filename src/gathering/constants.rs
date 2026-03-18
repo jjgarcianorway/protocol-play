@@ -146,6 +146,7 @@ pub const DIR_LIGHT_BRIGHTNESS: f32 = 3000.0;
 
 // Hit flash
 pub const HIT_FLASH_DURATION: f32 = 0.3;
+pub const HIT_COOLDOWN_SECS: f32 = 0.5;
 
 // Floating text
 pub const FLOAT_TEXT_LIFETIME: f32 = 1.5;
@@ -209,6 +210,17 @@ pub const MAGNET_RING_FADE_SPEED: f32 = 4.0;
 pub const DAMAGE_DIR_FADE_TIME: f32 = 0.5;
 pub const DAMAGE_DIR_WIDTH: f32 = 80.0;
 pub const DAMAGE_DIR_ALPHA: f32 = 0.6;
+pub const DAMAGE_DIR_COLOR: (f32, f32, f32) = (1.0, 0.1, 0.05);
+
+// Pause overlay fade
+pub const PAUSE_FADE_IN_SECS: f32 = 0.15;
+
+// Game over card fade
+pub const GAME_OVER_CARD_FADE_SECS: f32 = 0.6;
+
+// Warning indicator pulse
+pub const WARNING_PULSE_SPEED: f32 = 6.0;
+pub const WARNING_PULSE_AMOUNT: f32 = 0.3;
 
 // Background color shift with difficulty
 pub const CLEAR_COLOR_WARM: (f32, f32, f32) = (0.04, 0.02, 0.06);

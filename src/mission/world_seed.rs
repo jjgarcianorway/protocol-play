@@ -2,6 +2,56 @@
 
 //! World seed system — deterministic world generation from a u64 seed.
 //! Creates Earth collapse history, other ark fates, and crew composition.
+//!
+//! # What the seed varies (every seed = a meaningfully different experience)
+//!
+//! ## Earth's collapse (EarthCollapse)
+//! - **Primary cause**: 1 of 7 (Climate, Resource Wars, Pandemic, Nuclear,
+//!   AI Uprising, Political Collapse, Economic Meltdown)
+//! - **Secondary causes**: 2-3 additional collapse factors
+//! - **Timeline year**: 2089-2156
+//! - **Last country standing**: 1 of 10 (Iceland, New Zealand, Switzerland, ...)
+//! - **Final event text**: 3 variants per cause = 21 possible final events
+//!
+//! ## Other arks (Vec<ArkFate>)
+//! - **Count**: 8-14 arks selected from 14 possible names
+//! - **Per-ark**: crew count (12k-16k), launch year (2098-2130),
+//!   fate (Unknown/Destroyed/Arrived/Drifting/Mutiny/Merged),
+//!   last signal (60% chance, 1 of 8 transmissions)
+//!
+//! ## Player background (PlayerBackground)
+//! - **Profession**: 1 of 8 (Systems Engineer, Physician, Biologist, ...)
+//! - **Home region**: 1 of 10 (Northern Europe, East Asia, ...)
+//! - **Selection reason**: 1 of 5 (skills match, resilience, genetic diversity, ...)
+//!
+//! ## Aurora (the player's ark)
+//! - **Crew count**: 11,000-16,000
+//! - **Children**: 80-250
+//! - **Languages spoken**: 25-55
+//! - **Launch year**: 2095-2135
+//!
+//! ## Crew members (from crew_stories, seeded from world_seed + offset)
+//! - **Count**: 20-30 unique crew members
+//! - **Per-member**: name (from 55x54 first/last pool), age (22-65),
+//!   nationality (1 of 20), profession (1 of 40), perspective (1 of 16),
+//!   backstory (4 templates x many variants), secret (35% chance, 1 of 12),
+//!   pod number (1-14892)
+//! - **Connections**: 3-6 paired relationships between crew
+//!
+//! # Approximate variation space
+//! - Collapse: 7 causes x 3 events x ~67 years x 10 countries = ~14,000
+//! - Arks: C(14,8..14) arrangements x 6 fates x signals = millions
+//! - Player: 8 x 10 x 5 = 400 backgrounds
+//! - Crew: (55x54)^20..30 name combos alone = astronomical
+//! - **Effective unique worlds: billions** (limited only by u64 = 2^64 seeds)
+//!
+//! # What stays the same across ALL seeds
+//! - Dialog scenes (55 scenes, all hand-written)
+//! - Anna's personality and voice
+//! - Character archetypes and core story arc
+//! - The 6 endings and their conditions
+//! - Game mechanics (all 5 mini-games)
+//! - The revelation structure (ark discovery, gamification irony)
 
 use rand::Rng;
 use rand::rngs::StdRng;
@@ -71,10 +121,16 @@ pub struct ArkFate {
 pub struct EarthCollapse {
     pub primary_cause: CollapseCause,
     pub secondary_causes: Vec<CollapseCause>,
+    /// Severity of the collapse (1-5). Shapes crew trauma, Anna's tone, and
+    /// moral complexity. 1 = regional crisis, 5 = total civilizational end.
+    #[serde(default = "default_severity")]
+    pub severity: u32,
     pub timeline_year: u32,
     pub last_country_standing: String,
     pub final_event: String,
 }
+
+fn default_severity() -> u32 { 3 }
 
 /// Player's pre-cryo background.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -205,9 +261,16 @@ fn gen_earth_collapse(rng: &mut StdRng) -> EarthCollapse {
     let events = FINAL_EVENTS[primary_idx];
     let event_idx = rng.gen_range(0..events.len());
 
+    // Severity 1-5: more secondary causes and later timeline = worse
+    let severity = (1 + secondary.len() as u32 +
+        if timeline_year > 2130 { 1 } else { 0 } +
+        if timeline_year > 2145 { 1 } else { 0 })
+        .clamp(1, 5);
+
     EarthCollapse {
         primary_cause,
         secondary_causes: secondary,
+        severity,
         timeline_year,
         last_country_standing: COUNTRIES[country_idx].to_string(),
         final_event: events[event_idx].to_string(),

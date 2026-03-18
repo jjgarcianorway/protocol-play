@@ -6,7 +6,9 @@ mod ui_helpers; mod slot_ui; mod inventory; mod systems; mod systems_ui; mod sim
 mod bot_formation; mod mat_helpers; mod test_mode; mod level_io; mod save_dialog;
 mod level_gen_sim; mod level_gen_tiles; mod level_gen_algo; mod level_gen_ui; mod level_gen_interact;
 mod icon_render;
+pub mod sound;
 #[allow(dead_code)] mod save_state;
+#[allow(dead_code)] pub mod i18n;
 pub mod anna_comments;
 #[cfg(feature = "player")] mod player;
 #[cfg(feature = "player")] mod player_anna;
@@ -46,6 +48,7 @@ fn main() {
         let mut app = App::new();
         app.add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window { title: "Orben".into(), ..default() }), ..default() }));
+        app.add_plugins(sound::SoundPlugin);
         app.set_error_handler(bevy::ecs::error::ignore);
         orben::build_app(&mut app); app.run(); return;
     }
@@ -53,6 +56,7 @@ fn main() {
         let mut app = App::new();
         app.add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window { title: "protocol: play — Mission Control".into(), ..default() }), ..default() }));
+        app.add_plugins(sound::SoundPlugin);
         app.set_error_handler(bevy::ecs::error::ignore);
         mission::build_app(&mut app); app.run(); return;
     }
@@ -60,6 +64,7 @@ fn main() {
         let mut app = App::new();
         app.add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window { title: "The Converter".into(), ..default() }), ..default() }));
+        app.add_plugins(sound::SoundPlugin);
         app.set_error_handler(bevy::ecs::error::ignore);
         converter::build_app(&mut app); app.run(); return;
     }
@@ -67,6 +72,7 @@ fn main() {
         let mut app = App::new();
         app.add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window { title: "The Delivery".into(), ..default() }), ..default() }));
+        app.add_plugins(sound::SoundPlugin);
         app.set_error_handler(bevy::ecs::error::ignore);
         delivery::build_app(&mut app); app.run(); return;
     }
@@ -74,6 +80,7 @@ fn main() {
         let mut app = App::new();
         app.add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window { title: "The Gathering".into(), ..default() }), ..default() }));
+        app.add_plugins(sound::SoundPlugin);
         app.set_error_handler(bevy::ecs::error::ignore);
         gathering::build_app(&mut app); app.run(); return;
     }
@@ -83,6 +90,7 @@ fn main() {
     app.set_error_handler(bevy::ecs::error::ignore);
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window { title: title.into(), ..default() }), ..default() }))
+        .add_plugins(sound::SoundPlugin)
         .insert_resource(ClearColor(Color::srgb(CLEAR_COLOR.0, CLEAR_COLOR.1, CLEAR_COLOR.2)))
         .insert_resource(GlobalAmbientLight { color: Color::srgb(AMBIENT_COLOR.0, AMBIENT_COLOR.1, AMBIENT_COLOR.2), brightness: AMBIENT_BRIGHTNESS, ..default() })
         .insert_resource(BoardSize(3))

@@ -15,6 +15,7 @@ pub fn update_warning_indicators(
     state: Res<ShipState>,
     paused: Res<Paused>,
     ship_q: Query<&Transform, With<Ship>>,
+    time: Res<Time>,
 ) {
     if !state.alive || paused.0 {
         // Despawn all indicators when paused or dead
@@ -58,9 +59,11 @@ pub fn update_warning_indicators(
 
         active_asteroids.push(ast_entity);
 
-        // Calculate indicator properties
+        // Calculate indicator properties -- pulse faster as asteroid gets closer
         let proximity = 1.0 - (time_to_edge / WARNING_LEAD_TIME).clamp(0.0, 1.0);
-        let alpha = proximity * 0.8;
+        let pulse = 1.0 - (time.elapsed_secs() * WARNING_PULSE_SPEED).sin().abs()
+            * WARNING_PULSE_AMOUNT * proximity;
+        let alpha = proximity * 0.8 * pulse;
         let from_left = pos.x < 0.0;
 
         // Calculate vertical position on screen (0..100%)

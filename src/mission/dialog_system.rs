@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Dialog engine systems — triggering, advancing, typewriter, choice handling.
+//! Dialog engine — triggering, advancing, typewriter, choices.
 use bevy::prelude::*;
 use super::dialog_types::*;
 use super::dialog_ui;
 use super::dialog_scenes;
 use super::types::*;
 use crate::save_state::{save_game_state, GameState};
+use crate::sound::{SoundPalette, SoundSettings, play_sound, SoundType};
 
 /// System: check dialog triggers after returning from a game.
 /// Queues applicable scenes and marks triggers as checked.
@@ -54,16 +55,17 @@ fn should_trigger(scene: &DialogScene, gs: &GameState, ship: &ShipStatus) -> boo
         DialogTrigger::PlaythroughAndLevel(n, level) =>
             gs.playthrough_count == *n && gs.bot_level >= *level,
         DialogTrigger::CrewLoss(threshold) => ship.crew_count < *threshold,
+        DialogTrigger::AllDecisionsAndLevel(keys, level) =>
+            gs.bot_level >= *level && keys.iter().all(|k| gs.decisions.iter().any(|d| d == *k)),
     }
 }
 
 /// System: start the next queued dialog scene if none is active.
 pub fn start_next_dialog(
-    mut state: ResMut<DialogState>,
-    mut commands: Commands,
-    font: Res<MissionFont>,
-    overlay_q: Query<Entity, With<DialogOverlay>>,
+    mut state: ResMut<DialogState>, mut commands: Commands,
+    font: Res<MissionFont>, overlay_q: Query<Entity, With<DialogOverlay>>,
     qs: Res<super::questions::QuestionState>,
+    palette: Option<Res<SoundPalette>>, snd_settings: Res<SoundSettings>,
 ) {
     if state.active_scene.is_some() { return; }
     if !overlay_q.is_empty() { return; }
@@ -85,22 +87,23 @@ pub fn start_next_dialog(
             reaction_timer: 0.0,
         });
         dialog_ui::spawn_dialog_overlay(&mut commands, &font.0);
+        if let Some(ref pal) = palette { play_sound(&mut commands, pal, SoundType::DialogOpen, &snd_settings); }
     }
 }
 
 /// System: advance typewriter effect each frame.
 pub fn update_typewriter(
-    time: Res<Time>,
-    mut state: ResMut<DialogState>,
+    time: Res<Time>, mut state: ResMut<DialogState>, mut commands: Commands,
+    mut glow_mood: ResMut<AnnaGlowMood>,
     mut body_q: Query<&mut Text, (With<DialogBodyText>,
         Without<DialogSpeakerText>, Without<DialogSkipHint>)>,
     mut speaker_color_q: Query<&mut TextColor,
         (With<DialogSpeakerText>, Without<DialogBodyText>, Without<DialogSkipHint>)>,
     mut speaker_text_q: Query<&mut Text,
         (With<DialogSpeakerText>, Without<DialogBodyText>, Without<DialogSkipHint>)>,
-    mut circle_q: Query<(&mut BackgroundColor, &mut BoxShadow),
-        With<DialogAnnaCircle>>,
+    mut circle_q: Query<(&mut BackgroundColor, &mut BoxShadow), With<DialogAnnaCircle>>,
     mut hint_q: Query<(&mut Text, &mut TextColor), (With<DialogSkipHint>, Without<DialogBodyText>, Without<DialogSpeakerText>)>,
+    palette: Option<Res<SoundPalette>>, snd_settings: Res<SoundSettings>,
 ) {
     let active = match state.active_scene.as_mut() {
         Some(a) => a,
@@ -122,12 +125,14 @@ pub fn update_typewriter(
         None => return,
     };
 
-    // Update speaker display
+    // Update speaker display (with glow mood detection from narrator text)
     dialog_ui::update_speaker_display(
         node.speaker,
+        node.text,
         &mut speaker_color_q,
         &mut speaker_text_q,
         &mut circle_q,
+        &mut glow_mood,
     );
 
     // Typewriter effect
@@ -135,7 +140,11 @@ pub fn update_typewriter(
         active.char_timer += time.delta_secs();
         let chars_needed = (active.char_timer * TYPEWRITER_SPEED) as usize;
         if chars_needed > active.chars_revealed {
+            let prev = active.chars_revealed;
             active.chars_revealed = chars_needed.min(active.total_chars);
+            if active.chars_revealed / 3 != prev / 3 { // throttle: every 3rd char
+                if let Some(ref pal) = palette { play_sound(&mut commands, pal, SoundType::Typewriter, &snd_settings); }
+            }
         }
         if active.chars_revealed >= active.total_chars {
             active.text_complete = true;
@@ -224,23 +233,17 @@ pub fn dialog_click_advance(
 
 /// System: handle clicking a dialog choice button.
 pub fn dialog_choice_click(
-    query: Query<(&Interaction, &DialogChoiceBtn),
-        Changed<Interaction>>,
-    mut state: ResMut<DialogState>,
-    mut commands: Commands,
-    mut gs: ResMut<GameState>,
+    query: Query<(&Interaction, &DialogChoiceBtn), Changed<Interaction>>,
+    mut state: ResMut<DialogState>, mut commands: Commands, mut gs: ResMut<GameState>,
     mut body_q: Query<&mut Text, (With<DialogBodyText>,
         Without<DialogSpeakerText>, Without<DialogSkipHint>)>,
     btn_q: Query<Entity, With<DialogChoiceBtn>>,
+    palette: Option<Res<SoundPalette>>, snd_settings: Res<SoundSettings>,
 ) {
     for (interaction, btn) in query.iter() {
         if *interaction != Interaction::Pressed { continue; }
-
-        let active = match state.active_scene.as_mut() {
-            Some(a) => a,
-            None => continue,
-        };
-
+        if let Some(ref pal) = palette { play_sound(&mut commands, pal, SoundType::ChoiceSelect, &snd_settings); }
+        let active = match state.active_scene.as_mut() { Some(a) => a, None => continue };
         let node = &active.scene.nodes[active.node_index];
         let choices = match &node.next {
             DialogNext::Choice(c) => *c,
@@ -367,32 +370,20 @@ fn end_scene(
 
 /// System: spawn choice buttons when choices become visible.
 pub fn spawn_choices_when_ready(
-    state: Res<DialogState>,
-    mut commands: Commands,
+    state: Res<DialogState>, mut commands: Commands,
     container_q: Query<Entity, With<DialogChoiceContainer>>,
-    btn_q: Query<&DialogChoiceBtn>,
-    font: Res<MissionFont>,
+    btn_q: Query<&DialogChoiceBtn>, font: Res<MissionFont>,
+    palette: Option<Res<SoundPalette>>, snd_settings: Res<SoundSettings>,
 ) {
-    let active = match &state.active_scene {
-        Some(a) => a,
-        None => return,
-    };
-    if !active.choices_visible { return; }
-    if active.reaction_text.is_some() { return; }
-    if !btn_q.is_empty() { return; }
-
-    let node = match active.scene.nodes.get(active.node_index) {
-        Some(n) => n,
-        None => return,
-    };
+    let active = match &state.active_scene { Some(a) => a, None => return };
+    if !active.choices_visible || active.reaction_text.is_some() || !btn_q.is_empty() { return; }
+    let node = match active.scene.nodes.get(active.node_index) { Some(n) => n, None => return };
     if let DialogNext::Choice(choices) = &node.next {
-        dialog_ui::spawn_choice_buttons(
-            &mut commands, &container_q, choices, &font.0,
-        );
+        dialog_ui::spawn_choice_buttons(&mut commands, &container_q, choices, &font.0);
+        if let Some(ref pal) = palette { play_sound(&mut commands, pal, SoundType::ChoiceAppear, &snd_settings); }
     }
 }
 
-/// Reset dialog state when returning from a game.
 pub fn reset_dialog_check(state: &mut DialogState) {
     state.checked_triggers = false;
     state.delay_timer = DIALOG_START_DELAY;

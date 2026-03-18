@@ -2,9 +2,8 @@
 #![allow(dead_code)]
 
 use bevy::prelude::*;
-use crate::constants::*;
-use crate::types::*;
-use crate::board::*;
+use crate::{constants::*, types::*, board::*};
+use crate::sound::{SoundPalette, SoundSettings, play_sound, SoundType};
 
 // === Animation ===
 pub fn animate_scale(
@@ -327,6 +326,8 @@ pub fn handle_tile_click(
     ghost_q: Query<&Transform, With<GhostPreview>>,
     mut validated: ResMut<LevelValidated>,
     mut ghost_cell: ResMut<GhostCell>,
+    palette: Option<Res<SoundPalette>>,
+    snd_settings: Res<SoundSettings>,
 ) -> Result {
     if *play_mode != PlayMode::Editing || !mouse.just_pressed(MouseButton::Left) { return Ok(()); }
     if ui_interactions.iter().any(|i| *i != Interaction::None) { return Ok(()); }
@@ -381,7 +382,19 @@ pub fn handle_tile_click(
             dp!(); spawn_tile(&mut commands, col, row, board_size.0, TileKind::Empty, &assets);
         }
     }
+    if let Some(ref pal) = palette { play_sound(&mut commands, pal, tool_to_sound(selected_tool.0), &snd_settings); }
     ghost_cell.last_placed = Some((col, row));
     Ok(())
 }
+
+pub fn tool_to_sound(t: Tool) -> SoundType { match t {
+    Tool::Floor => SoundType::TileFloor, Tool::Source => SoundType::TileSource,
+    Tool::Goal => SoundType::TileGoal, Tool::Turn => SoundType::TileTurn,
+    Tool::TurnBut => SoundType::TileTurnBut, Tool::Teleport => SoundType::TileTeleport,
+    Tool::TeleportBut => SoundType::TileTeleportBut, Tool::Bounce => SoundType::TileBounce,
+    Tool::BounceBut => SoundType::TileBounceBut, Tool::Arrow => SoundType::TileArrow,
+    Tool::ArrowBut => SoundType::TileArrowBut, Tool::Door => SoundType::TileDoor,
+    Tool::Switch | Tool::ColorSwitch | Tool::ColorSwitchBut => SoundType::TileSwitch,
+    Tool::Painter => SoundType::TilePainter, Tool::Delete => SoundType::Click,
+}}
 

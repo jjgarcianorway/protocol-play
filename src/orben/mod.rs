@@ -118,7 +118,8 @@ fn create_vignette(images: &mut Assets<Image>) -> Handle<Image> {
     }
     images.add(Image::new(
         Extent3d { width: size, height: size, depth_or_array_layers: 1 },
-        TextureDimension::D2, data, TextureFormat::Rgba8UnormSrgb, default(),
+        TextureDimension::D2, data, TextureFormat::Rgba8UnormSrgb,
+        default(),
     ))
 }
 
@@ -283,12 +284,22 @@ fn animate_stars(
     }
 }
 
-/// Check if game should transition to results.
+/// Check if game should transition to results, and track completion in save state.
 fn check_game_over(
     state: Res<OrbGameState>,
     mut next_state: ResMut<NextState<OrbenPhase>>,
 ) {
     if state.turn_phase == TurnPhase::GameOver {
+        // Increment Orben games played in persistent save state
+        let mut gs = crate::save_state::load_game_state();
+        gs.orben_games_played += 1;
+        // After 3 games, set a decision flag so story scenes can trigger
+        if gs.orben_games_played >= 3
+            && !gs.decisions.contains(&"orben_played_3".to_string())
+        {
+            gs.decisions.push("orben_played_3".to_string());
+        }
+        crate::save_state::save_game_state(&gs);
         next_state.set(OrbenPhase::Results);
     }
 }

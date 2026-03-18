@@ -117,6 +117,7 @@ pub fn spawn_game_over_screen(
 
     commands.spawn((
         GameOverScreen,
+        GameOverFadeIn(0.0),
         Node {
             position_type: PositionType::Absolute,
             width: Val::Percent(100.0),
@@ -134,7 +135,7 @@ pub fn spawn_game_over_screen(
             row_gap: Val::Px(STATS_CARD_GAP),
             border_radius: BorderRadius::all(Val::Px(12.0)),
             ..default()
-        }, BackgroundColor(Color::srgb(STATS_CARD_BG.0, STATS_CARD_BG.1, STATS_CARD_BG.2)),
+        }, BackgroundColor(Color::srgba(STATS_CARD_BG.0, STATS_CARD_BG.1, STATS_CARD_BG.2, 0.0)),
         )).with_children(|card| {
             card.spawn((Text::new("Ship Stopped for Repairs"), title_font.clone(),
                 TextColor(value_color)));
@@ -227,6 +228,29 @@ pub fn try_again_hover(
     }
 }
 
+/// Tracks fade-in progress of the game over card (0.0 to 1.0).
+#[derive(Component)]
+pub struct GameOverFadeIn(pub f32);
+
+/// Smoothly fade in the game over card instead of popping it in.
+pub fn update_game_over_fade(
+    mut query: Query<(&mut GameOverFadeIn, &Children), With<GameOverScreen>>,
+    mut bg_q: Query<&mut BackgroundColor>,
+    time: Res<Time>,
+) {
+    let dt = time.delta_secs();
+    for (mut fade, children) in query.iter_mut() {
+        if fade.0 >= 1.0 { continue; }
+        fade.0 = (fade.0 + dt / GAME_OVER_CARD_FADE_SECS).min(1.0);
+        for child in children.iter() {
+            if let Ok(mut bg) = bg_q.get_mut(child) {
+                let (r, g, b) = STATS_CARD_BG;
+                bg.0 = Color::srgba(r, g, b, fade.0);
+            }
+        }
+    }
+}
+
 /// Shared marker: set to true by try_again button press, consumed by cleanup system.
 #[derive(Resource, Default)]
 pub struct TryAgainTriggered(pub bool);
@@ -242,6 +266,7 @@ pub fn try_again_interaction(
     mut near_miss_flash: ResMut<NearMissFlash>,
     mut chain: ResMut<CrystalChain>,
     mut triggered: ResMut<TryAgainTriggered>,
+    mut intro_fade: ResMut<IntroFade>,
 ) {
     for interaction in interaction_q.iter() {
         if *interaction != Interaction::Pressed { continue; }
@@ -252,6 +277,7 @@ pub fn try_again_interaction(
         *hit_flash = HitFlash::default();
         *near_miss_flash = NearMissFlash::default();
         *chain = CrystalChain::default();
+        *intro_fade = IntroFade::default();
         triggered.0 = true;
         next_state.set(GatheringState::Running);
     }
