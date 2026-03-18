@@ -58,6 +58,15 @@ use super::dialog_scenes_anna_daily;
 use super::dialog_scenes_philosophy3;
 use super::dialog_scenes_secrets2;
 use super::dialog_scenes_arrival;
+use super::dialog_scenes_anna_growth;
+use super::dialog_scenes_earth_final;
+use super::dialog_scenes_crew_secrets;
+use super::dialog_scenes_colony_prep;
+use super::dialog_scenes_anna_final;
+use super::dialog_scenes_crew_moments;
+use super::dialog_scenes_philosophy4;
+use super::dialog_scenes_character_epilogues;
+use super::dialog_scenes_endgame;
 
 /// Return all dialog scenes from all acts.
 pub fn all_scenes() -> Vec<&'static DialogScene> {
@@ -117,5 +126,14 @@ pub fn all_scenes() -> Vec<&'static DialogScene> {
     scenes.extend(dialog_scenes_philosophy3::philosophy_scenes_3());
     scenes.extend(dialog_scenes_secrets2::secret_scenes_2());
     scenes.extend(dialog_scenes_arrival::arrival_scenes());
+    scenes.extend(dialog_scenes_anna_growth::anna_growth_scenes());
+    scenes.extend(dialog_scenes_earth_final::earth_final_scenes());
+    scenes.extend(dialog_scenes_crew_secrets::crew_secrets_scenes());
+    scenes.extend(dialog_scenes_colony_prep::colony_prep_scenes());
+    scenes.extend(dialog_scenes_anna_final::anna_final_scenes());
+    scenes.extend(dialog_scenes_crew_moments::crew_moment_scenes());
+    scenes.extend(dialog_scenes_philosophy4::philosophy_scenes_4());
+    scenes.extend(dialog_scenes_character_epilogues::character_epilogue_scenes());
+    scenes.extend(dialog_scenes_endgame::endgame_scenes());
     scenes
 }

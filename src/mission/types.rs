@@ -5,8 +5,8 @@ use bevy::prelude::*;
 /// Top-level application phase — controls main menu vs gameplay.
 #[derive(States, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum AppPhase {
-    #[default]
     ProfileSelect,
+    #[default]
     MainMenu,
     Loading,
     Playing,
