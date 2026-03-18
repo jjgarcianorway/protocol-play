@@ -6,6 +6,7 @@ mod grid;
 mod ui;
 mod effects;
 mod results;
+pub mod anna;
 
 use bevy::prelude::*;
 use bevy::post_process::bloom::Bloom;
@@ -22,10 +23,12 @@ pub fn build_app(app: &mut App) {
     .insert_resource(ResourceTanks::default())
     .insert_resource(ConversionStats::default())
     .insert_resource(HoveredGroup::default())
+    .insert_resource(crate::anna_comments::AnnaComments::default())
     .init_state::<ConverterPhase>()
     .add_systems(Startup, (
         setup_converter,
         ui::spawn_converter_ui.after(setup_converter),
+        anna::setup_converter_anna.after(setup_converter),
     ))
     .add_systems(Update, (
         handle_hover,
@@ -41,6 +44,8 @@ pub fn build_app(app: &mut App) {
         effects::animate_stars,
         update_chain_label.after(handle_hover),
         check_round_complete.after(process_grid_phases),
+        crate::anna_comments::tick_anna_comments,
+        anna::converter_anna_reactive,
     ).run_if(in_state(ConverterPhase::Processing)))
     .add_systems(OnEnter(ConverterPhase::Results), results::spawn_results_screen)
     .add_systems(Update,

@@ -7,7 +7,9 @@ mod bot_formation; mod mat_helpers; mod test_mode; mod level_io; mod save_dialog
 mod level_gen_sim; mod level_gen_tiles; mod level_gen_algo; mod level_gen_ui; mod level_gen_interact;
 mod icon_render;
 #[allow(dead_code)] mod save_state;
+pub mod anna_comments;
 #[cfg(feature = "player")] mod player;
+#[cfg(feature = "player")] mod player_anna;
 #[cfg(feature = "gathering")] mod gathering;
 #[cfg(feature = "converter")] mod converter;
 #[cfg(feature = "delivery")] mod delivery;
@@ -138,7 +140,9 @@ fn main() {
       app.add_systems(Update, (player::player_nav_interaction, player::update_player_stats));
       app.add_systems(Update, (player::auto_save_progress, player::handle_level_complete));
       app.add_systems(Update, player::populate_stats.before(spawn_simulation_overlay));
-      app.add_systems(Update, (player::cleanup_stale_inventory, player::animate_bg_color, player::animate_chapter_title, player::update_version_label)); }
+      app.add_systems(Update, (player::cleanup_stale_inventory, player::animate_bg_color, player::animate_chapter_title, player::update_version_label));
+      app.add_systems(Startup, player_anna::setup_bot_anna.after(player::setup_player));
+      app.add_systems(Update, anna_comments::tick_anna_comments); }
     app.run();
 }
 fn setup_scene(

@@ -6,10 +6,10 @@ use crate::constants::*;
 use crate::types::*;
 use crate::simulation::*;
 
-fn formation_scale(n: usize) -> f32 { match n { 1 => 1.0, 2 => 0.70, 3 => 0.56, _ => 0.48 } }
+fn formation_scale(n: usize) -> f32 { match n { 1 => 1.0, 2 => 0.62, 3 => 0.50, _ => 0.42 } }
 
 fn formation_offsets(n: usize) -> &'static [f32] {
-    match n { 2 => &[-0.17, 0.17], 3 => &[-0.21, 0.0, 0.21], _ => &[-0.22, -0.073, 0.073, 0.22] }
+    match n { 2 => &[-0.25, 0.25], 3 => &[-0.28, 0.0, 0.28], _ => &[-0.28, -0.09, 0.09, 0.28] }
 }
 
 fn direction_axis(d: Direction) -> u8 { matches!(d, Direction::North | Direction::South) as u8 }
@@ -24,10 +24,10 @@ fn perp_offset(dir: Direction, slot: usize, n: usize) -> Vec2 {
 
 /// 2D grid offsets for bots with mixed travel directions on the same tile
 fn grid_offset(slot: usize, n: usize) -> Vec2 {
-    const G2: [Vec2; 2] = [Vec2::new(-0.13, -0.13), Vec2::new(0.13, 0.13)];
-    const G3: [Vec2; 3] = [Vec2::new(-0.15, -0.10), Vec2::new(0.15, -0.10), Vec2::new(0.0, 0.15)];
-    const G4: [Vec2; 4] = [Vec2::new(-0.13, -0.13), Vec2::new(0.13, -0.13),
-                            Vec2::new(-0.13, 0.13), Vec2::new(0.13, 0.13)];
+    const G2: [Vec2; 2] = [Vec2::new(-0.20, -0.20), Vec2::new(0.20, 0.20)];
+    const G3: [Vec2; 3] = [Vec2::new(-0.22, -0.15), Vec2::new(0.22, -0.15), Vec2::new(0.0, 0.22)];
+    const G4: [Vec2; 4] = [Vec2::new(-0.20, -0.20), Vec2::new(0.20, -0.20),
+                            Vec2::new(-0.20, 0.20), Vec2::new(0.20, 0.20)];
     match n {
         2 => G2.get(slot).copied().unwrap_or(Vec2::ZERO),
         3 => G3.get(slot).copied().unwrap_or(Vec2::ZERO),
@@ -148,7 +148,7 @@ pub fn animate_merge_flashes(
 #[cfg(test)]
 mod tests {
     use super::*;
-    const MIN_SEP: f32 = 0.08; // minimum distance between any two bots on same tile
+    const MIN_SEP: f32 = 0.15; // minimum distance between any two bots on same tile
 
     fn no_overlap(offsets: &[Vec2]) {
         for i in 0..offsets.len() {
@@ -275,7 +275,7 @@ mod tests {
     fn two_north_bots_parallel_lanes() {
         let r = simulate_formation(&[Direction::North, Direction::North]);
         assert_eq!(r.len(), 2);
-        assert_eq!(r[0].1, 0.70);
+        assert_eq!(r[0].1, 0.62);
         no_overlap(&r.iter().map(|r| r.0).collect::<Vec<_>>());
         // Both should spread on X only
         assert_eq!(r[0].0.y, 0.0);
@@ -310,21 +310,21 @@ mod tests {
     fn three_mixed_directions() {
         let r = simulate_formation(&[Direction::North, Direction::East, Direction::South]);
         no_overlap(&r.iter().map(|r| r.0).collect::<Vec<_>>());
-        assert_eq!(r[0].1, 0.56);
+        assert_eq!(r[0].1, 0.50);
     }
 
     #[test]
     fn four_mixed_directions() {
         let r = simulate_formation(&[Direction::North, Direction::East, Direction::South, Direction::West]);
         no_overlap(&r.iter().map(|r| r.0).collect::<Vec<_>>());
-        assert_eq!(r[0].1, 0.48);
+        assert_eq!(r[0].1, 0.42);
     }
 
     #[test]
     fn four_same_direction() {
         let r = simulate_formation(&[Direction::South; 4]);
         no_overlap(&r.iter().map(|r| r.0).collect::<Vec<_>>());
-        assert_eq!(r[0].1, 0.48);
+        assert_eq!(r[0].1, 0.42);
     }
 
     #[test]

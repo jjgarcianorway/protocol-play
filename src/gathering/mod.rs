@@ -16,6 +16,7 @@ mod pause;
 mod effects;
 mod warnings;
 mod new_earth;
+pub mod anna;
 
 use bevy::prelude::*;
 use bevy::post_process::bloom::Bloom;
@@ -56,7 +57,9 @@ pub fn build_app(app: &mut App) {
         .insert_resource(game_over::TryAgainTriggered::default())
         .insert_resource(best)
         .init_state::<GatheringState>()
-        .add_systems(Startup, (setup_gathering, new_earth::check_new_earth_mode))
+        .insert_resource(crate::anna_comments::AnnaComments::default())
+        .add_systems(Startup, (setup_gathering, new_earth::check_new_earth_mode,
+            anna::setup_gathering_anna.after(setup_gathering)))
         // Normal gameplay systems — only when NOT in NewEarthMode
         .add_systems(Update, (
             ship::move_ship,
@@ -99,6 +102,10 @@ pub fn build_app(app: &mut App) {
             pause::toggle_pause,
             pause::resume_button_interaction,
             pause::resume_button_hover,
+        ).run_if(not_new_earth))
+        .add_systems(Update, (
+            crate::anna_comments::tick_anna_comments,
+            anna::gathering_anna_reactive,
         ).run_if(not_new_earth))
         .add_systems(Update, (
             warnings::update_warning_indicators,

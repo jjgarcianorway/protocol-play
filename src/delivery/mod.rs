@@ -6,6 +6,7 @@ mod pods;
 mod ui;
 mod effects;
 mod results;
+pub mod anna;
 
 use bevy::prelude::*;
 use bevy::post_process::bloom::Bloom;
@@ -18,8 +19,9 @@ pub fn build_app(app: &mut App) {
         CLEAR_COLOR_D.0, CLEAR_COLOR_D.1, CLEAR_COLOR_D.2,
     )))
     .insert_resource(DeliveryState::default())
+    .insert_resource(crate::anna_comments::AnnaComments::default())
     .init_state::<DeliveryPhase>()
-    .add_systems(Startup, setup_delivery)
+    .add_systems(Startup, (setup_delivery, anna::setup_delivery_anna.after(setup_delivery)))
     .add_systems(OnEnter(DeliveryPhase::Playing), ui::respawn_delivery_ui)
     .add_systems(Update, (
         pods::spawn_pods,
@@ -33,6 +35,8 @@ pub fn build_app(app: &mut App) {
         ui::fade_intro,
         effects::animate_stars,
         effects::animate_streak_popups,
+        crate::anna_comments::tick_anna_comments,
+        anna::delivery_anna_reactive,
     ).run_if(in_state(DeliveryPhase::Playing)))
     .add_systems(OnEnter(DeliveryPhase::Results), results::spawn_results_screen)
     .add_systems(Update,
