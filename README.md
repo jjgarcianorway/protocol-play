@@ -4,7 +4,7 @@ A narrative puzzle game about an AI, an ark, and the choices that define humanit
 
 ## Status
 
-**v0.41.0** — Story complete: 10 questions, 6 endings, full narrative arc with New Game+
+**v0.47.0** — Complete game with story, 5 minigames, world seed, 6 endings
 
 ## The Story
 
