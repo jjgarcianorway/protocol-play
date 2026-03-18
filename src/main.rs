@@ -96,6 +96,7 @@ fn main() {
         .insert_resource(BoardSize(3))
         .insert_resource(SelectedTool::default()).insert_resource(HoveredCell::default()).insert_resource(HiddenTileEntity::default())
         .insert_resource(GhostCell::default())
+        .insert_resource(test_mode::LastPlacementTracker::default())
         .insert_resource(InventoryState { level: 1, direction: None, color_index: None, last_placed_color: None })
         .insert_resource(PlayMode::default()).insert_resource(DoorToggleCount::default()).insert_resource(OriginalDoorStates::default())
         .insert_resource(SimulationResult::default()).insert_resource(PrevTileCounts::default())
@@ -112,7 +113,7 @@ fn main() {
             animate_scale.after(update_ghost_and_highlight).after(move_bots).after(apply_bot_formation),
             animate_ui_slides, animate_border_fade, cleanup_despawned.after(animate_scale),
         ))
-        .add_systems(Update, (escape_to_quit, quit_dialog_buttons))
+        .add_systems(Update, (escape_to_quit, quit_dialog_buttons, simulation::animate_sim_overlay_fade))
         .add_systems(Update, (
             overlay_button_interaction, play_stop_interaction.after(overlay_button_interaction),
             move_bots.after(play_stop_interaction), update_bot_formation.after(move_bots),
@@ -152,7 +153,8 @@ fn main() {
     #[cfg(feature = "player")]
     { app.insert_resource(player::ChapterState { bg_target: Color::srgb(CLEAR_COLOR.0, CLEAR_COLOR.1, CLEAR_COLOR.2), current: usize::MAX });
       app.add_systems(Update, (handle_test_tile_click.after(update_hovered_cell),
-        test_inventory_interaction, reset_test_interaction, update_status_bar));
+        test_inventory_interaction, reset_test_interaction, update_status_bar,
+        test_mode::test_tile_sound.after(handle_test_tile_click)));
       app.add_systems(Update, (player::player_nav_interaction, player::update_player_stats));
       app.add_systems(Update, (player::auto_save_progress, player::handle_level_complete));
       app.add_systems(Update, player::populate_stats.before(spawn_simulation_overlay));

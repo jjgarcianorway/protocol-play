@@ -10,6 +10,7 @@ pub fn update_shield_regen(
     paused: Res<Paused>,
 ) {
     if !state.alive || paused.0 { return; }
+    // Slow constant regen — life NEVER regenerates
     if state.shield < SHIELD_MAX {
         state.shield = (state.shield + SHIELD_REGEN_RATE * time.delta_secs()).min(SHIELD_MAX);
     }
@@ -19,24 +20,12 @@ pub fn update_hit_flash(
     mut hit_flash: ResMut<HitFlash>,
     mut flash_q: Query<&mut BackgroundColor, With<HitFlashOverlay>>,
     time: Res<Time>,
-    mut commands: Commands,
 ) {
-    if hit_flash.timer <= 0.0 {
-        // Remove overlay if exists and timer done
-        for mut bg in flash_q.iter_mut() { bg.0 = Color::NONE; }
-        return;
+    // Hit flash disabled — was ugly blocky red overlay
+    if hit_flash.timer > 0.0 {
+        hit_flash.timer = (hit_flash.timer - time.delta_secs()).max(0.0);
     }
-    hit_flash.timer = (hit_flash.timer - time.delta_secs()).max(0.0);
-    let alpha = (hit_flash.timer / HIT_FLASH_DURATION).clamp(0.0, 1.0) * 0.25;
-    if flash_q.is_empty() {
-        // Spawn screen-space red overlay
-        commands.spawn((HitFlashOverlay, Node {
-            position_type: PositionType::Absolute, width: Val::Percent(100.0),
-            height: Val::Percent(100.0), ..default()
-        }, BackgroundColor(Color::srgba(0.9, 0.1, 0.05, alpha)), ZIndex(5)));
-    } else {
-        for mut bg in flash_q.iter_mut() { bg.0 = Color::srgba(0.9, 0.1, 0.05, alpha); }
-    }
+    for mut bg in flash_q.iter_mut() { bg.0 = Color::NONE; }
 }
 
 /// Near-miss teal flash on ship (brief shield absorption effect).

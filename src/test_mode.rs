@@ -388,3 +388,27 @@ pub fn handle_test_tile_click(
         for e in &test_container { commands.entity(e).despawn(); }
         spawn_test_inventory(&mut commands, &test_inv, &icons, false, &font.0); }
 }
+
+/// Track last placement for sound triggering.
+#[derive(Resource, Default)]
+pub struct LastPlacementTracker(pub Option<(u32, u32)>);
+
+/// Play tile-place sound when a tile is placed in test/player mode.
+pub fn test_tile_sound(
+    mut commands: Commands,
+    ghost: Res<GhostCell>,
+    selected: Res<SelectedTool>,
+    mut tracker: ResMut<LastPlacementTracker>,
+    palette: Option<Res<crate::sound::SoundPalette>>,
+    settings: Res<crate::sound::SoundSettings>,
+) {
+    if ghost.last_placed != tracker.0 {
+        tracker.0 = ghost.last_placed;
+        if ghost.last_placed.is_some() {
+            if let Some(ref pal) = palette {
+                let snd = crate::systems::tool_to_sound(selected.0);
+                crate::sound::play_sound(&mut commands, pal, snd, &settings);
+            }
+        }
+    }
+}

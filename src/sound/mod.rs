@@ -196,7 +196,7 @@ pub struct SoundSettings {
 
 impl Default for SoundSettings {
     fn default() -> Self {
-        Self { master_volume: 0.7, sfx_volume: 0.8, muted: false }
+        Self { master_volume: 0.0, sfx_volume: 0.0, muted: true }
     }
 }
 

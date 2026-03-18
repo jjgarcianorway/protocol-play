@@ -30,6 +30,21 @@ pub struct SimulationResult {
 }
 #[derive(Component)] pub struct SimulationOverlay;
 #[derive(Component)] pub struct SimOverlayButton;
+#[derive(Component)] pub struct SimOverlayFade(pub f32);
+
+pub fn animate_sim_overlay_fade(
+    time: Res<Time>,
+    mut q: Query<(&mut SimOverlayFade, &mut BackgroundColor), With<SimulationOverlay>>,
+) {
+    for (mut fade, mut bg) in q.iter_mut() {
+        fade.0 = (fade.0 + time.delta_secs() * 3.0).min(1.0); // ~0.33s fade
+        let target_alpha = crate::constants::SIM_OVERLAY_BG.3;
+        bg.0 = Color::srgba(
+            crate::constants::SIM_OVERLAY_BG.0, crate::constants::SIM_OVERLAY_BG.1,
+            crate::constants::SIM_OVERLAY_BG.2, target_alpha * fade.0,
+        );
+    }
+}
 
 pub fn play_stop_interaction(
     mut commands: Commands,
@@ -162,7 +177,13 @@ pub fn move_bots(
                         if let Some((tc, tr)) = tp {
                             target_scale.0 = Vec3::ZERO;
                             mov.phase = BotPhase::TeleportShrink { target_col: tc, target_row: tr };
-                        } else { mov.phase = BotPhase::Spinning; }
+                        } else {
+                            // Only spin (celebrate) if on matching goal, otherwise stuck
+                            let on_goal = matches!(tile_at(mov.col, mov.row),
+                                Some(TileKind::Goal(ci)) if ci == mov.color_index);
+                            if on_goal { mov.phase = BotPhase::Spinning; }
+                            else { mov.phase = BotPhase::Stopped; }
+                        }
                     }
                     _ => {} }
                 }
@@ -331,7 +352,8 @@ pub fn spawn_simulation_overlay(
     commands.spawn((
         Node { position_type: PositionType::Absolute, width: Val::Percent(100.0), height: Val::Percent(100.0),
             justify_content: JustifyContent::Center, align_items: AlignItems::Center, ..default() },
-        BackgroundColor(rgba(SIM_OVERLAY_BG)), GlobalZIndex(100), SimulationOverlay, Interaction::default(),
+        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.0)), GlobalZIndex(100), SimulationOverlay, Interaction::default(),
+        SimOverlayFade(0.0),
     )).with_children(|parent| {
         parent.spawn((
             Node { flex_direction: FlexDirection::Column, padding: UiRect::all(Val::Px(SIM_CARD_PAD)),

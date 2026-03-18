@@ -127,6 +127,8 @@ pub struct ShipState {
     pub max_chain: f32,
     pub control_loss_timer: f32,
     pub alive: bool,
+    /// Seconds since last hit — shield only regens after this exceeds cooldown.
+    pub since_last_hit: f32,
 }
 
 impl ShipState {
@@ -162,7 +164,7 @@ impl Default for ShipState {
             crystals_yellow: 0, crystals_purple: 0,
             distance: 0.0, elapsed_time: 0.0,
             hits_taken: 0, near_misses: 0, max_chain: 1.0,
-            control_loss_timer: 0.0, alive: true,
+            control_loss_timer: 0.0, alive: true, since_last_hit: 99.0,
         }
     }
 }

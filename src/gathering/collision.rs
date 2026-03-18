@@ -46,13 +46,14 @@ pub fn check_collisions(
             }
 
             state.hits_taken += 1;
+            state.since_last_hit = 0.0; // reset regen cooldown
             state.control_loss_timer = CONTROL_LOSS_DURATION;
             shake.intensity = (shake.intensity + damage * 0.15).min(3.0);
-            if let Some(ref pal) = palette { play_sound(&mut commands, pal, SoundType::ShieldHit, &snd_settings); }
+            // Hit sound disabled — needs better sound design
             hit_flash.timer = HIT_FLASH_DURATION;
             commands.entity(entity).insert(HitCooldown(HIT_COOLDOWN_SECS));
 
-            spawn_damage_direction(&mut commands, ship_pos, ast_pos);
+            // direction blocks disabled
 
             if state.life <= 0.0 {
                 state.life = 0.0;
