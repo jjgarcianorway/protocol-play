@@ -28,6 +28,8 @@ mod dialog_scenes_hidden;
 mod dialog_scenes_earth;
 mod dialog_scenes_earth2;
 mod dialog_scenes_anna_personal;
+mod dialog_scenes_consequences;
+mod dialog_scenes_secrets;
 mod endings_extended;
 pub mod world_seed;
 pub mod crew_stories;
@@ -38,7 +40,7 @@ use bevy::render::render_resource::*;
 use rand::Rng;
 use constants::*;
 use types::*;
-use crate::save_state::{load_game_state, GameState};
+use crate::save_state::{load_game_state, save_game_state, GameState};
 
 /// Cached world state — generated once on startup from the seed.
 #[derive(Resource)]
@@ -49,11 +51,13 @@ pub struct CachedWorldState {
 }
 
 pub fn build_app(app: &mut App) {
-    let gs = load_game_state();
+    let mut gs = load_game_state();
 
     // Generate world from seed (deterministic, cached for the session)
     let world = world_seed::generate_world(gs.world_seed);
     let crew = crew_stories::generate_crew(gs.world_seed);
+    // On first game, set crew count from world seed (not hardcoded)
+    if gs.day <= 1 { gs.crew_count = world.aurora_crew; save_game_state(&gs); }
     let cached = CachedWorldState { world, crew };
 
     let ship = ShipStatus {

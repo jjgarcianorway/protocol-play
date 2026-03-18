@@ -15,6 +15,8 @@ use super::dialog_scenes_hidden;
 use super::dialog_scenes_earth;
 use super::dialog_scenes_earth2;
 use super::dialog_scenes_anna_personal;
+use super::dialog_scenes_consequences;
+use super::dialog_scenes_secrets;
 
 /// Return all dialog scenes from all acts.
 pub fn all_scenes() -> Vec<&'static DialogScene> {
@@ -31,5 +33,7 @@ pub fn all_scenes() -> Vec<&'static DialogScene> {
     scenes.extend(dialog_scenes_earth::earth_scenes_1());
     scenes.extend(dialog_scenes_earth2::earth_scenes_2());
     scenes.extend(dialog_scenes_anna_personal::anna_personal_scenes());
+    scenes.extend(dialog_scenes_consequences::consequence_scenes());
+    scenes.extend(dialog_scenes_secrets::secret_scenes());
     scenes
 }

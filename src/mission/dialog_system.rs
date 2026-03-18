@@ -43,17 +43,16 @@ fn should_trigger(scene: &DialogScene, gs: &GameState, ship: &ShipStatus) -> boo
         DialogTrigger::BotLevel(level) => gs.bot_level >= *level,
         DialogTrigger::GatheringReturn => gs.gathering_runs > 0,
         DialogTrigger::ResourceCritical(idx) => {
-            let vals = [ship.power, ship.life_support, ship.cryo,
-                        ship.shields, ship.repair];
-            vals.get(*idx).map(|v| *v < 20.0).unwrap_or(false)
+            [ship.power, ship.life_support, ship.cryo, ship.shields, ship.repair]
+                .get(*idx).map(|v| *v < 20.0).unwrap_or(false)
         }
-        DialogTrigger::FirstTime(event) => {
-            !gs.story_flags.contains(&event.to_string())
-        }
+        DialogTrigger::FirstTime(event) => !gs.story_flags.contains(&event.to_string()),
         DialogTrigger::PlaythroughN(n) => gs.playthrough_count == *n,
-        DialogTrigger::Decision(key) => {
-            gs.decisions.iter().any(|d| d == *key)
-        }
+        DialogTrigger::Decision(key) => gs.decisions.iter().any(|d| d == *key),
+        DialogTrigger::DecisionAndLevel(key, level) =>
+            gs.bot_level >= *level && gs.decisions.iter().any(|d| d == *key),
+        DialogTrigger::PlaythroughAndLevel(n, level) =>
+            gs.playthrough_count == *n && gs.bot_level >= *level,
         DialogTrigger::CrewLoss(threshold) => ship.crew_count < *threshold,
     }
 }

@@ -22,6 +22,10 @@ pub enum DialogTrigger {
     PlaythroughN(u32),
     /// After the player made a specific decision key.
     Decision(&'static str),
+    /// Decision key + minimum bot level (both must be true).
+    DecisionAndLevel(&'static str, u32),
+    /// Playthrough N + minimum bot level (both must be true).
+    PlaythroughAndLevel(u32, u32),
     /// When crew drops below this threshold.
     CrewLoss(u32),
 }

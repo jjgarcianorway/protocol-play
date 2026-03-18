@@ -91,6 +91,10 @@ pub struct WorldState {
     pub earth_collapse: EarthCollapse,
     pub arks: Vec<ArkFate>,
     pub player_background: PlayerBackground,
+    pub aurora_crew: u32,        // 11,000-16,000 — the player's ark population
+    pub aurora_children: u32,    // 80-250
+    pub aurora_languages: u32,   // 25-55
+    pub aurora_launch_year: u32, // 2095-2135
 }
 
 const ARK_NAMES: &[&str] = &[
@@ -173,8 +177,13 @@ pub fn generate_world(seed: u64) -> WorldState {
     let earth_collapse = gen_earth_collapse(&mut rng);
     let arks = gen_arks(&mut rng);
     let player_background = gen_player_background(&mut rng);
+    let aurora_crew = rng.gen_range(11_000..=16_000);
+    let aurora_children = rng.gen_range(80..=250);
+    let aurora_languages = rng.gen_range(25..=55);
+    let aurora_launch_year = rng.gen_range(2095..=2135);
 
-    WorldState { seed, earth_collapse, arks, player_background }
+    WorldState { seed, earth_collapse, arks, player_background,
+        aurora_crew, aurora_children, aurora_languages, aurora_launch_year }
 }
 
 fn gen_earth_collapse(rng: &mut StdRng) -> EarthCollapse {
