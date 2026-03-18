@@ -28,6 +28,9 @@ cp target/release/protocol-play target/release/protocol-play-delivery
 echo "Building mission control..."
 cargo build --release --features mission
 cp target/release/protocol-play target/release/protocol-play-mission
+echo "Building orben..."
+cargo build --release --features orben
+cp target/release/protocol-play target/release/protocol-play-orben
 echo "Copying campaign levels and icons next to player binary..."
 cp campaign_levels/*.json target/release/
 mkdir -p target/release/assets/icons target/release/assets/textures
@@ -48,3 +51,4 @@ echo "  target/release/protocol-play-gathering"
 echo "  target/release/protocol-play-converter"
 echo "  target/release/protocol-play-delivery"
 echo "  target/release/protocol-play-mission"
+echo "  target/release/protocol-play-orben"
