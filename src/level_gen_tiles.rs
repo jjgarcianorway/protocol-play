@@ -5,25 +5,15 @@ use std::collections::{HashMap, HashSet};
 use crate::constants::*;
 use crate::types::*;
 use crate::level_gen_sim::simulate_headless;
-// === Helpers ===
-pub fn is_floor(grid: &HashMap<(u32, u32), TileKind>, pos: (u32, u32)) -> bool {
-    matches!(grid.get(&pos), Some(TileKind::Floor))
-}
-pub fn in_bounds(c: i32, r: i32, size: u32) -> bool {
-    c >= 0 && r >= 0 && c < size as i32 && r < size as i32
-}
+pub fn is_floor(grid: &HashMap<(u32, u32), TileKind>, pos: (u32, u32)) -> bool { matches!(grid.get(&pos), Some(TileKind::Floor)) }
+pub fn in_bounds(c: i32, r: i32, size: u32) -> bool { c >= 0 && r >= 0 && c < size as i32 && r < size as i32 }
 pub fn try_exit(grid: &HashMap<(u32, u32), TileKind>, col: i32, row: i32, dir: Direction, size: u32) -> bool {
     let (dc, dr) = dir.grid_delta();
     in_bounds(col + dc, row + dr, size) && !grid.contains_key(&((col + dc) as u32, (row + dr) as u32))
 }
-pub fn shuffle<T>(v: &mut Vec<T>, rng: &mut impl Rng) {
-    for i in (1..v.len()).rev() { let j = rng.gen_range(0..=i); v.swap(i, j); }
-}
-fn but_color(ci: usize) -> usize { (ci + 3) % NUM_COLORS } // offset by 3 to pick a plausible other-bot color
-pub fn possible_turns(bot_dir: Direction) -> Vec<(Direction, Direction)> {
-    Direction::all().iter().filter_map(|&td| bot_dir.turn_exit(td).map(|exit| (td, exit))).collect()
-}
-
+pub fn shuffle<T>(v: &mut Vec<T>, rng: &mut impl Rng) { for i in (1..v.len()).rev() { let j = rng.gen_range(0..=i); v.swap(i, j); } }
+fn but_color(ci: usize) -> usize { (ci + 3) % NUM_COLORS }
+pub fn possible_turns(bot_dir: Direction) -> Vec<(Direction, Direction)> { Direction::all().iter().filter_map(|&td| bot_dir.turn_exit(td).map(|exit| (td, exit))).collect() }
 // Source placement: pick empty cell with valid direction, preferring cells far from existing sources.
 pub fn pick_start(
     size: u32, rng: &mut impl Rng, grid: &HashMap<(u32, u32), TileKind>,
@@ -349,6 +339,11 @@ fn pick_weighted(weights: &[u32; GEN_NUM_WEIGHTS], indices: &[u8], rng: &mut imp
     indices.last().copied()
 }
 
+/// ~20% chance to use gray (NUM_COLORS) instead of bot color — gray affects all bots
+fn maybe_gray(ci: usize, rng: &mut impl Rng) -> usize {
+    if rng.gen_bool(0.20) { NUM_COLORS } else { ci }
+}
+
 // === Master dispatcher ===
 pub fn try_mechanic(
     grid: &mut HashMap<(u32, u32), TileKind>, solution: &mut HashSet<(u32, u32)>,
@@ -378,18 +373,19 @@ pub fn try_mechanic(
             None => break,
         };
         tried.push(pick);
+        let gc = maybe_gray(ci, rng); // possibly gray color
         let ok = match pick {
-            0 => try_turn_at(grid, solution, *col, *row, dir, size, rng, ci, false),
-            1 => try_turn_at(grid, solution, *col, *row, dir, size, rng, ci, true),
-            2 => try_arrow_at(grid, solution, *col, *row, dir, size, rng, ci, false),
-            3 => try_arrow_at(grid, solution, *col, *row, dir, size, rng, ci, true),
-            4 => try_teleport_at(grid, solution, col, row, dir, size, rng, teleport_num, ci, false),
-            5 => try_teleport_at(grid, solution, col, row, dir, size, rng, teleport_num, ci, true),
-            6 => try_bounce_full(grid, solution, col, row, dir, size, rng, ci, false, path_history),
-            7 => try_bounce_full(grid, solution, col, row, dir, size, rng, ci, true, path_history),
-            8 => try_switch_door_at(grid, solution, col, row, dir, size, rng, ci, false, 0, false),
-            9 => try_switch_door_at(grid, solution, col, row, dir, size, rng, ci, true, *current_color, false),
-            10 => try_switch_door_at(grid, solution, col, row, dir, size, rng, ci, true, *current_color, true),
+            0 => try_turn_at(grid, solution, *col, *row, dir, size, rng, gc, false),
+            1 => try_turn_at(grid, solution, *col, *row, dir, size, rng, gc, true),
+            2 => try_arrow_at(grid, solution, *col, *row, dir, size, rng, gc, false),
+            3 => try_arrow_at(grid, solution, *col, *row, dir, size, rng, gc, true),
+            4 => try_teleport_at(grid, solution, col, row, dir, size, rng, teleport_num, gc, false),
+            5 => try_teleport_at(grid, solution, col, row, dir, size, rng, teleport_num, gc, true),
+            6 => try_bounce_full(grid, solution, col, row, dir, size, rng, gc, false, path_history),
+            7 => try_bounce_full(grid, solution, col, row, dir, size, rng, gc, true, path_history),
+            8 => try_switch_door_at(grid, solution, col, row, dir, size, rng, gc, false, 0, false),
+            9 => try_switch_door_at(grid, solution, col, row, dir, size, rng, gc, true, *current_color, false),
+            10 => try_switch_door_at(grid, solution, col, row, dir, size, rng, gc, true, *current_color, true),
             11 => try_painter_at(grid, solution, *col, *row, dir, size, current_color, rng),
             _ => false,
         };

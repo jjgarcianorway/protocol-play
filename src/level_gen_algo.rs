@@ -77,7 +77,7 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
         let mut teleport_num = 0usize;
         let mut path_history: Vec<(i32, i32, Direction)> = vec![(sc as i32, sr as i32, sd)];
         let mut floor_path: Vec<(u32, u32)> = Vec::new();
-        let base_chance = 0.15 + diff * 0.35;
+        let base_chance = 0.22 + diff * 0.40;
         for _ in 0..(target + 15) {
             let (dc, dr) = dir.grid_delta();
             let (nc, nr) = (col + dc, row + dr);
@@ -109,9 +109,9 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
             floor_path.push((nc as u32, nr as u32));
             steps += 1; straight_run += 1;
             path_history.push((col, row, dir));
-            let min_gap = 1 + (size / 3) as u32;
-            let max_gap = min_gap + 1 + (diff * 2.0) as u32;
-            let gap_target = rng.gen_range(min_gap..=max_gap);
+            let min_gap = 1 + (size / 4) as u32;
+            let max_gap = min_gap + (diff * 1.5) as u32;
+            let gap_target = rng.gen_range(min_gap..=max_gap.max(min_gap));
             if steps > 1 && steps < target - 1 && straight_run >= gap_target {
                 let straight_bonus = ((straight_run - gap_target) as f32 * 0.12).min(0.35);
                 let near_edge = (col == 0 || col == size as i32 - 1 || row == 0 || row == size as i32 - 1) as u8 as f32 * 0.15;
@@ -237,7 +237,36 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
         }
     }
     if let Some(req) = config.required_tile {
-        if !tiles.iter().any(|(_, _, k, sol)| *sol && req(k)) { return None; }
+        // Check ALL tiles (board + inventory), not just solution tiles
+        if !tiles.iter().any(|(_, _, k, _)| req(k)) { return None; }
+    }
+    // Require at least 2 different mechanic types for diversity (only if 2+ categories unlocked)
+    {
+        // Count how many distinct mechanic categories have non-zero weights
+        let mut avail_cats: u32 = 0;
+        if config.weights[0] > 0 || config.weights[1] > 0 { avail_cats |= 1; }  // Turn family
+        if config.weights[2] > 0 || config.weights[3] > 0 { avail_cats |= 2; }  // Arrow family
+        if config.weights[4] > 0 || config.weights[5] > 0 { avail_cats |= 4; }  // Teleport family
+        if config.weights[6] > 0 || config.weights[7] > 0 { avail_cats |= 8; }  // Bounce family
+        if config.weights[8] > 0 { avail_cats |= 16; }                           // Switch/Door
+        if config.weights[9] > 0 || config.weights[10] > 0 { avail_cats |= 32; } // ColorSwitch
+        if config.weights[11] > 0 { avail_cats |= 64; }                          // Painter
+        if avail_cats.count_ones() >= 2 {
+            let mut mech_types: u32 = 0;
+            for (_, _, k, _) in &tiles {
+                match k {
+                    TileKind::Turn(..) | TileKind::TurnBut(..) => mech_types |= 1,
+                    TileKind::Arrow(..) | TileKind::ArrowBut(..) => mech_types |= 2,
+                    TileKind::Teleport(..) | TileKind::TeleportBut(..) => mech_types |= 4,
+                    TileKind::Bounce(..) | TileKind::BounceBut(..) => mech_types |= 8,
+                    TileKind::Switch | TileKind::Door(..) => mech_types |= 16,
+                    TileKind::ColorSwitch(..) | TileKind::ColorSwitchBut(..) => mech_types |= 32,
+                    TileKind::Painter(..) => mech_types |= 64,
+                    _ => {}
+                }
+            }
+            if mech_types.count_ones() < 2 { return None; }
+        }
     }
     if config.confusion_tiles { add_confusion_tiles(&mut tiles, size, rng); }
     let rating = rate_difficulty(&tiles, config.num_bots, size);

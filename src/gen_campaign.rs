@@ -47,7 +47,7 @@ fn main() {
             if !force && path.exists() { println!("KEPT"); kept += 1; total += 1; continue; }
             let tier = ((level.config.num_bots.saturating_sub(1)) / 2).min(3) as usize;
             let attempts = GEN_CAMPAIGN_ATTEMPTS[tier];
-            match generate_level(&level.config, attempts) {
+            match generate_level_seeded(&level.config, attempts, ci, li) {
                 Some((tiles, rating, seed)) => {
                     let solution: Vec<_> = tiles.iter()
                         .filter(|(_, _, _, m)| *m).map(|(c, r, k, _)| (*c, *r, *k)).collect();
@@ -70,24 +70,33 @@ fn main() {
 fn generate_level(config: &GenConfig, max_attempts: usize)
     -> Option<(Vec<(u32, u32, TileKind, bool)>, u32, u64)>
 {
-    let mut rng = rand::thread_rng();
-    let seed: u64 = rand::Rng::r#gen(&mut rng);
-    let mut best: Option<(Vec<(u32, u32, TileKind, bool)>, u32)> = None;
-    for _ in 0..max_attempts {
-        if let Some((tiles, rating)) = generate_attempt(config, &mut rng) {
-            // Required tile must exist — in inventory for early chapters, on board for complex ones
-            if let Some(req) = config.required_tile {
-                if !tiles.iter().any(|(_, _, k, _)| req(k)) { continue; }
+    generate_level_seeded(config, max_attempts, 0, 0)
+}
+fn generate_level_seeded(config: &GenConfig, max_attempts: usize, ci: usize, li: usize)
+    -> Option<(Vec<(u32, u32, TileKind, bool)>, u32, u64)>
+{
+    use rand::SeedableRng;
+    // Try up to 4 seed variations if initial seed fails to produce results
+    for seed_try in 0..4u64 {
+        let seed: u64 = 0x0C0_2026_CAFE ^ (ci as u64 * 1000 + li as u64 + seed_try * 0xDEAD);
+        let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
+        let mut best: Option<(Vec<(u32, u32, TileKind, bool)>, u32)> = None;
+        for _ in 0..max_attempts {
+            if let Some((tiles, rating)) = generate_attempt(config, &mut rng) {
+                if let Some(req) = config.required_tile {
+                    if !tiles.iter().any(|(_, _, k, _)| req(k)) { continue; }
+                }
+                let gap = (rating as i32 - config.difficulty as i32).unsigned_abs();
+                let prev_gap = best.as_ref()
+                    .map(|(_, r)| (*r as i32 - config.difficulty as i32).unsigned_abs())
+                    .unwrap_or(u32::MAX);
+                if gap < prev_gap { best = Some((tiles, rating)); }
+                if gap <= GEN_BEST_TOLERANCE { return best.map(|(t, r)| (t, r, seed)); }
             }
-            let gap = (rating as i32 - config.difficulty as i32).unsigned_abs();
-            let prev_gap = best.as_ref()
-                .map(|(_, r)| (*r as i32 - config.difficulty as i32).unsigned_abs())
-                .unwrap_or(u32::MAX);
-            if gap < prev_gap { best = Some((tiles, rating)); }
-            if gap <= GEN_BEST_TOLERANCE { break; }
         }
+        if best.is_some() { return best.map(|(t, r)| (t, r, seed)); }
     }
-    best.map(|(t, r)| (t, r, seed))
+    None
 }
 
 fn sanitize(name: &str) -> String {
@@ -121,10 +130,10 @@ fn ch_w(ch: usize, pos: usize) -> [u32; GEN_NUM_WEIGHTS] {
         7=>&[6], 8=>&[7], 9=>&[11], 10=>&[8], 11=>&[9], 12=>&[10], _=>&[],
     };
     let (nw, ow) = if ch >= 13 { (8, 8) }
-        else if pos == 0 { (10, 2) }   // intro: new mechanic dominant
-        else if pos <= 3 { (8, 4) }     // learning: new dominant
-        else if pos <= 7 { (7, 5) }     // challenge: mixed
-        else { (6, 6) };               // boss: balanced
+        else if pos == 0 { (10, 3) }   // intro: new mechanic dominant
+        else if pos <= 3 { (8, 5) }     // learning: new dominant
+        else if pos <= 7 { (7, 6) }     // challenge: mixed
+        else { (6, 7) };               // boss: balanced
     let mut w = [0u32; GEN_NUM_WEIGHTS];
     for i in 0..GEN_NUM_WEIGHTS {
         if new_idx.contains(&i) { w[i] = nw; }
@@ -148,35 +157,33 @@ fn make_level(ch: usize, pos: usize, name: &str, board: u32, bots: u32, diff: u3
         1 => { c.hole_placement = HolePlacement::Middle; c.hole_percent = pct; }
         _ => { c.hole_percent = pct; }
     }
-    // Inventory: intro (1-2), learning (2-3), challenge (3-5), boss (4-6)
+    // Inventory: intro (2-3), learning (3-4), challenge (4-6), boss (5-8)
     // Chapters with complex mechanics (doors/switches) need more intro tiles
     let inv = match pos {
-        0 => if ch >= 10 { 2 } else { 1 }, 1 => 2,
-        2..=4 => 2 + pos as u32 / 2, // learning: 3
-        5..=7 => 3 + pos as u32 / 2, // challenge: 4-5
-        _ => 4 + pos as u32 / 3,     // boss: 5-7
+        0 => if ch >= 10 { 3 } else { 2 }, 1 => 3,
+        2..=4 => 3 + pos as u32 / 2, // learning: 4
+        5..=7 => 4 + pos as u32 / 2, // challenge: 5-6
+        _ => 5 + pos as u32 / 3,     // boss: 6-8
     };
     c.inventory_target = inv.min((board - 1).min(8));
     // Unique solutions only for final boss levels — prevents guessing
     c.unique_solution = pos >= 9;
-    // Intro levels must contain the chapter's new mechanic
-    if pos == 0 {
-        c.required_tile = match ch {
-            1 => Some(|k: &TileKind| matches!(k, TileKind::Turn(..))),
-            2 => Some(|k: &TileKind| matches!(k, TileKind::TurnBut(..))),
-            3 => Some(|k: &TileKind| matches!(k, TileKind::Arrow(..))),
-            4 => Some(|k: &TileKind| matches!(k, TileKind::ArrowBut(..))),
-            5 => Some(|k: &TileKind| matches!(k, TileKind::Teleport(..))),
-            6 => Some(|k: &TileKind| matches!(k, TileKind::TeleportBut(..))),
-            7 => Some(|k: &TileKind| matches!(k, TileKind::Bounce(..))),
-            8 => Some(|k: &TileKind| matches!(k, TileKind::BounceBut(..))),
-            9 => Some(|k: &TileKind| matches!(k, TileKind::Painter(..))),
-            10 => Some(|k: &TileKind| matches!(k, TileKind::Door(..) | TileKind::Switch)),
-            11 => Some(|k: &TileKind| matches!(k, TileKind::ColorSwitch(..))),
-            12 => Some(|k: &TileKind| matches!(k, TileKind::ColorSwitchBut(..))),
-            _ => None,
-        };
-    }
+    // ALL levels must contain the chapter's new mechanic (on board or in inventory)
+    c.required_tile = match ch {
+        1 => Some(|k: &TileKind| matches!(k, TileKind::Turn(..))),
+        2 => Some(|k: &TileKind| matches!(k, TileKind::TurnBut(..))),
+        3 => Some(|k: &TileKind| matches!(k, TileKind::Arrow(..))),
+        4 => Some(|k: &TileKind| matches!(k, TileKind::ArrowBut(..))),
+        5 => Some(|k: &TileKind| matches!(k, TileKind::Teleport(..))),
+        6 => Some(|k: &TileKind| matches!(k, TileKind::TeleportBut(..))),
+        7 => Some(|k: &TileKind| matches!(k, TileKind::Bounce(..))),
+        8 => Some(|k: &TileKind| matches!(k, TileKind::BounceBut(..))),
+        9 => Some(|k: &TileKind| matches!(k, TileKind::Painter(..))),
+        10 => Some(|k: &TileKind| matches!(k, TileKind::Door(..) | TileKind::Switch)),
+        11 => Some(|k: &TileKind| matches!(k, TileKind::ColorSwitch(..))),
+        12 => Some(|k: &TileKind| matches!(k, TileKind::ColorSwitchBut(..))),
+        _ => None,
+    };
     Level { name: name.into(), config: c }
 }
 
@@ -190,193 +197,193 @@ fn ch(num: usize, name: &str, specs: &[(&str, u32, u32, u32)]) -> Chapter {
 
 fn campaign_chapters() -> Vec<Chapter> {
     vec![
-        // Ch1: Turns — learn path building (1→4 bots)
+        // Ch1: Turns — learn path building (1→5 bots), diff * 1.2
         ch(1, "Turns", &[
-            ("First Steps",       3, 1, 15),
-            ("Corner to Corner",  4, 2, 30),
-            ("The Zigzag",        4, 2, 40),
-            ("Around the Block",  5, 2, 50),
-            ("Spiral Path",       5, 3, 55),
-            ("Double Back",       6, 3, 60),
-            ("Winding Road",      6, 3, 65),
-            ("Crossroads",        6, 3, 70),
+            ("First Steps",       3, 1, 18),
+            ("Corner to Corner",  4, 2, 36),
+            ("The Zigzag",        4, 2, 48),
+            ("Around the Block",  5, 2, 55),
+            ("Spiral Path",       5, 3, 60),
+            ("Double Back",       6, 3, 65),
+            ("Winding Road",      6, 3, 70),
+            ("Crossroads",        6, 4, 75),
             ("Turn Master I",     7, 4, 80),
-            ("Turn Master II",    8, 4, 85),
-            ("Turn Master III",   8, 4, 90),
+            ("Turn Master II",    8, 5, 85),
+            ("Turn Master III",   8, 5, 90),
         ]),
-        // Ch2: TurnBut — place turns from inventory (2→4 bots, uses Turn+TurnBut)
+        // Ch2: TurnBut — place turns from inventory (2→5 bots), diff * 1.25
         ch(2, "Turn Tiles", &[
-            ("Place Your Turn",       4, 2, 25),
-            ("Two Turns",             4, 2, 35),
-            ("Choose Wisely",         5, 2, 45),
-            ("Mixed Turns",           5, 3, 55),
-            ("Turn Puzzle",           6, 3, 60),
-            ("Inventory Challenge",   6, 3, 65),
-            ("Precision Placement",   6, 4, 70),
-            ("No Room for Error",     7, 4, 75),
-            ("Turn Builder I",        7, 4, 80),
-            ("Turn Builder II",       8, 4, 85),
-            ("Turn Builder III",      8, 4, 90),
+            ("Place Your Turn",       4, 2, 31),
+            ("Two Turns",             4, 2, 44),
+            ("Choose Wisely",         5, 3, 50),
+            ("Mixed Turns",           5, 3, 58),
+            ("Turn Puzzle",           6, 3, 65),
+            ("Inventory Challenge",   6, 4, 72),
+            ("Precision Placement",   7, 4, 78),
+            ("No Room for Error",     7, 4, 82),
+            ("Turn Builder I",        8, 5, 88),
+            ("Turn Builder II",       8, 5, 92),
+            ("Turn Builder III",      9, 5, 95),
         ]),
-        // Ch3: Arrows — forced direction (2→5 bots, uses Turn+TurnBut+Arrow)
+        // Ch3: Arrows — forced direction (2→6 bots), diff * 1.25, +1 bot mid
         ch(3, "Arrows", &[
-            ("One Way Street",    4, 2, 30),
-            ("Follow the Arrow",  5, 2, 40),
-            ("Arrow Maze",        5, 3, 50),
-            ("Turn and Thrust",   5, 3, 55),
-            ("Arrow Chain",       6, 3, 60),
-            ("Speed Lines",       6, 4, 65),
-            ("The Gauntlet",      7, 4, 70),
-            ("Forced March",      7, 4, 75),
-            ("Arrow Storm I",     8, 5, 85),
-            ("Arrow Storm II",    8, 5, 90),
-            ("Arrow Storm III",   9, 5, 95),
+            ("One Way Street",    4, 2, 38),
+            ("Follow the Arrow",  5, 3, 50),
+            ("Arrow Maze",        5, 3, 63),
+            ("Turn and Thrust",   6, 3, 69),
+            ("Arrow Chain",       6, 4, 75),
+            ("Speed Lines",       7, 4, 81),
+            ("The Gauntlet",      7, 5, 88),
+            ("Forced March",      8, 5, 94),
+            ("Arrow Storm I",     8, 5, 100),
+            ("Arrow Storm II",    9, 6, 100),
+            ("Arrow Storm III",   9, 6, 100),
         ]),
-        // Ch4: ArrowBut — place arrows (2→5 bots, uses all Turn/Arrow variants)
+        // Ch4: ArrowBut — place arrows (2→6 bots), diff * 1.3, +1 board
         ch(4, "Arrow Tiles", &[
-            ("Place Your Arrow",  4, 2, 30),
-            ("Arrow Setup",       5, 2, 45),
-            ("Redirect",          5, 3, 55),
-            ("Arrow Architect",   6, 3, 60),
-            ("Mixed Signals",     6, 4, 65),
-            ("Direction Control", 6, 4, 70),
-            ("Arrow Master",      7, 4, 75),
-            ("Full Arsenal",      7, 5, 80),
-            ("Arrow Crafter I",   8, 5, 85),
-            ("Arrow Crafter II",  8, 5, 90),
-            ("Arrow Crafter III", 9, 5, 95),
+            ("Place Your Arrow",  5, 2, 39),
+            ("Arrow Setup",       6, 3, 59),
+            ("Redirect",          6, 3, 72),
+            ("Arrow Architect",   7, 4, 78),
+            ("Mixed Signals",     7, 4, 85),
+            ("Direction Control", 7, 5, 91),
+            ("Arrow Master",      8, 5, 98),
+            ("Full Arsenal",      8, 5, 100),
+            ("Arrow Crafter I",   9, 6, 100),
+            ("Arrow Crafter II",  9, 6, 100),
+            ("Arrow Crafter III",10, 6, 100),
         ]),
-        // Ch5: Teleports — warp mechanics (3→7 bots, uses all previous)
+        // Ch5: Teleports — warp mechanics (3→8 bots), diff * 1.25
         ch(5, "Teleports", &[
-            ("Warp Zone",          5, 3, 35),
-            ("Portal Hop",         6, 3, 50),
-            ("Double Warp",        6, 4, 55),
-            ("Teleport Chain",     7, 4, 60),
-            ("Warp Tactics",       7, 5, 70),
-            ("Portal Network",     8, 5, 75),
-            ("Dimensional Shift",  8, 5, 80),
-            ("Space Fold",         9, 6, 85),
-            ("Warp Master I",      9, 6, 90),
-            ("Warp Master II",    10, 6, 95),
-            ("Warp Master III",   10, 7, 100),
+            ("Warp Zone",          5, 3, 44),
+            ("Portal Hop",         6, 4, 63),
+            ("Double Warp",        7, 4, 69),
+            ("Teleport Chain",     7, 5, 75),
+            ("Warp Tactics",       8, 5, 88),
+            ("Portal Network",     8, 6, 94),
+            ("Dimensional Shift",  9, 6, 100),
+            ("Space Fold",         9, 7, 100),
+            ("Warp Master I",     10, 7, 100),
+            ("Warp Master II",    10, 7, 100),
+            ("Warp Master III",   11, 8, 100),
         ]),
-        // Ch6: TeleportBut — place portals (3→7 bots, all previous)
+        // Ch6: TeleportBut — place portals (3→8 bots), diff * 1.3
         ch(6, "Teleport Tiles", &[
-            ("Place Your Portal",  5, 3, 40),
-            ("Warp Builder",       6, 3, 50),
-            ("Portal Placement",   6, 4, 60),
-            ("Linked Portals",     7, 5, 65),
-            ("Warp Circuit",       7, 5, 70),
-            ("Teleport Engineer",  8, 5, 75),
-            ("Dimension Builder",  8, 6, 80),
-            ("Space Architect",    9, 6, 85),
-            ("Portal Crafter I",   9, 6, 90),
-            ("Portal Crafter II", 10, 7, 95),
-            ("Portal Crafter III",10, 7, 100),
+            ("Place Your Portal",  6, 3, 52),
+            ("Warp Builder",       6, 4, 65),
+            ("Portal Placement",   7, 5, 78),
+            ("Linked Portals",     7, 5, 85),
+            ("Warp Circuit",       8, 6, 91),
+            ("Teleport Engineer",  8, 6, 98),
+            ("Dimension Builder",  9, 7, 100),
+            ("Space Architect",    9, 7, 100),
+            ("Portal Crafter I",  10, 7, 100),
+            ("Portal Crafter II", 10, 8, 100),
+            ("Portal Crafter III",11, 8, 100),
         ]),
-        // Ch7: Bounce — reflection (3→7 bots, all previous)
+        // Ch7: Bounce — reflection (3→8 bots), diff * 1.3
         ch(7, "Bounce", &[
-            ("First Bounce",       5, 3, 40),
-            ("Ricochet",           6, 4, 50),
-            ("Bounce Path",        6, 4, 55),
-            ("Wall Runner",        7, 5, 65),
-            ("Reflection Point",   7, 5, 70),
-            ("Bounce House",       8, 5, 75),
-            ("Echo Chamber",       8, 6, 80),
-            ("Rebound",            9, 6, 85),
-            ("Bounce King I",      9, 6, 90),
-            ("Bounce King II",    10, 7, 95),
-            ("Bounce King III",   10, 7, 100),
+            ("First Bounce",       6, 3, 52),
+            ("Ricochet",           6, 4, 65),
+            ("Bounce Path",        7, 5, 72),
+            ("Wall Runner",        7, 5, 85),
+            ("Reflection Point",   8, 6, 91),
+            ("Bounce House",       8, 6, 98),
+            ("Echo Chamber",       9, 7, 100),
+            ("Rebound",            9, 7, 100),
+            ("Bounce King I",     10, 7, 100),
+            ("Bounce King II",    10, 8, 100),
+            ("Bounce King III",   11, 8, 100),
         ]),
-        // Ch8: BounceBut — place bounces (3→7 bots, all previous)
+        // Ch8: BounceBut — place bounces (3→8 bots), diff * 1.3
         ch(8, "Bounce Tiles", &[
-            ("Place Your Bounce",  5, 3, 40),
-            ("Bounce Setup",       6, 4, 50),
-            ("Ricochet Builder",   7, 4, 60),
-            ("Bounce Craft",       7, 5, 65),
-            ("Reflection Lab",     8, 5, 70),
-            ("Bounce Engineer",    8, 6, 75),
-            ("Echo Builder",       9, 6, 80),
-            ("Rebound Architect",  9, 6, 85),
-            ("Bounce Crafter I",  10, 7, 90),
-            ("Bounce Crafter II", 10, 7, 95),
-            ("Bounce Crafter III",11, 7, 100),
+            ("Place Your Bounce",  6, 3, 52),
+            ("Bounce Setup",       6, 4, 65),
+            ("Ricochet Builder",   7, 5, 78),
+            ("Bounce Craft",       8, 5, 85),
+            ("Reflection Lab",     8, 6, 91),
+            ("Bounce Engineer",    9, 7, 98),
+            ("Echo Builder",       9, 7, 100),
+            ("Rebound Architect", 10, 7, 100),
+            ("Bounce Crafter I",  10, 8, 100),
+            ("Bounce Crafter II", 11, 8, 100),
+            ("Bounce Crafter III",11, 8, 100),
         ]),
-        // Ch9: Painters — color changing (3→8 bots, all previous)
+        // Ch9: Painters — color changing (3→9 bots), diff * 1.3
         ch(9, "Painters", &[
-            ("Color Shift",        5, 3, 40),
-            ("Paint the Path",     6, 4, 55),
-            ("Color Journey",      7, 5, 60),
-            ("Rainbow Road",       7, 5, 65),
-            ("Chromatic Path",     8, 6, 75),
-            ("Painter's Palette",  8, 6, 80),
-            ("Color Cascade",      9, 7, 85),
-            ("Hue Shift",          9, 7, 90),
-            ("Color Master I",    10, 7, 92),
-            ("Color Master II",   10, 8, 95),
-            ("Color Master III",  11, 8, 100),
+            ("Color Shift",        6, 3, 52),
+            ("Paint the Path",     7, 5, 72),
+            ("Color Journey",      7, 5, 78),
+            ("Rainbow Road",       8, 6, 85),
+            ("Chromatic Path",     8, 6, 98),
+            ("Painter's Palette",  9, 7, 100),
+            ("Color Cascade",      9, 7, 100),
+            ("Hue Shift",         10, 8, 100),
+            ("Color Master I",    10, 8, 100),
+            ("Color Master II",   11, 9, 100),
+            ("Color Master III",  11, 9, 100),
         ]),
-        // Ch10: Doors & Switches — toggle timing (3→8 bots, all previous + door chains)
+        // Ch10: Doors & Switches — toggle timing (3→9 bots), diff * 1.3
         ch(10, "Doors & Switches", &[
-            ("Open Sesame",        5, 3, 45),
-            ("Locked Path",        6, 4, 55),
-            ("Switch Timing",      7, 5, 65),
-            ("Door Dance",         7, 5, 70),
-            ("Double Lock",        8, 6, 75),
-            ("Gate Keeper",        8, 6, 80),
-            ("Synchronized",       9, 7, 85),
-            ("Chain Reaction",     9, 7, 90),
-            ("Lock Master I",     10, 7, 95),
-            ("Lock Master II",    10, 8, 97),
-            ("Lock Master III",   11, 8, 100),
+            ("Open Sesame",        6, 3, 59),
+            ("Locked Path",        7, 5, 72),
+            ("Switch Timing",      7, 5, 85),
+            ("Door Dance",         8, 6, 91),
+            ("Double Lock",        8, 6, 98),
+            ("Gate Keeper",        9, 7, 100),
+            ("Synchronized",       9, 7, 100),
+            ("Chain Reaction",    10, 8, 100),
+            ("Lock Master I",     10, 8, 100),
+            ("Lock Master II",    11, 9, 100),
+            ("Lock Master III",   11, 9, 100),
         ]),
-        // Ch11: ColorSwitch — color-gated toggling (3→8 bots, all previous)
+        // Ch11: ColorSwitch — color-gated toggling (3→9 bots), diff * 1.3
         ch(11, "Color Switches", &[
-            ("Color Gate",         6, 3, 50),
-            ("Chromatic Lock",     7, 5, 65),
-            ("Color Timing",       7, 5, 70),
-            ("Hue Gate",           8, 6, 75),
-            ("Spectrum Lock",      8, 6, 80),
-            ("Color Cascade",      9, 7, 85),
-            ("Prismatic Path",     9, 7, 90),
-            ("Rainbow Gate",      10, 7, 95),
-            ("Chroma Master I",   10, 8, 97),
-            ("Chroma Master II",  11, 8, 100),
-            ("Chroma Master III", 11, 8, 100),
+            ("Color Gate",         7, 4, 65),
+            ("Chromatic Lock",     7, 5, 85),
+            ("Color Timing",       8, 6, 91),
+            ("Hue Gate",           8, 6, 98),
+            ("Spectrum Lock",      9, 7, 100),
+            ("Color Cascade",      9, 7, 100),
+            ("Prismatic Path",    10, 8, 100),
+            ("Rainbow Gate",      10, 8, 100),
+            ("Chroma Master I",   11, 9, 100),
+            ("Chroma Master II",  11, 9, 100),
+            ("Chroma Master III", 12, 9, 100),
         ]),
-        // Ch12: ColorSwitchBut — all tiles placeable (3→8 bots, everything)
+        // Ch12: ColorSwitchBut — all tiles placeable (3→9 bots), diff * 1.3
         ch(12, "Color Switch Tiles", &[
-            ("Place Your Gate",    6, 3, 55),
-            ("Color Builder",      7, 5, 65),
-            ("Switch Craft",       7, 5, 70),
-            ("Chromatic Builder",  8, 6, 75),
-            ("Gate Architect",     8, 6, 80),
-            ("Color Engineer",     9, 7, 85),
-            ("Prismatic Craft",   10, 7, 90),
-            ("Spectrum Builder",  10, 7, 95),
-            ("Gate Crafter I",    11, 8, 97),
-            ("Gate Crafter II",   11, 8, 100),
-            ("Gate Crafter III",  12, 8, 100),
+            ("Place Your Gate",    7, 4, 72),
+            ("Color Builder",      7, 5, 85),
+            ("Switch Craft",       8, 6, 91),
+            ("Chromatic Builder",  8, 6, 98),
+            ("Gate Architect",     9, 7, 100),
+            ("Color Engineer",     9, 7, 100),
+            ("Prismatic Craft",   10, 8, 100),
+            ("Spectrum Builder",  10, 8, 100),
+            ("Gate Crafter I",    11, 9, 100),
+            ("Gate Crafter II",   12, 9, 100),
+            ("Gate Crafter III",  12, 9, 100),
         ]),
-        // Ch13: Grand Mastery — all mechanics combined (5→10 bots)
+        // Ch13: Grand Mastery — all mechanics combined (5→10 bots), diff * 1.3
         ch(13, "Grand Mastery", &[
-            ("The Convergence",    8, 5, 65),
-            ("All In",             8, 5, 70),
-            ("Synthesis",          9, 6, 75),
-            ("Full Spectrum",      9, 6, 80),
-            ("Mechanic Fusion",    9, 7, 85),
-            ("The Crucible",      10, 7, 88),
-            ("Quantum Tangle",    10, 8, 90),
-            ("Neural Network",    11, 8, 92),
-            ("Chaos Theory",      11, 8, 95),
-            ("The Architect",     12, 9, 97),
-            ("Event Horizon",     12, 9, 100),
-            ("Singularity",       12, 9, 100),
-            ("FINAL BOSS I — The Protocol",    12, 9, 100),
-            ("FINAL BOSS II — The Machine",    12, 9, 100),
-            ("FINAL BOSS III — Transcendence", 12, 9, 100),
-            ("SECRET — The Impossible",        12, 9, 100),
-            ("SECRET — Protocol Complete",     12, 9, 100),
+            ("The Convergence",    9, 5, 85),
+            ("All In",             9, 6, 91),
+            ("Synthesis",         10, 6, 98),
+            ("Full Spectrum",     10, 7, 100),
+            ("Mechanic Fusion",   10, 7, 100),
+            ("The Crucible",      11, 8, 100),
+            ("Quantum Tangle",    11, 8, 100),
+            ("Neural Network",    11, 9, 100),
+            ("Chaos Theory",      12, 9, 100),
+            ("The Architect",     12, 9, 100),
+            ("Event Horizon",     12,10, 100),
+            ("Singularity",       12,10, 100),
+            ("FINAL BOSS I — The Protocol",    12,10, 100),
+            ("FINAL BOSS II — The Machine",    12,10, 100),
+            ("FINAL BOSS III — Transcendence", 12,10, 100),
+            ("SECRET — The Impossible",        12,10, 100),
+            ("SECRET — Protocol Complete",     12,10, 100),
         ]),
     ]
 }
