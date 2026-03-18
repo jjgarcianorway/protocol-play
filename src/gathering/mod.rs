@@ -182,7 +182,7 @@ fn setup_gathering(
     // Version label
     commands.spawn(Node { position_type: PositionType::Absolute, right: Val::Px(6.0),
         bottom: Val::Px(4.0), ..default() })
-        .with_child((Text::new(format!("v{}", env!("CARGO_PKG_VERSION"))),
+        .with_child((Text::new(format!("The Gathering · v{}", env!("CARGO_PKG_VERSION"))),
             TextFont { font, font_size: 11.0, ..default() },
             TextColor(Color::srgba(1.0, 1.0, 1.0, 0.35))));
 }

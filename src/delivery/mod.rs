@@ -95,7 +95,7 @@ fn setup_delivery(
         bottom: Val::Px(4.0),
         ..default()
     }).with_child((
-        Text::new(format!("v{}", env!("CARGO_PKG_VERSION"))),
+        Text::new(format!("The Delivery · v{}", env!("CARGO_PKG_VERSION"))),
         TextFont { font: font.clone(), font_size: 11.0, ..default() },
         TextColor(Color::srgba(1.0, 1.0, 1.0, 0.35)),
     ));

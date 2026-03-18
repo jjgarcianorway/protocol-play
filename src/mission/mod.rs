@@ -229,7 +229,7 @@ fn setup_mission(
         bottom: Val::Px(4.0),
         ..default()
     }).with_child((
-        Text::new(format!("v{}", env!("CARGO_PKG_VERSION"))),
+        Text::new(format!("Mission Control · v{}", env!("CARGO_PKG_VERSION"))),
         TextFont { font, font_size: VERSION_FONT_M, ..default() },
         TextColor(Color::srgba(1.0, 1.0, 1.0, 0.35)),
     ));

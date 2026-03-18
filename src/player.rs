@@ -407,6 +407,6 @@ pub fn update_version_label(
     let level = &levels.levels[levels.current];
     let seed = level.seed.map(|s| format!("{:08X}", s)).unwrap_or_default();
     for mut text in &mut label {
-        **text = format!("v{} · {seed}", env!("CARGO_PKG_VERSION"));
+        **text = format!("The Repairing · v{} · {seed}", env!("CARGO_PKG_VERSION"));
     }
 }
