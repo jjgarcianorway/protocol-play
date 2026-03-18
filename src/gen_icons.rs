@@ -52,7 +52,7 @@ fn main() {
     let _ = std::fs::create_dir_all("assets/icons");
 
     let mut app = App::new();
-    app.set_error_handler(bevy::ecs::error::warn);
+    app.set_error_handler(bevy::ecs::error::ignore);
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
             title: "Generating icons...".into(),

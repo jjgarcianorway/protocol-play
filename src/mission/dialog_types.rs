@@ -11,7 +11,8 @@ use bevy::prelude::*;
 pub enum DialogTrigger {
     /// After reaching this bot repair level.
     BotLevel(u32),
-    /// After returning from a gathering run.
+    /// After returning from a gathering run (future use).
+    #[allow(dead_code)]
     GatheringReturn,
     /// When a resource index (0-4) drops below critical (< 20%).
     ResourceCritical(usize),

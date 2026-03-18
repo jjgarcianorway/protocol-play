@@ -39,6 +39,7 @@ use crate::save_state::{load_game_state, GameState};
 
 /// Cached world state — generated once on startup from the seed.
 #[derive(Resource)]
+#[allow(dead_code)]
 pub struct CachedWorldState {
     pub world: world_seed::WorldState,
     pub crew: Vec<crew_stories::CrewMember>,

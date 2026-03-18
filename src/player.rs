@@ -9,22 +9,15 @@ use crate::messages::{pick_creative_msg, pick_congrats, format_time, format_atte
 #[path = "player_chapter.rs"] pub mod player_chapter; pub use player_chapter::*;
 
 #[derive(Resource)]
-pub struct PlayerLevels {
-    pub levels: Vec<LevelData>,
-    pub current: usize,
-}
-
+pub struct PlayerLevels { pub levels: Vec<LevelData>, pub current: usize }
 #[derive(Component)] pub struct PrevLevelButton;
 #[derive(Component)] pub struct NextLevelButton;
 #[derive(Component)] pub struct LevelNameText;
 #[derive(Component)] pub struct CongratsScreen;
-
 #[derive(Resource, Default)]
 pub struct LevelStats {
-    pub editing_time: f32,
-    pub play_count: u32,
-    pub reset_count: u32,
-    pub last_stats_write: f32,
+    pub editing_time: f32, pub play_count: u32,
+    pub reset_count: u32, pub last_stats_write: f32,
 }
 
 pub fn setup_player(
@@ -40,11 +33,9 @@ pub fn setup_player(
     mut selected_tool: ResMut<SelectedTool>,
     mut ch_state: ResMut<ChapterState>,
 ) {
-    let exe_dir = std::env::current_exe().ok()
-        .and_then(|p| p.parent().map(|d| d.to_path_buf()));
+    let exe_dir = std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.to_path_buf()));
     let search_dir = exe_dir.unwrap_or_else(|| std::path::PathBuf::from("."));
     let do_reset = std::env::args().any(|a| a == "--reset-stats");
-
     let mut levels: Vec<LevelData> = Vec::new();
     let mut filenames: Vec<String> = Vec::new();
     if let Ok(entries) = std::fs::read_dir(&search_dir) {
@@ -73,24 +64,19 @@ pub fn setup_player(
         spawn_error_message(&mut commands, &font.0);
         commands.insert_resource(PlayerLevels { levels: vec![], current: 0 });
         commands.insert_resource(PlayerProgress { data: vec![], filenames: vec![], save_dir: search_dir });
-        commands.insert_resource(LevelStats::default());
-        return;
+        return commands.insert_resource(LevelStats::default());
     }
-
     if do_reset {
         reset_all_progress(&search_dir, &filenames);
         println!("All progress and stats have been reset ({} levels).", filenames.len());
         std::process::exit(0);
     }
     ensure_stats_file(&search_dir);
-    let progress_data: Vec<LevelProgress> = filenames.iter()
-        .map(|f| load_progress(&search_dir, f)).collect();
+    let progress_data: Vec<LevelProgress> = filenames.iter().map(|f| load_progress(&search_dir, f)).collect();
     let start_idx = first_unsolved(&progress_data).unwrap_or(0);
-
     let player_levels = PlayerLevels { levels, current: start_idx };
     let progress = PlayerProgress { data: progress_data, filenames, save_dir: search_dir };
     let mut stats = LevelStats::default();
-
     let p = progress.data[start_idx].clone();
     for e in &tiles { commands.entity(e).despawn(); }
     load_level(&mut commands, &assets, &mut board_size, &mut test_inv, &icons,

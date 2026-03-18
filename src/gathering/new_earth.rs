@@ -35,12 +35,9 @@ pub struct WhiteFadeOverlay;
 // === Constants ===
 
 const EARTH_APPEAR_TIME: f32 = 5.0;
-const EARTH_VISIBLE_TIME: f32 = 10.0;
-const EARTH_LARGE_TIME: f32 = 20.0;
 const FADE_WHITE_START: f32 = 25.0;
 const FADE_WHITE_END: f32 = 28.0;
 const TEXT_APPEAR_TIME: f32 = 28.0;
-const TEXT_HOLD_END: f32 = 35.0;
 const EXIT_TIME: f32 = 35.5;
 
 const EARTH_COLOR: (f32, f32, f32) = (0.15, 0.45, 0.7);

@@ -45,28 +45,28 @@ fn main() {
         let mut app = App::new();
         app.add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window { title: "protocol: play — Mission Control".into(), ..default() }), ..default() }));
-        app.set_error_handler(bevy::ecs::error::warn);
+        app.set_error_handler(bevy::ecs::error::ignore);
         mission::build_app(&mut app); app.run(); return;
     }
     #[cfg(feature = "converter")] {
         let mut app = App::new();
         app.add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window { title: "The Converter".into(), ..default() }), ..default() }));
-        app.set_error_handler(bevy::ecs::error::warn);
+        app.set_error_handler(bevy::ecs::error::ignore);
         converter::build_app(&mut app); app.run(); return;
     }
     #[cfg(feature = "delivery")] {
         let mut app = App::new();
         app.add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window { title: "The Delivery".into(), ..default() }), ..default() }));
-        app.set_error_handler(bevy::ecs::error::warn);
+        app.set_error_handler(bevy::ecs::error::ignore);
         delivery::build_app(&mut app); app.run(); return;
     }
     #[cfg(feature = "gathering")] {
         let mut app = App::new();
         app.add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window { title: "The Gathering".into(), ..default() }), ..default() }));
-        app.set_error_handler(bevy::ecs::error::warn);
+        app.set_error_handler(bevy::ecs::error::ignore);
         gathering::build_app(&mut app); app.run(); return;
     }
     gen_textures::ensure_textures();
