@@ -12,6 +12,9 @@ use super::dialog_scenes_crew_ng;
 use super::dialog_scenes_philosophy;
 use super::dialog_scenes_philosophy2;
 use super::dialog_scenes_hidden;
+use super::dialog_scenes_earth;
+use super::dialog_scenes_earth2;
+use super::dialog_scenes_anna_personal;
 
 /// Return all dialog scenes from all acts.
 pub fn all_scenes() -> Vec<&'static DialogScene> {
@@ -25,5 +28,8 @@ pub fn all_scenes() -> Vec<&'static DialogScene> {
     scenes.extend(dialog_scenes_philosophy::philosophy_scenes_1());
     scenes.extend(dialog_scenes_philosophy2::philosophy_scenes_2());
     scenes.extend(dialog_scenes_hidden::hidden_scenes());
+    scenes.extend(dialog_scenes_earth::earth_scenes_1());
+    scenes.extend(dialog_scenes_earth2::earth_scenes_2());
+    scenes.extend(dialog_scenes_anna_personal::anna_personal_scenes());
     scenes
 }
