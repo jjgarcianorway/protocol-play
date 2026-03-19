@@ -193,10 +193,10 @@ fn setup_scene(
     let (goal_symbol_materials, ghost_goal_materials, _, _) = load_tile_mats(&mut materials, &mut images, "goal");
     let (mut turn_symbol_materials, mut ghost_turn_materials, tb, tm) = load_tile_mats(&mut materials, &mut images, "turn");
     add_grey_mat(&mut materials, &mut turn_symbol_materials, &mut ghost_turn_materials, &tb, &tm);
-    let (turnbut_symbol_materials, ghost_turnbut_materials, _, _) = load_tile_mats(&mut materials, &mut images, "turnbut");
+    let (turnbut_symbol_materials, ghost_turnbut_materials, _, _) = load_but_tile_mats(&mut materials, &mut images, "turnbut");
     let (mut bounce_symbol_materials, mut ghost_bounce_materials, bb, bm) = load_tile_mats(&mut materials, &mut images, "bounce");
     add_grey_mat(&mut materials, &mut bounce_symbol_materials, &mut ghost_bounce_materials, &bb, &bm);
-    let (bouncebot_symbol_materials, ghost_bouncebot_materials, _, _) = load_tile_mats(&mut materials, &mut images, "bouncebut");
+    let (bouncebot_symbol_materials, ghost_bouncebot_materials, _, _) = load_but_tile_mats(&mut materials, &mut images, "bouncebut");
 
     let load_grey = |mats: &mut Assets<StandardMaterial>, imgs: &mut Assets<Image>, name: &str|
         { let b = load_png_texture(imgs, &format!("assets/textures/{name}_base.png"), true);
@@ -208,7 +208,7 @@ fn setup_scene(
         let (mut ms, mut gs, b, m) = load_tile_mats(&mut materials, &mut images, &format!("teleport_{num}"));
         add_grey_mat(&mut materials, &mut ms, &mut gs, &b, &m);
         teleport_symbol_materials.extend(ms); ghost_teleport_materials.extend(gs);
-        let (ms2, gs2, _, _) = load_tile_mats(&mut materials, &mut images, &format!("teleportbut_{num}"));
+        let (ms2, gs2, _, _) = load_but_tile_mats(&mut materials, &mut images, &format!("teleportbut_{num}"));
         teleportbut_symbol_materials.extend(ms2); ghost_teleportbut_materials.extend(gs2);
     }
     let (door_open_material, ghost_door_open_material) = load_grey(&mut materials, &mut images, "door_open");
@@ -216,11 +216,11 @@ fn setup_scene(
     let (switch_material, ghost_switch_material) = load_grey(&mut materials, &mut images, "switch");
 
     let (colorswitch_symbol_materials, ghost_colorswitch_materials, _, _) = load_tile_mats(&mut materials, &mut images, "colorswitch");
-    let (colorswitchbut_symbol_materials, ghost_colorswitchbut_materials, _, _) = load_tile_mats(&mut materials, &mut images, "colorswitchbut");
+    let (colorswitchbut_symbol_materials, ghost_colorswitchbut_materials, _, _) = load_but_tile_mats(&mut materials, &mut images, "colorswitchbut");
     let (painter_symbol_materials, ghost_painter_materials, _, _) = load_tile_mats(&mut materials, &mut images, "painter");
     let (mut arrow_symbol_materials, mut ghost_arrow_materials, ab, am) = load_tile_mats(&mut materials, &mut images, "arrow");
     add_grey_mat(&mut materials, &mut arrow_symbol_materials, &mut ghost_arrow_materials, &ab, &am);
-    let (arrowbut_symbol_materials, ghost_arrowbut_materials, _, _) = load_tile_mats(&mut materials, &mut images, "arrowbut");
+    let (arrowbut_symbol_materials, ghost_arrowbut_materials, _, _) = load_but_tile_mats(&mut materials, &mut images, "arrowbut");
 
     let bot_mesh = meshes.add(Cuboid::new(BOT_SIZE, BOT_SIZE, BOT_SIZE));
     let eye_mesh = meshes.add(Cuboid::new(BOT_EYE_W, BOT_EYE_H, BOT_EYE_D));

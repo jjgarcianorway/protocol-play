@@ -49,3 +49,25 @@ pub fn add_grey_mat(
     let (m, g) = make_grey_mat(materials, base.clone(), mask.clone());
     mats.push(m); ghosts.push(g);
 }
+
+/// Create materials for "But" tiles — grey base with only the circle/mask colored.
+/// Each color gets a grey tile body with a colored emissive circle.
+pub fn load_but_tile_mats(
+    materials: &mut Assets<StandardMaterial>, images: &mut Assets<Image>, name: &str,
+) -> (Vec<Handle<StandardMaterial>>, Vec<Handle<StandardMaterial>>, Handle<Image>, Handle<Image>) {
+    let base = load_png_texture(images, &format!("assets/textures/{name}_base.png"), true);
+    let mask = load_png_texture(images, &format!("assets/textures/{name}_mask.png"), false);
+    let (gr, gg, gb) = GREY_COLOR;
+    let mats = SOURCE_COLORS.iter().map(|&(r, g, b)| materials.add(StandardMaterial {
+        base_color: Color::srgb(gr * 1.3, gg * 1.3, gb * 1.3),
+        base_color_texture: Some(base.clone()),
+        alpha_mode: AlphaMode::Mask(0.5),
+        emissive: emissive_linear(r, g, b) * 1.5, // brighter circle
+        emissive_texture: Some(mask.clone()), reflectance: 0.0, ..default()
+    })).collect();
+    let ghosts = SOURCE_COLORS.iter().map(|&(r, g, b)| materials.add(StandardMaterial {
+        base_color: Color::srgba(r, g, b, GHOST_ALPHA), base_color_texture: Some(mask.clone()),
+        alpha_mode: AlphaMode::Blend, unlit: true, ..default()
+    })).collect();
+    (mats, ghosts, base, mask)
+}
