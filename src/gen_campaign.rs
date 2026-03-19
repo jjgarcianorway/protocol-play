@@ -348,7 +348,7 @@ fn campaign_chapters() -> Vec<Chapter> {
             ("Prismatic Path",    10, 8, 100),
             ("Rainbow Gate",      10, 8, 100),
             ("Chroma Master I",   11, 9, 100),
-            ("Chroma Master II",  11, 9, 100),
+            ("Chroma Master II",  10, 7, 100),
             ("Chroma Master III", 12, 9, 100),
         ]),
         // Ch12: ColorSwitchBut — all tiles placeable (3→9 bots), diff * 1.3
@@ -382,7 +382,7 @@ fn campaign_chapters() -> Vec<Chapter> {
             ("FINAL BOSS I — The Protocol",    12,10, 100),
             ("FINAL BOSS II — The Machine",    12,10, 100),
             ("FINAL BOSS III — Transcendence", 12,10, 100),
-            ("SECRET — The Impossible",        12,10, 100),
+            ("SECRET — The Impossible",        11, 8, 100),
             ("SECRET — Protocol Complete",     12,10, 100),
         ]),
     ]
