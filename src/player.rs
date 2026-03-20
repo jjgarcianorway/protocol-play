@@ -155,8 +155,18 @@ fn load_level(
     let (mut board_tiles, marked_kinds) = parse_tiles(true);
     let default_inv = group_tiles(marked_kinds.into_iter());
     commands.insert_resource(SavedTestState { tiles: board_tiles.clone(), inventory: default_inv.clone() });
+    let placed_set: std::collections::HashSet<_> = progress.board_state.as_ref()
+        .map(|bs| bs.iter().map(|&(c, r, _)| (c, r)).collect()).unwrap_or_default();
     apply_saved(&mut board_tiles, &progress.board_state);
-    for &(col, row, kind) in &board_tiles { spawn_tile(commands, col, row, board_size.0, kind, assets); }
+    for &(col, row, kind) in &board_tiles {
+        let e = spawn_tile(commands, col, row, board_size.0, kind, assets);
+        if placed_set.contains(&(col, row)) {
+            commands.entity(e).with_children(|p| {
+                p.spawn((Mesh3d(assets.marker_mesh.clone()), MeshMaterial3d(assets.marker_material.clone()),
+                    Transform::from_translation(Vec3::new(0.0, FLOOR_TOP_Y + MARKER_Y_OFFSET, 0.0))));
+            });
+        }
+    }
     test_inv.items = progress.inventory_state.clone().unwrap_or(default_inv);
     test_inv.selected = if test_inv.items.is_empty() { None } else { Some(0) };
     test_inv.remove_mode = false;

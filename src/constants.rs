@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 
 // === Camera ===
-pub const CAMERA_ELEVATION: f32 = 22.0;
+pub const CAMERA_ELEVATION: f32 = 38.0;
 pub const CAMERA_AZIMUTH: f32 = 45.0;
 pub const CAMERA_MARGIN: f32 = 1.02;
 pub const CAMERA_ZOOM_SPEED: f32 = 1.5;

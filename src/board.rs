@@ -327,8 +327,8 @@ pub fn adapt_camera(
     let dist_h = radius / half_fov_h.sin();
     let distance = dist_v.max(dist_h) * CAMERA_MARGIN;
 
-    // Vertical position: board slightly above center
-    let look_y = -0.06 * distance;
+    // Vertical position: compensate for steeper camera angle
+    let look_y = 0.02 * distance;
     let look_at = Vec3::new(0.0, look_y, 0.0);
 
     let dir = camera_direction();
