@@ -78,7 +78,7 @@ fn generate_level_seeded(config: &GenConfig, max_attempts: usize, ci: usize, li:
     use rand::SeedableRng;
     // Try up to 4 seed variations if initial seed fails to produce results
     for seed_try in 0..4u64 {
-        let seed: u64 = 0x0C0_2026_CAFE ^ (ci as u64 * 1000 + li as u64 + seed_try * 0xDEAD);
+        let seed: u64 = 0xA2B4_C6D8_E0F1 ^ (ci as u64 * 1337 + li as u64 * 42 + seed_try * 0xBEEF);
         let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
         let mut best: Option<(Vec<(u32, u32, TileKind, bool)>, u32)> = None;
         for _ in 0..max_attempts {
@@ -362,28 +362,28 @@ fn campaign_chapters() -> Vec<Chapter> {
             ("Prismatic Craft",   10, 8, 100),
             ("Spectrum Builder",  10, 8, 100),
             ("Gate Crafter I",    11, 9, 100),
-            ("Gate Crafter II",   12, 9, 100),
-            ("Gate Crafter III",  12, 9, 100),
+            ("Gate Crafter II",   11, 8, 100),
+            ("Gate Crafter III",  11, 8, 100),
         ]),
-        // Ch13: Grand Mastery — all mechanics combined (5→10 bots), diff * 1.3
+        // Ch13: Grand Mastery — all mechanics combined (5→9 bots), diff * 1.3
         ch(13, "Grand Mastery", &[
             ("The Convergence",    9, 5, 85),
             ("All In",             9, 6, 91),
             ("Synthesis",         10, 6, 98),
             ("Full Spectrum",     10, 7, 100),
             ("Mechanic Fusion",   10, 7, 100),
-            ("The Crucible",      11, 8, 100),
+            ("The Crucible",      11, 7, 100),
             ("Quantum Tangle",    11, 8, 100),
-            ("Neural Network",    11, 9, 100),
-            ("Chaos Theory",      12, 9, 100),
+            ("Neural Network",    11, 8, 100),
+            ("Chaos Theory",      11, 8, 100),
             ("The Architect",     12, 9, 100),
             ("Event Horizon",     11, 9, 100),
-            ("Singularity",       12,10, 100),
-            ("FINAL BOSS I — The Protocol",    12,10, 100),
-            ("FINAL BOSS II — The Machine",    12,10, 100),
-            ("FINAL BOSS III — Transcendence", 12,10, 100),
+            ("Singularity",       12, 9, 100),
+            ("FINAL BOSS I — The Protocol",    12, 9, 100),
+            ("FINAL BOSS II — The Machine",    12, 9, 100),
+            ("FINAL BOSS III — Transcendence", 12, 9, 100),
             ("SECRET — The Impossible",        11, 8, 100),
-            ("SECRET — Protocol Complete",     12,10, 100),
+            ("SECRET — Protocol Complete",     11, 9, 100),
         ]),
     ]
 }

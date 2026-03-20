@@ -12,7 +12,11 @@ pub fn try_exit(grid: &HashMap<(u32, u32), TileKind>, col: i32, row: i32, dir: D
     in_bounds(col + dc, row + dr, size) && !grid.contains_key(&((col + dc) as u32, (row + dr) as u32))
 }
 pub fn shuffle<T>(v: &mut Vec<T>, rng: &mut impl Rng) { for i in (1..v.len()).rev() { let j = rng.gen_range(0..=i); v.swap(i, j); } }
-fn but_color(ci: usize) -> usize { (ci + 3) % NUM_COLORS }
+fn but_color(ci: usize) -> usize {
+    // "But" means "all except this color" — pick a different color from the bot
+    let offset = 1 + (ci * 7 + 3) % (NUM_COLORS - 1); // deterministic but varied
+    (ci + offset) % NUM_COLORS
+}
 pub fn possible_turns(bot_dir: Direction) -> Vec<(Direction, Direction)> { Direction::all().iter().filter_map(|&td| bot_dir.turn_exit(td).map(|exit| (td, exit))).collect() }
 // Source placement: pick empty cell with valid direction, preferring cells far from existing sources.
 pub fn pick_start(
@@ -339,9 +343,9 @@ fn pick_weighted(weights: &[u32; GEN_NUM_WEIGHTS], indices: &[u8], rng: &mut imp
     indices.last().copied()
 }
 
-/// ~20% chance to use gray (NUM_COLORS) instead of bot color — gray affects all bots
+/// ~30% chance to use gray (NUM_COLORS) instead of bot color — gray affects all bots.
 fn maybe_gray(ci: usize, rng: &mut impl Rng) -> usize {
-    if rng.gen_bool(0.20) { NUM_COLORS } else { ci }
+    if rng.gen_bool(0.30) { NUM_COLORS } else { ci }
 }
 
 // === Master dispatcher ===

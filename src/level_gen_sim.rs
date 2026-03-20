@@ -89,19 +89,19 @@ pub fn simulate_headless(size: u32, tiles: &[(u32, u32, TileKind)]) -> bool {
             match tile {
                 Some(TileKind::Goal(ci)) if ci == bot.color => { bot.at_goal = true; }
                 Some(TileKind::Painter(ci)) => { bot.color = ci; }
-                Some(TileKind::Turn(ci, td)) if ci == bot.color => {
+                Some(TileKind::Turn(ci, td)) if ci == bot.color || ci == NUM_COLORS => {
                     if let Some(e) = bot.dir.turn_exit(td) { bot.dir = e; }
                 }
-                Some(TileKind::TurnBut(ci, td)) if ci != bot.color => {
+                Some(TileKind::TurnBut(ci, td)) if ci != bot.color && ci != NUM_COLORS => {
                     if let Some(e) = bot.dir.turn_exit(td) { bot.dir = e; }
                 }
-                Some(TileKind::Bounce(ci)) if ci == bot.color => { bot.dir = bot.dir.opposite(); }
-                Some(TileKind::BounceBut(ci)) if ci != bot.color => { bot.dir = bot.dir.opposite(); }
-                Some(TileKind::Arrow(ci, d)) if ci == bot.color => { bot.dir = d; }
-                Some(TileKind::ArrowBut(ci, d)) if ci != bot.color => { bot.dir = d; }
+                Some(TileKind::Bounce(ci)) if ci == bot.color || ci == NUM_COLORS => { bot.dir = bot.dir.opposite(); }
+                Some(TileKind::BounceBut(ci)) if ci != bot.color && ci != NUM_COLORS => { bot.dir = bot.dir.opposite(); }
+                Some(TileKind::Arrow(ci, d)) if ci == bot.color || ci == NUM_COLORS => { bot.dir = d; }
+                Some(TileKind::ArrowBut(ci, d)) if ci != bot.color && ci != NUM_COLORS => { bot.dir = d; }
                 Some(TileKind::Switch) => { bot.switch_pending = true; }
-                Some(TileKind::ColorSwitch(ci)) if ci == bot.color => { bot.switch_pending = true; }
-                Some(TileKind::ColorSwitchBut(ci)) if ci != bot.color => { bot.switch_pending = true; }
+                Some(TileKind::ColorSwitch(ci)) if ci == bot.color || ci == NUM_COLORS => { bot.switch_pending = true; }
+                Some(TileKind::ColorSwitchBut(ci)) if ci != bot.color && ci != NUM_COLORS => { bot.switch_pending = true; }
                 Some(TileKind::Teleport(co, _)) if co == NUM_COLORS || co == bot.color => {
                     if let Some(&p) = tp_map.get(&(nc as u32, nr as u32)) {
                         bot.col = p.0 as i32; bot.row = p.1 as i32;

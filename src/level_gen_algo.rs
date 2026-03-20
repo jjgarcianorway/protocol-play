@@ -77,7 +77,7 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
         let mut teleport_num = 0usize;
         let mut path_history: Vec<(i32, i32, Direction)> = vec![(sc as i32, sr as i32, sd)];
         let mut floor_path: Vec<(u32, u32)> = Vec::new();
-        let base_chance = 0.22 + diff * 0.40;
+        let base_chance = 0.28 + diff * 0.45;
         for _ in 0..(target + 15) {
             let (dc, dr) = dir.grid_delta();
             let (nc, nr) = (col + dc, row + dr);
@@ -109,8 +109,8 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
             floor_path.push((nc as u32, nr as u32));
             steps += 1; straight_run += 1;
             path_history.push((col, row, dir));
-            let min_gap = 1 + (size / 4) as u32;
-            let max_gap = min_gap + (diff * 1.5) as u32;
+            let min_gap = 1 + (size / 5) as u32;
+            let max_gap = (min_gap + (diff * 1.2) as u32).max(min_gap + 1);
             let gap_target = rng.gen_range(min_gap..=max_gap.max(min_gap));
             if steps > 1 && steps < target - 1 && straight_run >= gap_target {
                 let straight_bonus = ((straight_run - gap_target) as f32 * 0.12).min(0.35);
@@ -137,7 +137,7 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
     }
     let total_floor: usize = bot_floor_paths.iter().map(|p| p.len()).sum();
     let coverage = total_floor as f32 / (size * size) as f32;
-    if coverage < 0.25 && size >= 5 { return None; }
+    if coverage < 0.30 && size >= 5 { return None; }
     if config.door_chains > 0 && config.weights[8] > 0 {
         place_door_chains(&mut grid, &mut solution_positions, &bot_floor_paths, rng, config.door_chains as usize);
     }

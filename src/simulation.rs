@@ -236,17 +236,17 @@ pub fn move_bots(
                     advance!();
                     let trigger = match tile_at(mov.col, mov.row) {
                         Some(TileKind::Switch) => true,
-                        Some(TileKind::ColorSwitch(ci)) => ci == mov.color_index,
-                        Some(TileKind::ColorSwitchBut(ci)) => ci != mov.color_index,
+                        Some(TileKind::ColorSwitch(ci)) => ci == mov.color_index || ci == NUM_COLORS,
+                        Some(TileKind::ColorSwitchBut(ci)) => ci != mov.color_index && ci != NUM_COLORS,
                         _ => false,
                     };
                     if trigger { mov.switch_pending = true; }
                 }
                 Some(TileKind::Door(false)) => { advance!(); mov.phase = BotPhase::Decelerating(Some(mov.direction.opposite())); }
-                Some(TileKind::Turn(tci, _)) if tci != mov.color_index => { advance!(); }
-                Some(TileKind::TurnBut(tci, _)) if tci == mov.color_index => { advance!(); }
-                Some(TileKind::Bounce(bci)) if bci != mov.color_index => { advance!(); }
-                Some(TileKind::BounceBut(bci)) if bci == mov.color_index => { advance!(); }
+                Some(TileKind::Turn(tci, _)) if tci != mov.color_index && tci != NUM_COLORS => { advance!(); }
+                Some(TileKind::TurnBut(tci, _)) if tci == mov.color_index || tci == NUM_COLORS => { advance!(); }
+                Some(TileKind::Bounce(bci)) if bci != mov.color_index && bci != NUM_COLORS => { advance!(); }
+                Some(TileKind::BounceBut(bci)) if bci == mov.color_index || bci == NUM_COLORS => { advance!(); }
                 Some(TileKind::Bounce(_)) | Some(TileKind::BounceBut(_)) => { advance!(); mov.phase = BotPhase::Decelerating(Some(mov.direction.opposite())); }
                 Some(TileKind::Turn(_, tdir)) | Some(TileKind::TurnBut(_, tdir)) => {
                     if let Some(exit_dir) = mov.direction.turn_exit(tdir) {
@@ -258,10 +258,10 @@ pub fn move_bots(
                     advance!(); if affects { mov.phase = BotPhase::Decelerating(None); }
                 }
                 Some(TileKind::TeleportBut(co, _)) => {
-                    advance!(); if co != mov.color_index { mov.phase = BotPhase::Decelerating(None); }
+                    advance!(); if co != mov.color_index && co != NUM_COLORS { mov.phase = BotPhase::Decelerating(None); }
                 }
-                Some(TileKind::Arrow(aci, _)) if aci != mov.color_index => { advance!(); }
-                Some(TileKind::ArrowBut(aci, _)) if aci == mov.color_index => { advance!(); }
+                Some(TileKind::Arrow(aci, _)) if aci != mov.color_index && aci != NUM_COLORS => { advance!(); }
+                Some(TileKind::ArrowBut(aci, _)) if aci == mov.color_index || aci == NUM_COLORS => { advance!(); }
                 Some(TileKind::Arrow(_, adir)) | Some(TileKind::ArrowBut(_, adir)) => {
                     advance!(); if adir != mov.direction { mov.phase = BotPhase::Decelerating(Some(adir)); }
                 }
