@@ -349,28 +349,51 @@ pub fn spawn_simulation_overlay(
         None => return,
     };
     let stats = sim_result.stats_lines.clone();
-    commands.spawn((
-        Node { position_type: PositionType::Absolute, width: Val::Percent(100.0), height: Val::Percent(100.0),
-            justify_content: JustifyContent::Center, align_items: AlignItems::Center, ..default() },
-        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.0)), GlobalZIndex(100), SimulationOverlay, Interaction::default(),
-        SimOverlayFade(0.0),
-    )).with_children(|parent| {
-        parent.spawn((
-            Node { flex_direction: FlexDirection::Column, padding: UiRect::all(Val::Px(SIM_CARD_PAD)),
-                align_items: AlignItems::Center, row_gap: Val::Px(SIM_CARD_GAP), ..default() },
-            BackgroundColor(rgb(SIM_CARD_BG)),
-        )).with_children(|card| {
-            card.spawn((Text::new(&msg), gf(SIM_MSG_FONT, &font.0), TextColor(color)));
-            for line in &stats {
-                card.spawn((Text::new(line), gf(DIALOG_BODY_FONT, &font.0), TextColor(Color::WHITE)));
-            }
-            card.spawn((
+    let is_error = matches!(sim_result.result, Some(SimResult::Error(_)));
+    if is_error {
+        // Error: small top banner — non-intrusive, board stays visible
+        commands.spawn((
+            Node { position_type: PositionType::Absolute, width: Val::Percent(100.0),
+                top: Val::Px(8.0), justify_content: JustifyContent::Center, ..default() },
+            GlobalZIndex(100), SimulationOverlay, Interaction::default(),
+        )).with_children(|parent| {
+            parent.spawn((
                 Button, SimOverlayButton,
-                Node { padding: UiRect::axes(Val::Px(SIM_BTN_PAD.0), Val::Px(SIM_BTN_PAD.1)), ..default() },
-                BackgroundColor(rgb(SIM_BTN_BG)),
-            )).with_child((Text::new(btn_text), gf(SIM_BTN_FONT, &font.0), TextColor(Color::WHITE)));
+                Node { flex_direction: FlexDirection::Row, padding: UiRect::axes(Val::Px(24.0), Val::Px(12.0)),
+                    column_gap: Val::Px(16.0), align_items: AlignItems::Center,
+                    border_radius: BorderRadius::all(Val::Px(8.0)), ..default() },
+                BackgroundColor(Color::srgba(0.12, 0.08, 0.08, 0.92)),
+            )).with_children(|banner| {
+                banner.spawn((Text::new(&msg), gf(SIM_MSG_FONT, &font.0), TextColor(color)));
+                banner.spawn((Text::new("  Click to retry"), gf(SIM_BTN_FONT, &font.0),
+                    TextColor(Color::srgba(0.7, 0.7, 0.7, 0.7))));
+            });
         });
-    });
+    } else {
+        // Success: centered overlay with dim background
+        commands.spawn((
+            Node { position_type: PositionType::Absolute, width: Val::Percent(100.0), height: Val::Percent(100.0),
+                justify_content: JustifyContent::Center, align_items: AlignItems::Center, ..default() },
+            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.0)), GlobalZIndex(100), SimulationOverlay, Interaction::default(),
+            SimOverlayFade(0.0),
+        )).with_children(|parent| {
+            parent.spawn((
+                Node { flex_direction: FlexDirection::Column, padding: UiRect::all(Val::Px(SIM_CARD_PAD)),
+                    align_items: AlignItems::Center, row_gap: Val::Px(SIM_CARD_GAP), ..default() },
+                BackgroundColor(rgb(SIM_CARD_BG)),
+            )).with_children(|card| {
+                card.spawn((Text::new(&msg), gf(SIM_MSG_FONT, &font.0), TextColor(color)));
+                for line in &stats {
+                    card.spawn((Text::new(line), gf(DIALOG_BODY_FONT, &font.0), TextColor(Color::WHITE)));
+                }
+                card.spawn((
+                    Button, SimOverlayButton,
+                    Node { padding: UiRect::axes(Val::Px(SIM_BTN_PAD.0), Val::Px(SIM_BTN_PAD.1)), ..default() },
+                    BackgroundColor(rgb(SIM_BTN_BG)),
+                )).with_child((Text::new(btn_text), gf(SIM_BTN_FONT, &font.0), TextColor(Color::WHITE)));
+            });
+        });
+    }
 }
 
 pub fn overlay_button_interaction(
