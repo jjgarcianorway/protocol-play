@@ -377,7 +377,7 @@ fn campaign_chapters() -> Vec<Chapter> {
             ("Neural Network",    11, 9, 100),
             ("Chaos Theory",      12, 9, 100),
             ("The Architect",     12, 9, 100),
-            ("Event Horizon",     12,10, 100),
+            ("Event Horizon",     11, 9, 100),
             ("Singularity",       12,10, 100),
             ("FINAL BOSS I — The Protocol",    12,10, 100),
             ("FINAL BOSS II — The Machine",    12,10, 100),

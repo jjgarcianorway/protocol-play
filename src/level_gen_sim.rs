@@ -49,8 +49,21 @@ pub fn simulate_headless(size: u32, tiles: &[(u32, u32, TileKind)]) -> bool {
     }
     if bots.is_empty() { return false; }
 
+    // Loop detection: track (bot_index, col, row, dir) states
+    let mut visited: Vec<std::collections::HashSet<(i32, i32, u8)>> =
+        bots.iter().map(|_| std::collections::HashSet::new()).collect();
+
     for _ in 0..GEN_MAX_SIM_STEPS {
         if bots.iter().all(|b| b.at_goal || !b.alive) { break; }
+
+        // Check for loops — if any bot revisits same position+direction, level is broken
+        for (i, bot) in bots.iter().enumerate() {
+            if !bot.alive || bot.at_goal { continue; }
+            let state = (bot.col, bot.row, bot.dir as u8);
+            if !visited[i].insert(state) {
+                return false; // LOOP DETECTED — reject this level
+            }
+        }
 
         // Toggle doors if any bot has pending switch
         if bots.iter().any(|b| b.switch_pending) {

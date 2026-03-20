@@ -3,69 +3,6 @@
   "board_size": 4,
   "tiles": [
     [
-      1,
-      0,
-      {
-        "Arrow": [
-          7,
-          "South"
-        ]
-      },
-      false
-    ],
-    [
-      0,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      3,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      2,
-      "Floor",
-      false
-    ],
-    [
-      1,
-      1,
-      "Floor",
-      false
-    ],
-    [
-      2,
-      0,
-      {
-        "Source": [
-          3,
-          "South"
-        ]
-      },
-      false
-    ],
-    [
-      0,
-      3,
-      {
-        "Source": [
-          7,
-          "North"
-        ]
-      },
-      false
-    ],
-    [
       2,
       3,
       {
@@ -74,17 +11,54 @@
           "North"
         ]
       },
-      false
+      true
     ],
     [
-      0,
       1,
-      "Floor",
+      3,
+      {
+        "Goal": 7
+      },
       false
     ],
     [
       2,
       1,
+      "Floor",
+      false
+    ],
+    [
+      1,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      3,
+      {
+        "Arrow": [
+          3,
+          "North"
+        ]
+      },
+      false
+    ],
+    [
+      0,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      2,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      2,
       "Floor",
       false
     ],
@@ -97,21 +71,21 @@
       false
     ],
     [
-      3,
-      2,
+      0,
+      1,
       "Floor",
       false
     ],
     [
-      3,
-      3,
+      2,
+      0,
       {
-        "Arrow": [
+        "Source": [
           3,
-          "North"
+          "South"
         ]
       },
-      true
+      false
     ],
     [
       0,
@@ -120,37 +94,63 @@
         "Arrow": [
           7,
           "East"
+        ]
+      },
+      false
+    ],
+    [
+      1,
+      0,
+      {
+        "Arrow": [
+          7,
+          "South"
         ]
       },
       true
     ],
     [
       1,
+      2,
+      "Floor",
+      false
+    ],
+    [
+      3,
+      1,
+      "Floor",
+      false
+    ],
+    [
+      0,
       3,
       {
-        "Goal": 7
+        "Source": [
+          7,
+          "North"
+        ]
       },
       false
     ]
   ],
   "solution": [
     [
-      3,
+      2,
       3,
       {
-        "Arrow": [
+        "Turn": [
           3,
           "North"
         ]
       }
     ],
     [
-      0,
+      1,
       0,
       {
         "Arrow": [
           7,
-          "East"
+          "South"
         ]
       }
     ]
