@@ -367,6 +367,34 @@ fn tilekind_description(kind: &TileKind) -> &'static str {
     }
 }
 
+fn color_label(ci: usize) -> &'static str {
+    use crate::constants::{COLOR_NAMES, NUM_COLORS};
+    if ci == NUM_COLORS { "Grey (all)" } else if ci < COLOR_NAMES.len() { COLOR_NAMES[ci] } else { "?" }
+}
+
+/// Description with color name for accessibility.
+fn tilekind_desc_colored(kind: &TileKind) -> String {
+    use crate::constants::NUM_COLORS;
+    match kind {
+        TileKind::Turn(ci, _) => format!("Turn ({}) \u{2013} Redirects {} bots along the L-path",
+            color_label(*ci), if *ci == NUM_COLORS { "all" } else { "matching" }),
+        TileKind::TurnBut(ci, _) => format!("Turn But ({}) \u{2013} Redirects all bots EXCEPT {}",
+            color_label(*ci), color_label(*ci)),
+        TileKind::Arrow(ci, _) => format!("Arrow ({}) \u{2013} Redirects {} bots in the arrow direction",
+            color_label(*ci), if *ci == NUM_COLORS { "all" } else { "matching" }),
+        TileKind::ArrowBut(ci, _) => format!("Arrow But ({}) \u{2013} Redirects all bots EXCEPT {}",
+            color_label(*ci), color_label(*ci)),
+        TileKind::Bounce(ci) => format!("Bounce ({}) \u{2013} Sends {} bots back",
+            color_label(*ci), if *ci == NUM_COLORS { "all" } else { "matching" }),
+        TileKind::BounceBut(ci) => format!("Bounce But ({}) \u{2013} Bounces all bots EXCEPT {}",
+            color_label(*ci), color_label(*ci)),
+        TileKind::Source(ci, _) => format!("Source ({}) \u{2013} Launches a {} bot", color_label(*ci), color_label(*ci)),
+        TileKind::Goal(ci) => format!("Goal ({}) \u{2013} Destination for {} bot", color_label(*ci), color_label(*ci)),
+        TileKind::Painter(ci) => format!("Painter ({}) \u{2013} Changes bot to {}", color_label(*ci), color_label(*ci)),
+        _ => tilekind_description(kind).to_string(),
+    }
+}
+
 pub fn update_status_bar(
     slots: Query<(&Interaction, &InventorySlot)>,
     test_slots: Query<(&Interaction, &TestInventorySlot)>,
@@ -375,17 +403,17 @@ pub fn update_status_bar(
     time: Res<Time>,
 ) {
     let Ok((mut text, mut color)) = text_q.single_mut() else { return };
-    let desc = slots.iter()
+    let desc: Option<String> = slots.iter()
         .find(|(i, _)| matches!(i, Interaction::Hovered | Interaction::Pressed))
-        .map(|(_, s)| slot_description(s))
+        .map(|(_, s)| slot_description(s).to_string())
         .or_else(|| test_slots.iter()
             .find(|(i, _)| matches!(i, Interaction::Hovered | Interaction::Pressed))
             .and_then(|(_, s)| {
-                if s.0 == usize::MAX { Some("Remove \u{2013} Pick up a placed tile") }
-                else { test_inv.items.get(s.0).map(|(k, _)| tilekind_description(k)) }
+                if s.0 == usize::MAX { Some("Remove \u{2013} Pick up a placed tile".to_string()) }
+                else { test_inv.items.get(s.0).map(|(k, _)| tilekind_desc_colored(k)) }
             }));
     let target = if desc.is_some() { 0.85 } else { 0.0 };
-    if let Some(d) = desc { if **text != d { **text = d.to_string() } }
+    if let Some(ref d) = desc { if **text != *d { **text = d.clone() } }
     let cur = color.0.alpha();
     let new = cur + (target - cur) * STATUS_FADE_SPEED * time.delta_secs();
     color.0 = Color::srgba(TOOLTIP_COLOR.0, TOOLTIP_COLOR.1, TOOLTIP_COLOR.2,

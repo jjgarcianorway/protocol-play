@@ -216,9 +216,12 @@ pub fn spawn_test_inventory(commands: &mut Commands, test_inv: &TestInventory, i
                     BackgroundColor(slot_bg()), glow)).with_children(|w| {
                     w.spawn((in_node.clone(), ImageNode::new(icon)));
                     let cc = if *count > 0 { rgb(COUNT_AVAIL_COLOR) } else { rgb(COUNT_EMPTY_COLOR) };
-                    w.spawn(Node { width: Val::Percent(100.0), justify_content: JustifyContent::Center,
-                        position_type: PositionType::Absolute, bottom: Val::Px(2.0), ..default() })
-                        .with_child((Text::new(format!("{count}")), gf(COUNT_FONT, f), TextColor(cc)));
+                    w.spawn((Node { width: Val::Percent(100.0), justify_content: JustifyContent::Center,
+                        position_type: PositionType::Absolute, bottom: Val::Px(0.0),
+                        padding: UiRect::axes(Val::Px(2.0), Val::Px(1.0)),
+                        border_radius: BorderRadius::all(Val::Px(3.0)), ..default() },
+                        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.6)),
+                    )).with_child((Text::new(format!("{count}")), gf(COUNT_FONT, f), TextColor(cc)));
                 });
             }
             c.spawn((Button, TestInventorySlot(usize::MAX), border_for(test_inv.remove_mode),
