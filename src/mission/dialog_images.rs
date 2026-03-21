@@ -49,31 +49,97 @@ pub struct DialogImageNode;
 /// When a dialog node has an associated image, it's shown above the text.
 pub fn scene_image(scene_id: &str, node_index: usize) -> Option<&'static str> {
     match (scene_id, node_index) {
-        // Awakening
+        // === 01: Anna's Portrait ===
+        ("awakening", 5) => Some("01_anna_portrait"),
+
+        // === 02: Earth Before the Collapse ===
+        ("earth_part1", 0) => Some("02_earth_before"),
+
+        // === 03: Earth After the Collapse ===
+        ("earths_last_day", 0) => Some("03_earth_after"),
+
+        // === 04: The Ark Aurora — first time the ship is described ===
+        ("the_ship", 1) => Some("04_ark_aurora"),
+
+        // === 05: Cryogenic Chamber — awakening in the pod ===
         ("awakening", 1) => Some("05_cryogenic_chamber"),
         ("awakening", 4) => Some("05_cryogenic_chamber"),
-        ("awakening", 5) => Some("01_anna_portrait"),
-        // Amira's Water
-        ("amiras_water", 3) => Some("24_amiras_water"),
-        // Viktor
-        ("viktors_confession", 4) => Some("25_viktors_reactor"),
-        // Mei-Lin
-        ("teachers_garden", 9) => Some("26_meilins_seeds"),
-        // Twins
-        ("the_twins", 12) => Some("27_the_twins_bridge"),
-        // Anna's Song
-        ("annas_song", 6) => Some("28_annas_song"),
-        // Earth stories
-        ("earth_part1", 0) => Some("02_earth_before"),
-        ("earths_last_day", 0) => Some("03_earth_after"),
-        // Anomaly
-        ("midgame_the_anomaly", 0) => Some("29_the_anomaly"),
-        // Gamification reveal
-        ("midgame_gamification_reveal", 13) => Some("30_gamification_reveal"),
-        // New Earth / Arrival
+
+        // === 06: Child in Pod — children who never opened their eyes ===
+        ("the_children", 2) => Some("06_child_in_pod"),
+
+        // === 07: Last Forest (Before) — the old-growth forest still alive ===
+        ("earth_last_forest", 0) => Some("07_last_forest_before"),
+
+        // === 08: Last Forest (After) — the corporation won ===
+        ("earth_last_forest", 6) => Some("08_last_forest_after"),
+
+        // === 09: Nuclear Morning — "It spread." ===
+        ("earth_nuclear_morning", 5) => Some("09_nuclear_morning"),
+
+        // === 10: New Earth — first visual of the planet ===
         ("arrival_first_light", 2) => Some("10_new_earth"),
-        // Garden
-        ("the_last_line", 0) => Some("12_annas_dream"),
+
+        // === 11: Garden on New Earth — Mei-Lin's garden became a park ===
+        ("garden_new_earth", 6) => Some("11_garden_new_earth"),
+
+        // === 12: Anna's Dream — idle cycles produce something like dreaming ===
+        ("anna_dream", 0) => Some("12_annas_dream"),
+
+        // === 13: Water Wars — the Euphrates dried up ===
+        ("earth_water_wars", 0) => Some("13_water_wars"),
+
+        // === 14: Stowaway's Guitar — the musician in Pod 0 ===
+        ("secret_the_stowaway", 8) => Some("14_stowaways_guitar"),
+
+        // === 15: Anna's Creator — Dr. Yuki Tanaka ===
+        ("secret_annas_creator", 0) => Some("15_annas_creator"),
+
+        // === 16: Meridian Warning — "Do not approach the third planet" ===
+        ("secret_meridian_message", 3) => Some("16_meridian_warning"),
+
+        // === 17: Eighth Awakening — the seven who came before ===
+        ("why_you", 4) => Some("17_eighth_awakening"),
+
+        // === 18: Earth's Last Sunset — the last photograph ===
+        ("last_photograph", 2) => Some("18_earths_last_sunset"),
+
+        // === 19: The 14,893rd Passenger — one extra person aboard ===
+        ("secret_the_stowaway", 1) => Some("19_14893rd_passenger"),
+
+        // === 20: The Anomaly (deeper) — mathematics of absence ===
+        ("anomaly_mathematics_of_absence", 0) => Some("20_the_anomaly"),
+
+        // === 21: The Dreamer — Pod 11,237, sleeping mathematician ===
+        ("midgame_the_dreamer", 0) => Some("21_the_dreamer"),
+
+        // === 22: Gamification Reveal (Act 3) — the truth about puzzles ===
+        ("gamification", 0) => Some("22_gamification_reveal"),
+
+        // === 23: The Signal — transmission from the Meridian ===
+        ("the_signal", 0) => Some("23_the_signal"),
+
+        // === 24: Amira's Water — her life's work ===
+        ("amiras_water", 3) => Some("24_amiras_water"),
+
+        // === 25: Viktor's Reactor — the air scrubber confession ===
+        ("viktors_confession", 4) => Some("25_viktors_reactor"),
+
+        // === 26: Mei-Lin's Seeds — the smuggled plants ===
+        ("teachers_garden", 9) => Some("26_meilins_seeds"),
+
+        // === 27: The Twins' Bridge — Kwame and his brother ===
+        ("the_twins", 12) => Some("27_the_twins_bridge"),
+
+        // === 28: Anna's Song — the song that kept her sane ===
+        ("annas_song", 6) => Some("28_annas_song"),
+
+        // === 29: The Anomaly (midgame) — something in the void ===
+        ("midgame_the_anomaly", 0) => Some("29_the_anomaly"),
+
+        // === 30: Gamification Reveal (midgame) — the meta moment ===
+        ("midgame_gamification_reveal", 13) => Some("30_gamification_reveal"),
+
         _ => None,
     }
 }

@@ -68,6 +68,8 @@ use super::dialog_scenes_philosophy4;
 use super::dialog_scenes_character_epilogues;
 use super::dialog_scenes_endgame;
 use super::dialog_scenes_intro;
+use super::dialog_scenes_final_batch;
+use super::dialog_scenes_final_batch2;
 
 /// Return all dialog scenes from all acts.
 pub fn all_scenes() -> Vec<&'static DialogScene> {
@@ -136,6 +138,8 @@ pub fn all_scenes() -> Vec<&'static DialogScene> {
     scenes.extend(dialog_scenes_philosophy4::philosophy_scenes_4());
     scenes.extend(dialog_scenes_character_epilogues::character_epilogue_scenes());
     scenes.extend(dialog_scenes_endgame::endgame_scenes());
+    scenes.extend(dialog_scenes_final_batch::final_batch_scenes());
+    scenes.extend(dialog_scenes_final_batch2::final_batch_scenes_2());
     // Intro scenes LAST so they pop() first — awakening must play before anything else
     scenes.extend(dialog_scenes_intro::intro_scenes());
     scenes
