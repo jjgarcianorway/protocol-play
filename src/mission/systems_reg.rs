@@ -158,6 +158,15 @@ pub fn register_integrated_game_systems(app: &mut App) {
     crate::delivery::integrated::register_integrated_systems(app);
     crate::orben::integrated::register_integrated_systems(app);
 
+    // Exit confirmation modal (shared across all minigames)
+    app.insert_resource(super::exit_confirm::ExitConfirmOpen::default())
+        .add_systems(Update, (
+            super::exit_confirm::esc_open_confirm,
+            super::exit_confirm::manage_confirm_overlay,
+            super::exit_confirm::confirm_btn_click,
+            super::exit_confirm::confirm_btn_hover,
+        ).run_if(in_state(AppPhase::Playing)));
+
     // When returning from a game to dashboard, reload state.
     // Note: OnEnter(GameScene::Dashboard) also fires on initial Playing entry,
     // but enter_playing already handles that via OnEnter(AppPhase::Playing).

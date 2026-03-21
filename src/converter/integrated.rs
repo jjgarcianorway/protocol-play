@@ -31,7 +31,8 @@ fn converter_results(
 
 /// Register all Converter systems for integrated mode.
 pub fn register_integrated_systems(app: &mut App) {
-    app.init_state::<ConverterPhase>()
+    app.init_state::<ConverterPhase>();
+    app
     .add_systems(OnEnter(GameScene::Converter), (
         enter_converter,
         ui::spawn_converter_ui.after(enter_converter),
@@ -58,11 +59,7 @@ pub fn register_integrated_systems(app: &mut App) {
     .add_systems(OnEnter(ConverterPhase::Results), results::spawn_results_screen)
     .add_systems(Update, (
         results::return_button_interaction,
-        esc_return_to_dashboard,
-    ).run_if(converter_results))
-    .add_systems(Update,
-        esc_return_to_dashboard.run_if(converter_processing),
-    );
+    ).run_if(converter_results));
 }
 
 /// Enter Converter scene.
@@ -172,14 +169,4 @@ fn exit_converter(
     *clear_color = ClearColor(Color::srgb(
         CLEAR_COLOR_M.0, CLEAR_COLOR_M.1, CLEAR_COLOR_M.2,
     ));
-}
-
-/// ESC returns to dashboard.
-fn esc_return_to_dashboard(
-    keys: Res<ButtonInput<KeyCode>>,
-    mut next_scene: ResMut<NextState<GameScene>>,
-) {
-    if keys.just_pressed(KeyCode::Escape) {
-        next_scene.set(GameScene::Dashboard);
-    }
 }

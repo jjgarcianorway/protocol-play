@@ -27,7 +27,8 @@ fn gathering_new_earth(
 
 /// Register all Gathering systems for integrated mode.
 pub fn register_integrated_systems(app: &mut App) {
-    app.init_state::<GatheringState>()
+    app.init_state::<GatheringState>();
+    app
     .add_systems(OnEnter(GameScene::Gathering), (
         enter_gathering,
         new_earth::check_new_earth_mode.after(enter_gathering),
@@ -115,11 +116,7 @@ pub fn register_integrated_systems(app: &mut App) {
         new_earth::gentle_intro_fade,
         ship::spawn_engine_particles,
         ship::move_engine_particles,
-    ).run_if(gathering_new_earth))
-    // ESC to return
-    .add_systems(Update,
-        esc_return_to_dashboard.run_if(in_state(GameScene::Gathering)),
-    );
+    ).run_if(gathering_new_earth));
 }
 
 /// Enter Gathering scene: insert resources, spawn camera + game entities.
@@ -299,18 +296,3 @@ fn exit_gathering(
     };
 }
 
-/// ESC returns to dashboard when paused or game over.
-fn esc_return_to_dashboard(
-    keys: Res<ButtonInput<KeyCode>>,
-    paused: Option<Res<Paused>>,
-    ship_state: Option<Res<ShipState>>,
-    mut next_scene: ResMut<NextState<GameScene>>,
-) {
-    if keys.just_pressed(KeyCode::Escape) {
-        let is_paused = paused.is_some_and(|p| p.0);
-        let is_dead = ship_state.is_some_and(|s| !s.alive);
-        if is_paused || is_dead {
-            next_scene.set(GameScene::Dashboard);
-        }
-    }
-}

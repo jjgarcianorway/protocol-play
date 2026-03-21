@@ -100,6 +100,8 @@ pub mod profiles;
 mod profiles_ui;
 mod profiles_ui_systems;
 mod systems_reg;
+#[cfg(feature = "full")]
+pub(crate) mod exit_confirm;
 use bevy::prelude::*;
 use bevy::post_process::bloom::Bloom;
 use bevy::render::render_resource::*;

@@ -29,7 +29,8 @@ fn delivery_results(
 
 /// Register all Delivery systems for integrated mode.
 pub fn register_integrated_systems(app: &mut App) {
-    app.init_state::<DeliveryPhase>()
+    app.init_state::<DeliveryPhase>();
+    app
     .add_systems(OnEnter(GameScene::Delivery), (
         enter_delivery,
         ui::respawn_delivery_ui.after(enter_delivery),
@@ -55,11 +56,7 @@ pub fn register_integrated_systems(app: &mut App) {
     .add_systems(OnEnter(DeliveryPhase::Results), results::spawn_results_screen)
     .add_systems(Update, (
         results::return_button_interaction,
-        esc_return_to_dashboard,
-    ).run_if(delivery_results))
-    .add_systems(Update,
-        esc_return_to_dashboard.run_if(delivery_playing),
-    );
+    ).run_if(delivery_results));
 }
 
 /// Enter Delivery scene.
@@ -161,14 +158,4 @@ fn exit_delivery(
     *clear_color = ClearColor(Color::srgb(
         CLEAR_COLOR_M.0, CLEAR_COLOR_M.1, CLEAR_COLOR_M.2,
     ));
-}
-
-/// ESC returns to dashboard.
-fn esc_return_to_dashboard(
-    keys: Res<ButtonInput<KeyCode>>,
-    mut next_scene: ResMut<NextState<GameScene>>,
-) {
-    if keys.just_pressed(KeyCode::Escape) {
-        next_scene.set(GameScene::Dashboard);
-    }
 }
