@@ -298,16 +298,17 @@ fn process_grid_phases(
 
 /// Approximate screen position of a grid cell (for particle spawning).
 fn cell_screen_pos(row: usize, col: usize) -> Vec2 {
-    // These are rough estimates — the grid is centered on screen,
-    // but particles are absolute-positioned so we approximate.
-    let grid_total_w = GRID_COLS as f32 * (CELL_SIZE + CELL_GAP) - CELL_GAP + 20.0;
-    let grid_total_h = GRID_ROWS as f32 * (CELL_SIZE + CELL_GAP) - CELL_GAP + 20.0;
-    // Assume ~1280x720 window, grid centered
-    let grid_left = (1280.0 - grid_total_w) / 2.0;
-    let grid_top = (720.0 - grid_total_h) / 2.0 + 40.0; // offset for title
+    // Grid is centered on screen. Use relative positions from grid origin.
+    // The UI system places particles absolutely, so we compute from grid center.
+    let cell_step = CELL_SIZE + CELL_GAP;
+    let grid_w = GRID_COLS as f32 * cell_step - CELL_GAP;
+    let grid_h = GRID_ROWS as f32 * cell_step - CELL_GAP;
+    // Approximate center of screen (particles are UI-positioned, not 3D)
+    let cx = 640.0; // Will be off on non-1280 widths but particles are brief
+    let cy = 380.0;
     Vec2::new(
-        grid_left + 10.0 + col as f32 * (CELL_SIZE + CELL_GAP) + CELL_SIZE / 2.0,
-        grid_top + 10.0 + row as f32 * (CELL_SIZE + CELL_GAP) + CELL_SIZE / 2.0,
+        cx - grid_w / 2.0 + col as f32 * cell_step + CELL_SIZE / 2.0,
+        cy - grid_h / 2.0 + row as f32 * cell_step + CELL_SIZE / 2.0,
     )
 }
 

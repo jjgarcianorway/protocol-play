@@ -13,8 +13,16 @@ pub fn setup_converter_anna(mut commands: Commands, font: Res<ConverterFont>) {
         "Keep going.",
         "Resources flowing. The ship thanks you.",
         "You have a good eye for patterns.",
+        "The bigger the chain, the more efficient the conversion.",
+        "Each crystal holds energy from a star that died billions of years ago.",
+        "Four or more to cascade. Think ahead.",
+        "The tanks are filling. The ship can feel it.",
+        "You're turning starlight into survival.",
+        "I designed this converter. Watching you use it is... satisfying.",
+        "Look for the cascade opportunities. They multiply.",
+        "These crystals are the only fuel we have. Make them count.",
     ];
-    let queue = build_queue(&pool, 3);
+    let queue = build_queue(&pool, 5);
     commands.insert_resource(AnnaComments { queue, current: None });
     spawn_anna_ui(&mut commands, &font.0);
 }
