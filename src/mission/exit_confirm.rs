@@ -93,9 +93,9 @@ fn spawn_confirm(commands: &mut Commands, font: &Handle<Font>) {
                 TextColor(TEXT_COLOR),
             ));
             panel.spawn((
-                Text::new("Current progress in this game will be lost."),
+                Text::new("Your progress has been saved."),
                 TextFont { font: font.clone(), font_size: 14.0, ..default() },
-                TextColor(WARN_COLOR),
+                TextColor(Color::srgb(0.5, 0.8, 0.6)),
             ));
             panel.spawn(Node { height: Val::Px(8.0), ..default() });
             // Buttons row
