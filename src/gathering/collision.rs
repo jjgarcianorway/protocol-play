@@ -3,6 +3,7 @@
 use bevy::prelude::*;
 use super::constants::*;
 use super::types::*;
+#[allow(unused_imports)]
 use crate::sound::{SoundPalette, SoundSettings, play_sound, SoundType};
 
 #[derive(Component)]
@@ -13,7 +14,7 @@ pub fn check_collisions(
     asteroid_q: Query<(Entity, &Transform, &Asteroid), Without<HitCooldown>>,
     mut state: ResMut<ShipState>, mut shake: ResMut<ScreenShake>,
     mut hit_flash: ResMut<HitFlash>, paused: Res<Paused>, mut commands: Commands,
-    palette: Option<Res<SoundPalette>>, snd_settings: Res<SoundSettings>,
+    _palette: Option<Res<SoundPalette>>, _snd_settings: Res<SoundSettings>,
 ) -> Result {
     if !state.alive || paused.0 { return Ok(()); }
     let ship_tf = ship_q.single()?;
@@ -71,7 +72,7 @@ pub fn check_near_misses(
     mut state: ResMut<ShipState>, mut near_miss_flash: ResMut<NearMissFlash>,
     paused: Res<Paused>, mut commands: Commands,
     font: Res<GatheringFont>, cameras: Query<(&Camera, &GlobalTransform)>,
-    palette: Option<Res<SoundPalette>>, snd_settings: Res<SoundSettings>,
+    _palette: Option<Res<SoundPalette>>, _snd_settings: Res<SoundSettings>,
 ) -> Result {
     if !state.alive || paused.0 { return Ok(()); }
     let ship_tf = ship_q.single()?;
@@ -90,7 +91,7 @@ pub fn check_near_misses(
             state.near_misses += 1;
             near_miss_flash.timer = NEAR_MISS_FLASH_DURATION;
             commands.entity(entity).insert(NearMissCooldown(NEAR_MISS_COOLDOWN));
-            if let Some(ref pal) = palette { play_sound(&mut commands, pal, SoundType::NearMiss, &snd_settings); }
+            if let Some(ref pal) = _palette { play_sound(&mut commands, pal, SoundType::NearMiss, &_snd_settings); }
 
             // Spawn floating text
             if let Ok((camera, cam_gt)) = cameras.single() {
@@ -135,6 +136,7 @@ pub fn tick_near_miss_cooldowns(
     }
 }
 
+#[allow(dead_code)]
 fn spawn_damage_direction(commands: &mut Commands, ship_pos: Vec2, ast_pos: Vec2) {
     let diff = ast_pos - ship_pos;
     // Determine which edge to show the indicator on

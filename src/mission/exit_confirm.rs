@@ -21,6 +21,7 @@ const PANEL_BG: Color = Color::srgba(0.08, 0.09, 0.14, 0.95);
 const BTN_BG: Color = Color::srgb(0.12, 0.14, 0.22);
 const BTN_HOVER: Color = Color::srgb(0.20, 0.24, 0.35);
 const TEXT_COLOR: Color = Color::srgb(0.88, 0.88, 0.92);
+#[allow(dead_code)]
 const WARN_COLOR: Color = Color::srgb(0.95, 0.7, 0.3);
 
 /// System: ESC opens the exit confirmation (if not already open).

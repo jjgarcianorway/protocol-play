@@ -209,6 +209,7 @@ pub const MAGNET_RING_FADE_SPEED: f32 = 4.0;
 
 // Damage direction indicator
 pub const DAMAGE_DIR_FADE_TIME: f32 = 0.5;
+#[allow(dead_code)]
 pub const DAMAGE_DIR_WIDTH: f32 = 80.0;
 pub const DAMAGE_DIR_ALPHA: f32 = 0.6;
 pub const DAMAGE_DIR_COLOR: (f32, f32, f32) = (1.0, 0.1, 0.05);

@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-
+#![allow(dead_code, unused_imports)]
 //! Decision tree data model, constants, and interactive systems.
 //! Shows the player's journey as a connected node map with parallax depth.
+
 
 use bevy::prelude::*;
 use crate::save_state::GameState;
