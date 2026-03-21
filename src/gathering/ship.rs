@@ -54,7 +54,7 @@ pub fn spawn_ship(
         ShieldBubble,
         Mesh3d(bubble_mesh),
         MeshMaterial3d(bubble_mat),
-        Transform::from_xyz(0.0, 0.0, 0.0),
+        Transform::from_xyz(0.0, 0.05, 0.0),
     ));
 }
 

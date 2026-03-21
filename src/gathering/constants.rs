@@ -109,7 +109,7 @@ pub const CRYSTAL_OUTER_ALPHA: f32 = 0.04;
 pub const CRYSTAL_CORE_EMISSIVE: f32 = 12.0;
 pub const CRYSTAL_OUTER_EMISSIVE: f32 = 4.0;
 pub const CRYSTAL_ROT_SPEED: f32 = 0.3;
-pub const CRYSTAL_POINT_LIGHT_INTENSITY: f32 = 800.0;
+pub const CRYSTAL_POINT_LIGHT_INTENSITY: f32 = 400.0;
 pub const CRYSTAL_POINT_LIGHT_RANGE: f32 = 12.0;
 pub const CRYSTAL_COLORS: [(f32, f32, f32); 5] = [
     (0.1, 0.4, 1.0),    // deep blue core
@@ -125,7 +125,7 @@ pub const PARTICLE_SPEED: f32 = 14.0;
 pub const PARTICLE_EMIT_RATE: f32 = 18.0;
 pub const PARTICLE_LIFETIME: f32 = 1.5;
 pub const PARTICLE_HOMING: f32 = 8.0;
-pub const PARTICLE_LIGHT_INTENSITY: f32 = 40.0;
+pub const PARTICLE_LIGHT_INTENSITY: f32 = 15.0;
 pub const PARTICLE_LIGHT_RANGE: f32 = 3.5;
 pub const PARTICLE_EMISSIVE: f32 = 18.0;
 pub const PARTICLE_SPREAD: f32 = 0.5;
