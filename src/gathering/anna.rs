@@ -17,8 +17,16 @@ pub fn setup_gathering_anna(mut commands: Commands, font: Res<GatheringFont>) {
         "I mapped these fields from the bridge.",
         "You make it look easy.",
         "Don't fly too close to the metallic ones.",
+        "The ship is holding together. Barely.",
+        "I can feel the hull vibrate from here.",
+        "Those crystals will power the colony for weeks.",
+        "Focus. Breathe. Dodge.",
+        "The asteroid density is increasing ahead.",
+        "You're doing better than my simulations predicted.",
+        "I'm tracking your trajectory. Elegant.",
+        "This field reminds me of the Oort Cloud data.",
     ];
-    let queue = build_queue(&pool, 5);
+    let queue = build_queue(&pool, 6);
     commands.insert_resource(AnnaComments { queue, current: None });
     spawn_anna_ui(&mut commands, &font.0);
 }
