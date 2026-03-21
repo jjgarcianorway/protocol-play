@@ -44,6 +44,18 @@ fn main() {
         let _ = std::env::set_current_dir(&d);
     }
 
+    // Full game: all minigames integrated in Mission Control (single window)
+    #[cfg(feature = "full")] {
+        let mut app = App::new();
+        app.add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window { title: "protocol: play".into(), ..default() }), ..default() }));
+        app.add_plugins(sound::SoundPlugin);
+        app.set_error_handler(bevy::ecs::error::ignore);
+        mission::build_app(&mut app);
+        // TODO: Register all minigame systems under GameScene states
+        // For now, Mission Control handles game launching
+        app.run(); return;
+    }
     #[cfg(feature = "orben")] {
         let mut app = App::new();
         app.add_plugins(DefaultPlugins.set(WindowPlugin {
