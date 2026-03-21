@@ -30,6 +30,7 @@ pub fn spawn_game_cards(parent: &mut ChildSpawnerCommands, font: &Handle<Font>, 
         spawn_card(panel, font, GameCard::Gathering, ship);
         spawn_card(panel, font, GameCard::Converter, ship);
         spawn_card(panel, font, GameCard::Delivery, ship);
+        spawn_card(panel, font, GameCard::Orben, ship);
     });
 }
 
@@ -57,7 +58,13 @@ fn card_info(card: GameCard, ship: &ShipStatus) -> (&'static str, String, bool, 
             "Distribute Resources",
             format!("{}% average systems", avg_resources(ship) as u32),
             false,
-            false, // not available yet
+            true,
+        ),
+        GameCard::Orben => (
+            "Play Orben",
+            "Stay human. Play cards.".to_string(),
+            false,
+            true,
         ),
     }
 }
@@ -177,6 +184,7 @@ fn binary_name(card: &GameCard) -> &'static str {
         GameCard::Gathering => "protocol-play-gathering",
         GameCard::Converter => "protocol-play-converter",
         GameCard::Delivery => "protocol-play-delivery",
+        GameCard::Orben => "protocol-play-orben",
     }
 }
 
@@ -209,6 +217,7 @@ pub fn card_click_interaction(
                 GameCard::Gathering => GameScene::Gathering,
                 GameCard::Converter => GameScene::Converter,
                 GameCard::Delivery => GameScene::Delivery,
+                GameCard::Orben => GameScene::Orben,
             };
             info!("Transitioning to {:?}", scene);
             scene_state.set(scene);

@@ -150,6 +150,7 @@ pub enum GameCard {
     Gathering,
     Converter,
     Delivery,
+    Orben,
 }
 
 /// Marker for game card status text.
