@@ -5,9 +5,9 @@ use bevy::prelude::*;
 use super::types::{AppPhase, GameScene};
 use super::{
     credits, credits_systems, dashboard, dialog_system, dialog_types, dialog_ui,
-    endings, endings_anim, games, anna, loading_screen, main_menu, profiles_ui,
-    profiles_ui_systems, questions, resources, settings_systems, settings_seed,
-    stats_screen, decision_tree, twinkle_stars,
+    dialog_images, endings, endings_anim, games, anna, loading_screen, main_menu,
+    profiles_ui, profiles_ui_systems, questions, resources, settings_systems,
+    settings_seed, stats_screen, decision_tree, twinkle_stars,
 };
 
 /// Run condition: AppPhase::Playing AND GameScene::Dashboard.
@@ -107,6 +107,7 @@ pub fn register_playing_systems(app: &mut App) {
         dialog_ui::dialog_choice_hover,
         dialog_ui::animate_dialog_glow,
         dialog_ui::animate_dialog_circle,
+        dialog_images::update_dialog_image,
     ).run_if(playing_dashboard))
     .add_systems(Update, (
         endings_anim::animate_ending_screen,

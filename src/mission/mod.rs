@@ -14,6 +14,7 @@ mod endings;
 mod endings_anim;
 mod dialog_types;
 mod dialog_ui;
+mod dialog_images;
 mod dialog_system;
 mod dialog_scenes;
 mod dialog_scenes_act1;
@@ -155,7 +156,8 @@ pub fn build_app(app: &mut App) {
     .insert_resource(DrainTimer::default()).insert_resource(RunningGame::default())
     .insert_resource(questions::QuestionState::default())
     .insert_resource(dialog_types::DialogState::default())
-    .insert_resource(dialog_types::AnnaGlowMood::default()).insert_resource(cached)
+    .insert_resource(dialog_types::AnnaGlowMood::default())
+    .insert_resource(dialog_images::DialogImageState::default()).insert_resource(cached)
     .insert_resource(settings::SettingsOpen::default())
     .insert_resource(settings::ActiveSettingsTab::default())
     .insert_resource(settings_seed::SeedInputState::default())

@@ -98,6 +98,16 @@ pub fn spawn_dialog_overlay(commands: &mut Commands, font: &Handle<Font>) {
                 ));
             });
 
+            // Image container (populated dynamically for nodes with images)
+            panel.spawn((
+                Node {
+                    width: Val::Percent(100.0),
+                    flex_direction: FlexDirection::Column,
+                    ..default()
+                },
+                DialogImageContainer,
+            ));
+
             // Dialog body text
             panel.spawn((
                 Text::new(""),
@@ -352,3 +362,4 @@ pub fn update_skip_hint(
         *color = TextColor(Color::srgba(0.5, 0.55, 0.65, a));
     }
 }
+

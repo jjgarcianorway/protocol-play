@@ -171,6 +171,10 @@ pub struct DialogAnnaCircle;
 #[derive(Component)]
 pub struct DialogPanelGlow;
 
+/// Container for the story image (placeholder or real).
+#[derive(Component)]
+pub struct DialogImageContainer;
+
 /// Skip indicator ("Click to continue" / "Click to skip").
 #[derive(Component)]
 pub struct DialogSkipHint;
