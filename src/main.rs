@@ -304,22 +304,19 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
 
     let delete_icon = create_delete_icon(&mut images);
     let icons = icon_render::build_inventory_icons(&mut images, delete_icon.clone());
-    let floor_icon = icons.floor.clone(); let source_icon = icons.source.clone();
-    let goal_icon = icons.goal.clone(); let turn_icon = icons.turn.clone();
-    let turnbut_icon = icons.turnbut.clone(); let teleport_icon = icons.teleport.clone();
-    let teleportbut_icon = icons.teleportbut.clone(); let bounce_icon = icons.bounce.clone();
-    let bouncebot_icon = icons.bouncebot.clone(); let door_icon = icons.door.clone();
-    let switch_icon = icons.switch.clone(); let switchbut_icon = icons.switchbut.clone();
-    let painter_icon = icons.painter.clone(); let arrow_icon = icons.arrow.clone();
-    let arrowbut_icon = icons.arrowbut.clone();
+    let (floor_icon, source_icon, goal_icon) = (icons.floor.clone(), icons.source.clone(), icons.goal.clone());
+    let (turn_icon, turnbut_icon) = (icons.turn.clone(), icons.turnbut.clone());
+    let (teleport_icon, teleportbut_icon) = (icons.teleport.clone(), icons.teleportbut.clone());
+    let (bounce_icon, bouncebot_icon) = (icons.bounce.clone(), icons.bouncebot.clone());
+    let (door_icon, switch_icon, switchbut_icon) = (icons.door.clone(), icons.switch.clone(), icons.switchbut.clone());
+    let (painter_icon, arrow_icon, arrowbut_icon) = (icons.painter.clone(), icons.arrow.clone(), icons.arrowbut.clone());
     commands.insert_resource(icons);
 
-    // Top controls (editor only)
-    if !cfg!(feature = "player") {
+    if !cfg!(feature = "player") { // Editor-only top controls
     let bc = btn_bg();
-    let btn = Node { width: Val::Px(TOP_BTN_SIZE), height: Val::Px(TOP_BTN_SIZE),
-        justify_content: JustifyContent::Center, align_items: AlignItems::Center,
-        margin: UiRect::all(Val::Px(BTN_MARGIN)), border_radius: BorderRadius::all(Val::Px(UI_CORNER_RADIUS)), ..default() };
+    let btn = Node { width: Val::Px(TOP_BTN_SIZE), height: Val::Px(TOP_BTN_SIZE), justify_content: JustifyContent::Center,
+        align_items: AlignItems::Center, margin: UiRect::all(Val::Px(BTN_MARGIN)),
+        border_radius: BorderRadius::all(Val::Px(UI_CORNER_RADIUS)), ..default() };
     let ts = gf(TOP_BTN_FONT, &f);
     let mut tbtn = text_btn_node();
     tbtn.margin = UiRect::left(Val::Px(TEXT_BTN_LEFT_MARGIN));
