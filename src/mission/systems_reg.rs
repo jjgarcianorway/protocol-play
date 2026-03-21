@@ -2,13 +2,26 @@
 // System registration helpers — split from mod.rs to keep it under 400 lines.
 
 use bevy::prelude::*;
-use super::types::AppPhase;
+use super::types::{AppPhase, GameScene};
 use super::{
     credits, credits_systems, dashboard, dialog_system, dialog_types, dialog_ui,
     endings, endings_anim, games, anna, loading_screen, main_menu, profiles_ui,
     profiles_ui_systems, questions, resources, settings_systems, settings_seed,
     stats_screen, decision_tree, twinkle_stars,
 };
+
+/// Run condition: AppPhase::Playing AND GameScene::Dashboard.
+/// In non-full builds, GameScene sub-state may not exist, so we check optionally.
+fn playing_dashboard(
+    phase: Option<Res<State<AppPhase>>>,
+    scene: Option<Res<State<GameScene>>>,
+) -> bool {
+    let playing = phase.is_some_and(|p| *p.get() == AppPhase::Playing);
+    if !playing { return false; }
+    // If GameScene state exists (full mode), only run on Dashboard
+    // If it doesn't exist (standalone mission), always run
+    scene.map_or(true, |s| *s.get() == GameScene::Dashboard)
+}
 
 pub fn register_profile_systems(app: &mut App) {
     app.add_systems(OnEnter(AppPhase::ProfileSelect), profiles_ui::enter_profile_select)
@@ -63,6 +76,7 @@ pub fn register_loading_systems(app: &mut App) {
 
 pub fn register_playing_systems(app: &mut App) {
     app.add_systems(OnEnter(AppPhase::Playing), super::enter_playing)
+    // Dashboard-specific systems — only when on the Dashboard scene (or standalone)
     .add_systems(Update, (
         dashboard::animate_resource_bars,
         dashboard::update_status_texts,
@@ -75,14 +89,14 @@ pub fn register_playing_systems(app: &mut App) {
         anna::anna_click_dismiss,
         anna::update_anna_glow,
         twinkle_stars,
-    ).run_if(in_state(AppPhase::Playing)))
+    ).run_if(playing_dashboard))
     .add_systems(Update, (
         questions::check_pending_question,
         questions::question_option_hover,
         questions::question_option_click,
         questions::update_reaction_overlay,
         super::final_voyage_click,
-    ).run_if(in_state(AppPhase::Playing)))
+    ).run_if(playing_dashboard))
     .add_systems(Update, (
         dialog_system::check_dialog_triggers,
         dialog_system::start_next_dialog,
@@ -93,17 +107,17 @@ pub fn register_playing_systems(app: &mut App) {
         dialog_ui::dialog_choice_hover,
         dialog_ui::animate_dialog_glow,
         dialog_ui::animate_dialog_circle,
-    ).run_if(in_state(AppPhase::Playing)))
+    ).run_if(playing_dashboard))
     .add_systems(Update, (
         endings_anim::animate_ending_screen,
         endings_anim::animate_ending_stats,
         endings_anim::animate_ending_glow,
-    ).run_if(in_state(AppPhase::Playing)
+    ).run_if(playing_dashboard
         .and(resource_exists::<endings::EndingState>)))
     .add_systems(Update, (
         endings_anim::new_journey_hover,
         endings_anim::new_journey_click,
-    ).run_if(in_state(AppPhase::Playing)
+    ).run_if(playing_dashboard
         .and(resource_exists::<endings::EndingState>)));
 }
 
@@ -134,4 +148,59 @@ pub fn register_credits_systems(app: &mut App) {
         credits_systems::cleanup_credits,
     ).run_if(in_state(AppPhase::MainMenu)
         .and(resource_exists::<credits::CreditsState>)));
+}
+
+/// Register integrated minigame systems (only in full mode).
+#[cfg(feature = "full")]
+pub fn register_integrated_game_systems(app: &mut App) {
+    crate::gathering::integrated::register_integrated_systems(app);
+    crate::converter::integrated::register_integrated_systems(app);
+    crate::delivery::integrated::register_integrated_systems(app);
+    crate::orben::integrated::register_integrated_systems(app);
+
+    // When returning from a game to dashboard, reload state.
+    // Note: OnEnter(GameScene::Dashboard) also fires on initial Playing entry,
+    // but enter_playing already handles that via OnEnter(AppPhase::Playing).
+    // We use a resource flag to skip the first OnEnter(Dashboard).
+    app.insert_resource(DashboardFirstEntry(true))
+        .add_systems(OnEnter(GameScene::Dashboard), reenter_dashboard);
+}
+
+/// Flag to skip the first OnEnter(Dashboard) which fires alongside OnEnter(Playing).
+#[cfg(feature = "full")]
+#[derive(Resource)]
+struct DashboardFirstEntry(bool);
+
+/// When returning to Dashboard from a minigame, reload state from disk.
+#[cfg(feature = "full")]
+fn reenter_dashboard(
+    mut first: ResMut<DashboardFirstEntry>,
+    mut ship: ResMut<super::types::ShipStatus>,
+    mut gs: ResMut<crate::save_state::GameState>,
+    mut qs: ResMut<super::questions::QuestionState>,
+    mut ds: ResMut<super::dialog_types::DialogState>,
+) {
+    // Skip the first time (enter_playing handles initial spawn)
+    if first.0 {
+        first.0 = false;
+        return;
+    }
+
+    // Reload game state (minigame may have changed it)
+    let fresh = crate::save_state::load_game_state();
+    ship.power = fresh.power;
+    ship.life_support = fresh.life_support;
+    ship.cryo = fresh.cryo;
+    ship.shields = fresh.shields;
+    ship.repair = fresh.repair;
+    ship.crystals = fresh.total_crystals();
+    ship.crew_count = fresh.crew_count;
+    ship.day = fresh.day;
+    ship.distance_au = fresh.distance_au;
+    ship.bot_level = fresh.bot_level;
+    *gs = fresh;
+
+    // Reset question and dialog checks
+    super::questions::reset_question_check(&mut qs);
+    super::dialog_system::reset_dialog_check(&mut ds);
 }

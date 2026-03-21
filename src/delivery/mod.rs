@@ -7,6 +7,8 @@ mod ui;
 mod effects;
 mod results;
 pub mod anna;
+#[cfg(feature = "full")]
+pub mod integrated;
 
 use bevy::prelude::*;
 use bevy::post_process::bloom::Bloom;
@@ -104,7 +106,7 @@ fn setup_delivery(
     ui::spawn_delivery_ui_with_font(&mut commands, &font, &mut state);
 }
 
-fn create_vignette(images: &mut Assets<Image>) -> Handle<Image> {
+pub(crate) fn create_vignette(images: &mut Assets<Image>) -> Handle<Image> {
     let size = 256u32;
     let mut data = vec![0u8; (size * size * 4) as usize];
     let center = size as f32 / 2.0;

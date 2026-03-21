@@ -4,6 +4,13 @@ use bevy::prelude::*;
 use super::constants::*;
 
 // === Components ===
+
+/// Marker for ALL entities spawned by Gathering in integrated mode.
+/// Used for cleanup when returning to Mission Control dashboard.
+#[derive(Component)]
+#[allow(dead_code)]
+pub struct GatheringEntity;
+
 #[derive(Component)] pub struct Ship;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]

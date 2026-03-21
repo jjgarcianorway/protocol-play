@@ -185,11 +185,14 @@ fn exe_dir() -> Option<PathBuf> {
     std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.to_path_buf()))
 }
 
-/// System: handle game card click — launch child game process.
+/// System: handle game card click.
+/// In full mode: transition to GameScene sub-state (except BotPuzzle).
+/// In standalone mode: launch child process.
 pub fn card_click_interaction(
     query: Query<(&Interaction, &GameCard), Changed<Interaction>>,
     mut running: ResMut<RunningGame>,
     mut anna: ResMut<AnnaState>,
+    mut next_scene: Option<ResMut<NextState<GameScene>>>,
 ) {
     // Don't launch if a game is already running
     if running.0.is_some() {
@@ -197,46 +200,73 @@ pub fn card_click_interaction(
     }
 
     for (interaction, card) in query.iter() {
-        if *interaction == Interaction::Pressed {
-            let bin = binary_name(card);
-            let dir = match exe_dir() {
-                Some(d) => d,
-                None => {
-                    anna.queue.push((
-                        "That system isn't available right now.".to_string(),
-                        false,
-                    ));
-                    return;
-                }
+        if *interaction != Interaction::Pressed { continue; }
+
+        // If GameScene sub-state is available (full mode), use scene transitions
+        if let Some(ref mut scene_state) = next_scene {
+            let scene = match card {
+                GameCard::BotGame => GameScene::BotPuzzle,
+                GameCard::Gathering => GameScene::Gathering,
+                GameCard::Converter => GameScene::Converter,
+                GameCard::Delivery => GameScene::Delivery,
             };
-            let path = dir.join(bin);
-
-            // Check if binary exists
-            if !path.exists() {
-                anna.queue.push((
-                    "That system isn't available right now.".to_string(),
-                    false,
-                ));
-                info!("Binary not found: {}", path.display());
-                return;
+            // BotPuzzle still uses child process
+            if scene == GameScene::BotPuzzle {
+                launch_child_process(card, &mut running, &mut anna);
+            } else {
+                info!("Transitioning to {:?}", scene);
+                scene_state.set(scene);
             }
+            return;
+        }
 
-            info!("Launching: {}", path.display());
-            match std::process::Command::new(&path)
-                .current_dir(&dir)
-                .spawn()
-            {
-                Ok(child) => {
-                    running.0 = Some(child);
-                }
-                Err(e) => {
-                    anna.queue.push((
-                        "That system isn't available right now.".to_string(),
-                        false,
-                    ));
-                    warn!("Failed to launch {}: {}", bin, e);
-                }
-            }
+        // Standalone mode: launch child process
+        launch_child_process(card, &mut running, &mut anna);
+    }
+}
+
+/// Launch a child process for a game card (standalone mode / bot puzzle).
+fn launch_child_process(
+    card: &GameCard,
+    running: &mut ResMut<RunningGame>,
+    anna: &mut ResMut<AnnaState>,
+) {
+    let bin = binary_name(card);
+    let dir = match exe_dir() {
+        Some(d) => d,
+        None => {
+            anna.queue.push((
+                "That system isn't available right now.".to_string(),
+                false,
+            ));
+            return;
+        }
+    };
+    let path = dir.join(bin);
+
+    if !path.exists() {
+        anna.queue.push((
+            "That system isn't available right now.".to_string(),
+            false,
+        ));
+        info!("Binary not found: {}", path.display());
+        return;
+    }
+
+    info!("Launching: {}", path.display());
+    match std::process::Command::new(&path)
+        .current_dir(&dir)
+        .spawn()
+    {
+        Ok(child) => {
+            running.0 = Some(child);
+        }
+        Err(e) => {
+            anna.queue.push((
+                "That system isn't available right now.".to_string(),
+                false,
+            ));
+            warn!("Failed to launch {}: {}", bin, e);
         }
     }
 }

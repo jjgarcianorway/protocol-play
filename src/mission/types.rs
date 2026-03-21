@@ -12,6 +12,53 @@ pub enum AppPhase {
     Playing,
 }
 
+/// Sub-state within Playing — controls which game scene is active.
+/// Only exists when AppPhase::Playing is the current state.
+/// Dashboard = Mission Control hub; other variants = individual minigames.
+#[derive(SubStates, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[source(AppPhase = AppPhase::Playing)]
+pub enum GameScene {
+    #[default]
+    Dashboard,
+    Gathering,
+    Converter,
+    Delivery,
+    Orben,
+    /// Bot puzzle launched as child process (kept separate for Phase 2).
+    BotPuzzle,
+}
+
+/// Marker component for all entities spawned by the Mission Control dashboard.
+/// Used for cleanup when transitioning to a minigame scene.
+#[derive(Component)]
+#[allow(dead_code)]
+pub struct DashboardEntity;
+
+/// Marker component for the Mission Control camera.
+#[derive(Component)]
+pub struct MissionCamera;
+
+/// Fade overlay for scene transitions.
+#[derive(Component)]
+#[allow(dead_code)]
+pub struct SceneFadeOverlay;
+
+/// Resource tracking the current scene transition fade.
+#[derive(Resource)]
+#[allow(dead_code)]
+pub struct SceneFade {
+    pub alpha: f32,
+    pub fading_out: bool,
+    pub fading_in: bool,
+    pub target_scene: Option<GameScene>,
+}
+
+impl Default for SceneFade {
+    fn default() -> Self {
+        Self { alpha: 0.0, fading_out: false, fading_in: false, target_scene: None }
+    }
+}
+
 /// Ship status — central resource tracking all ship systems.
 #[derive(Resource)]
 pub struct ShipStatus {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-mod constants;
-mod types;
+pub(crate) mod constants;
+pub(crate) mod types;
 mod dashboard;
 mod games;
 mod anna;
@@ -158,6 +158,8 @@ pub fn build_app(app: &mut App) {
     .insert_resource(settings_seed::SeedInputState::default())
     .insert_resource(main_menu::MenuTransition::default())
     .insert_resource(main_menu::MenuTimer::default()).insert_resource(profile_mgr)
+    .insert_resource(SceneFade::default())
+    .add_sub_state::<GameScene>()
     .add_systems(Startup, setup_shared);
 
     systems_reg::register_profile_systems(app);
@@ -166,6 +168,10 @@ pub fn build_app(app: &mut App) {
     systems_reg::register_playing_systems(app);
     systems_reg::register_settings_systems(app);
     systems_reg::register_credits_systems(app);
+
+    // In full mode, register integrated minigame systems under GameScene states
+    #[cfg(feature = "full")]
+    systems_reg::register_integrated_game_systems(app);
 }
 fn setup_shared(
     mut commands: Commands, mut fonts: ResMut<Assets<Font>>,
@@ -177,6 +183,7 @@ fn setup_shared(
         Bloom { intensity: BLOOM_INTENSITY_M, low_frequency_boost: BLOOM_LF_BOOST_M,
             low_frequency_boost_curvature: 0.7, high_pass_frequency: 1.0, ..default() },
         Transform::from_xyz(0.0, 0.0, 50.0).looking_at(Vec3::ZERO, Vec3::Y),
+        MissionCamera,
     ));
     commands.insert_resource(GlobalAmbientLight {
         color: Color::srgb(0.5, 0.55, 0.7), brightness: 50.0, ..default()

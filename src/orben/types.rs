@@ -3,6 +3,11 @@
 use bevy::prelude::*;
 use super::constants::*;
 
+/// Marker for ALL entities spawned by Orben in integrated mode.
+#[derive(Component)]
+#[allow(dead_code)]
+pub struct OrbenEntity;
+
 // === Orb Color ===
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum OrbColor {

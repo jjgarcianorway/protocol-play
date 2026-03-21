@@ -17,6 +17,8 @@ mod effects;
 mod warnings;
 mod new_earth;
 pub mod anna;
+#[cfg(feature = "full")]
+pub mod integrated;
 
 use bevy::prelude::*;
 use bevy::post_process::bloom::Bloom;

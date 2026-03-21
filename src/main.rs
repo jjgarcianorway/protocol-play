@@ -52,8 +52,6 @@ fn main() {
         app.add_plugins(sound::SoundPlugin);
         app.set_error_handler(bevy::ecs::error::ignore);
         mission::build_app(&mut app);
-        // TODO: Register all minigame systems under GameScene states
-        // For now, Mission Control handles game launching
         app.run(); return;
     }
     #[cfg(feature = "orben")] {

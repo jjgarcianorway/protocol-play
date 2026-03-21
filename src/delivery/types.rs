@@ -3,6 +3,11 @@
 use bevy::prelude::*;
 use super::constants::*;
 
+/// Marker for ALL entities spawned by Delivery in integrated mode.
+#[derive(Component)]
+#[allow(dead_code)]
+pub struct DeliveryEntity;
+
 /// Resource color for pods.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum PodColor {

@@ -3,6 +3,11 @@
 use bevy::prelude::*;
 use super::constants::*;
 
+/// Marker for ALL entities spawned by Converter in integrated mode.
+#[derive(Component)]
+#[allow(dead_code)]
+pub struct ConverterEntity;
+
 // === Crystal Color (local to converter) ===
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum CrystalColor {

@@ -11,6 +11,8 @@ mod ui;
 mod gameplay;
 mod npc;
 mod results;
+#[cfg(feature = "full")]
+pub mod integrated;
 
 use bevy::prelude::*;
 use bevy::post_process::bloom::Bloom;
@@ -98,7 +100,7 @@ fn setup_orben(
     state.player_turn = rand::random();
 }
 
-fn create_vignette(images: &mut Assets<Image>) -> Handle<Image> {
+pub(crate) fn create_vignette(images: &mut Assets<Image>) -> Handle<Image> {
     let size = 256u32;
     let mut data = vec![0u8; (size * size * 4) as usize];
     let center = size as f32 / 2.0;
