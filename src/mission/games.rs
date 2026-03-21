@@ -210,13 +210,8 @@ pub fn card_click_interaction(
                 GameCard::Converter => GameScene::Converter,
                 GameCard::Delivery => GameScene::Delivery,
             };
-            // BotPuzzle still uses child process
-            if scene == GameScene::BotPuzzle {
-                launch_child_process(card, &mut running, &mut anna);
-            } else {
-                info!("Transitioning to {:?}", scene);
-                scene_state.set(scene);
-            }
+            info!("Transitioning to {:?}", scene);
+            scene_state.set(scene);
             return;
         }
 

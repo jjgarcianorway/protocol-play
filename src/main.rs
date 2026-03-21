@@ -17,6 +17,9 @@ pub mod anna_comments;
 #[cfg(feature = "delivery")] mod delivery;
 #[cfg(feature = "mission")] mod mission;
 #[cfg(feature = "orben")] mod orben;
+#[cfg(feature = "full")] mod bot_puzzle_assets;
+#[cfg(feature = "full")] pub(crate) mod bot_puzzle_integrated;
+#[cfg(feature = "full")] mod bot_puzzle_scene;
 
 use bevy::prelude::*;
 use bevy::post_process::bloom::Bloom;

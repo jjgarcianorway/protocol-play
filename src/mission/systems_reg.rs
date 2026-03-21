@@ -157,6 +157,7 @@ pub fn register_integrated_game_systems(app: &mut App) {
     crate::converter::integrated::register_integrated_systems(app);
     crate::delivery::integrated::register_integrated_systems(app);
     crate::orben::integrated::register_integrated_systems(app);
+    crate::bot_puzzle_integrated::register_integrated_systems(app);
 
     // Exit confirmation modal (shared across all minigames)
     app.insert_resource(super::exit_confirm::ExitConfirmOpen::default())
