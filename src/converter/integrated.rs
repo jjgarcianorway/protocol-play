@@ -69,10 +69,12 @@ fn enter_converter(
     mut images: ResMut<Assets<Image>>,
     mut clear_color: ResMut<ClearColor>,
     camera_q: Query<Entity, With<crate::mission::types::MissionCamera>>,
+    root_ui_q: Query<Entity, (With<Node>, Without<bevy::prelude::ChildOf>)>,
 ) {
     for entity in camera_q.iter() {
         commands.entity(entity).insert(Visibility::Hidden);
     }
+    for entity in root_ui_q.iter() { commands.entity(entity).insert(Visibility::Hidden); }
 
     *clear_color = ClearColor(Color::srgb(
         CLEAR_COLOR_C.0, CLEAR_COLOR_C.1, CLEAR_COLOR_C.2,
@@ -148,6 +150,7 @@ fn exit_converter(
         With<StarDot>,
     )>>,
     camera_q: Query<Entity, With<crate::mission::types::MissionCamera>>,
+    root_ui_q: Query<Entity, (With<Node>, Without<bevy::prelude::ChildOf>)>,
     mut clear_color: ResMut<ClearColor>,
 ) {
     for entity in all_q.iter() {
@@ -163,6 +166,9 @@ fn exit_converter(
     commands.remove_resource::<crate::anna_comments::AnnaComments>();
 
     for entity in camera_q.iter() {
+        commands.entity(entity).insert(Visibility::Visible);
+    }
+    for entity in root_ui_q.iter() {
         commands.entity(entity).insert(Visibility::Visible);
     }
     use crate::mission::constants::*;

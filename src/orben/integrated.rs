@@ -60,10 +60,12 @@ fn enter_orben(
     mut images: ResMut<Assets<Image>>,
     mut clear_color: ResMut<ClearColor>,
     camera_q: Query<Entity, With<crate::mission::types::MissionCamera>>,
+    root_ui_q: Query<Entity, (With<Node>, Without<bevy::prelude::ChildOf>)>,
 ) {
     for entity in camera_q.iter() {
         commands.entity(entity).insert(Visibility::Hidden);
     }
+    for entity in root_ui_q.iter() { commands.entity(entity).insert(Visibility::Hidden); }
 
     *clear_color = ClearColor(Color::srgb(
         CLEAR_COLOR_O.0, CLEAR_COLOR_O.1, CLEAR_COLOR_O.2,
@@ -131,6 +133,7 @@ fn exit_orben(
         With<RondaGlow>,
     )>>,
     camera_q: Query<Entity, With<crate::mission::types::MissionCamera>>,
+    root_ui_q: Query<Entity, (With<Node>, Without<bevy::prelude::ChildOf>)>,
     mut clear_color: ResMut<ClearColor>,
 ) {
     for entity in all_q.iter() {
@@ -141,6 +144,9 @@ fn exit_orben(
     commands.remove_resource::<OrbenFont>();
 
     for entity in camera_q.iter() {
+        commands.entity(entity).insert(Visibility::Visible);
+    }
+    for entity in root_ui_q.iter() {
         commands.entity(entity).insert(Visibility::Visible);
     }
     use crate::mission::constants::*;

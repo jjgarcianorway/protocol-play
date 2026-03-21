@@ -130,9 +130,14 @@ fn enter_gathering(
     mut clear_color: ResMut<ClearColor>,
     mut ambient: ResMut<GlobalAmbientLight>,
     camera_q: Query<Entity, With<crate::mission::types::MissionCamera>>,
+    // Hide ALL root UI nodes (dashboard, Anna panel, etc.)
+    root_ui_q: Query<Entity, (With<Node>, Without<bevy::prelude::ChildOf>)>,
 ) {
-    // Hide Mission Control camera
+    // Hide Mission Control camera and ALL UI
     for entity in camera_q.iter() {
+        commands.entity(entity).insert(Visibility::Hidden);
+    }
+    for entity in root_ui_q.iter() {
         commands.entity(entity).insert(Visibility::Hidden);
     }
 
@@ -251,6 +256,8 @@ fn exit_gathering(
         With<DamageSmoke>, With<DamageSpark>, With<AsteroidTrailParticle>,
     )>>,
     camera_q: Query<Entity, With<crate::mission::types::MissionCamera>>,
+    // Restore ALL hidden root UI nodes
+    hidden_ui_q: Query<Entity, (With<Node>, Without<bevy::prelude::ChildOf>, With<Visibility>)>,
     mut clear_color: ResMut<ClearColor>,
     mut ambient: ResMut<GlobalAmbientLight>,
 ) {
@@ -281,8 +288,11 @@ fn exit_gathering(
     commands.remove_resource::<crate::anna_comments::AnnaComments>();
     commands.remove_resource::<anna::AnnaReactiveFlags>();
 
-    // Restore Mission Control camera
+    // Restore Mission Control camera + UI
     for entity in camera_q.iter() {
+        commands.entity(entity).insert(Visibility::Visible);
+    }
+    for entity in hidden_ui_q.iter() {
         commands.entity(entity).insert(Visibility::Visible);
     }
 

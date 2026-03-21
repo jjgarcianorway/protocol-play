@@ -328,7 +328,7 @@ pub fn adapt_camera(
     let distance = dist_v.max(dist_h) * CAMERA_MARGIN;
 
     // Vertical position: shift board UP to clear inventory at bottom
-    let look_y = if playing { 0.0 } else { -0.09 * distance };
+    let look_y = if playing { -0.04 * distance } else { -0.09 * distance };
     let look_at = Vec3::new(0.0, look_y, 0.0);
 
     let dir = camera_direction();

@@ -190,8 +190,8 @@ pub const SPARK_COLOR: (f32, f32, f32) = (1.0, 0.7, 0.2);
 
 // Shield bubble
 pub const SHIELD_BUBBLE_RADIUS: f32 = 1.3;
-pub const SHIELD_BUBBLE_MAX_ALPHA: f32 = 0.008;
-pub const SHIELD_BUBBLE_EMISSIVE: f32 = 0.15;
+pub const SHIELD_BUBBLE_MAX_ALPHA: f32 = 0.0;
+pub const SHIELD_BUBBLE_EMISSIVE: f32 = 0.0;
 pub const SHIELD_BUBBLE_COLOR: (f32, f32, f32) = (0.4, 0.7, 1.0);
 pub const SHIELD_BUBBLE_PULSE_SPEED: f32 = 2.0;
 pub const SHIELD_BUBBLE_PULSE_AMOUNT: f32 = 0.03;
