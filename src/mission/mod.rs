@@ -80,6 +80,7 @@ mod dialog_scenes_crew_moments;
 mod dialog_scenes_philosophy4;
 mod dialog_scenes_character_epilogues;
 mod dialog_scenes_endgame;
+mod dialog_scenes_intro;
 mod endings_extended;
 pub mod world_seed;
 pub mod crew_stories;
