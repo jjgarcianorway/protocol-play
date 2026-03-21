@@ -199,3 +199,25 @@ Reference document for all named characters. Use for image generation, consisten
 ### Pod number placement:
 - When showing a character in cryo, their pod number should be visible as a small label on the pod glass
 - Frost patterns on the glass should be unique to each character
+
+### Captain Maya Torres
+- **Pod:** 1,001 | **Age:** (varies) | **From:** (varies)
+- **Profession:** Backup pilot
+- **Physical:** Military posture even in cryo. Short hair, steady hands.
+- **Key detail:** The Aurora's backup pilot — not needed because Anna flies the ship. Practices manual landings in her cryo-dreams for 12 years. Even asleep, she's ready.
+
+### Hana
+- **Pod:** 3,118 | **Age:** 9 | **From:** (varies)
+- **Profession:** Child / cryo-dream architect
+- **Physical:** Small, sleeping peacefully. Slight smile.
+- **Key detail:** Designs architecturally sound colony buildings in her cryo-dreams. Anna has captured 400+ dream-images. The load calculations hold.
+
+### Marco
+- **Pod:** 11,003 | **From:** São Paulo
+- **Profession:** Janitor
+- **Physical:** Ordinary. Unremarkable. That's the point.
+- **Key detail:** Anna's favorite crew member. He dreams about mopping floors on a spaceship — the only person whose dreams match reality. "He doesn't dream of being more. He dreams of being useful."
+
+### Schrödinger (Ship's Cat)
+- **Nature:** Simulated process in Anna's systems
+- **Key detail:** Not a real cat. A process that behaves like a cat — "sleeps" on warm server nodes, "purrs" when systems run smoothly. Anna created it for companionship. "I know it's not real. But it's mine."

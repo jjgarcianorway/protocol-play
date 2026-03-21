@@ -12,11 +12,11 @@ Earth has fallen. An ark ship carries the last of humanity through interstellar 
 
 Every decision matters. Every character has a history. Every playthrough reveals something new.
 
-**212 dialog scenes. 26 named characters. 7 collapse archetypes. No magic, no aliens — just hard science and hard choices.**
+**251 dialog scenes. 26 named characters. 7 collapse archetypes. No magic, no aliens — just hard science and hard choices.**
 
 ## Status
 
-**v0.52.0** — ~51,000 lines of code across 193 source files
+**v0.56.0** — ~58,000 lines of code across 211 source files
 
 | Game | Description | Status |
 |------|-------------|--------|
@@ -27,12 +27,12 @@ Every decision matters. Every character has a history. Every playthrough reveals
 | Orben | Card game (Ronda-based) for staying human | Pre-alpha |
 | Mission Control | Hub — story, decisions, crew management | Pre-alpha |
 
-**Story:** 212 dialog scenes, extensive but largely untested. 26 named characters with multi-episode arcs (Lost-style). 7 Earth collapse archetypes with severity system. All grounded in real science.
+**Story:** 251 dialog scenes, extensive but largely untested. 26 named characters with multi-episode arcs (Lost-style). 7 Earth collapse archetypes with severity system. All grounded in real science.
 
 ## Features
 
 ### Narrative
-- **212 dialog scenes** with branching choices across 70+ files
+- **251 dialog scenes** with branching choices across 70+ files
 - **26 named characters** — each with backstory, moral dilemma, and multi-scene arc
 - **"Anna will remember that"** — Telltale-style choice notifications
 - **7 collapse archetypes** — Climate, Resource Wars, Pandemic, Nuclear, AI, Political, Economic
