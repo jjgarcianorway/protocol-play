@@ -135,7 +135,7 @@ pub static SCENE_AWAKENING: DialogScene = DialogScene {
         DialogNode {
             speaker: Speaker::Anna,
             text: "Welcome aboard. Let's keep these people alive.",
-            next: DialogNext::End,
+            next: DialogNext::EndWithDecision("awakening_done"),
         },
     ],
 };

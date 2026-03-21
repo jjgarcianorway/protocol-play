@@ -8,7 +8,7 @@ use super::dialog_types::*;
 /// Scene: "First Words" — Before the very first repair.
 pub static SCENE_FIRST_WORDS: DialogScene = DialogScene {
     id: "first_words",
-    trigger: DialogTrigger::BotLevel(0),
+    trigger: DialogTrigger::DecisionAndLevel("awakening_done", 0),
     nodes: &[
         DialogNode { speaker: Speaker::Anna,
             text: "Can you hear me? Good. I... wasn't sure this would work.",
