@@ -24,11 +24,15 @@ pub fn enter_bot_puzzle(
     mut images: ResMut<Assets<Image>>,
     mut fonts: ResMut<Assets<Font>>,
     camera_q: Query<Entity, With<MissionCamera>>,
+    root_ui_q: Query<Entity, (With<Node>, Without<bevy::prelude::ChildOf>)>,
     mut clear_color: ResMut<ClearColor>,
     mut ambient: ResMut<GlobalAmbientLight>,
 ) {
-    // Hide Mission Control camera
+    // Hide Mission Control camera + UI
     for e in camera_q.iter() {
+        commands.entity(e).insert(Visibility::Hidden);
+    }
+    for e in root_ui_q.iter() {
         commands.entity(e).insert(Visibility::Hidden);
     }
 
@@ -262,6 +266,7 @@ pub fn exit_bot_puzzle(
     ghost_trail_q: Query<Entity, With<GhostTrail>>,
     merge_flash_q: Query<Entity, With<MergeFlash>>,
     camera_q: Query<Entity, With<MissionCamera>>,
+    root_ui_q: Query<Entity, (With<Node>, Without<bevy::prelude::ChildOf>)>,
     mut clear_color: ResMut<ClearColor>,
     mut ambient: ResMut<GlobalAmbientLight>,
 ) {
@@ -298,8 +303,11 @@ pub fn exit_bot_puzzle(
     commands.remove_resource::<BotPuzzleLevel>();
     commands.remove_resource::<crate::simulation::PlayTimer>();
 
-    // Restore Mission Control camera
+    // Restore Mission Control camera + UI
     for e in camera_q.iter() {
+        commands.entity(e).insert(Visibility::Visible);
+    }
+    for e in root_ui_q.iter() {
         commands.entity(e).insert(Visibility::Visible);
     }
 

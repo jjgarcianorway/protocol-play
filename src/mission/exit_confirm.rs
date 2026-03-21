@@ -74,7 +74,7 @@ fn spawn_confirm(commands: &mut Commands, font: &Handle<Font>) {
             ..default()
         },
         BackgroundColor(OVERLAY_BG),
-        GlobalZIndex(50),
+        GlobalZIndex(200),
     )).with_children(|overlay| {
         overlay.spawn((
             Node {
