@@ -40,9 +40,10 @@ pub const ASTEROID_COLORS: [(f32, f32, f32); 8] = [
 ];
 
 // Damage
-pub const SHIELD_MAX: f32 = 80.0;
+pub const SHIELD_MAX: f32 = 60.0;
 pub const LIFE_MAX: f32 = 100.0;
-pub const SHIELD_REGEN_RATE: f32 = 0.15;
+pub const SHIELD_REGEN_RATE: f32 = 0.5;
+pub const SHIELD_REGEN_DELAY: f32 = 5.0; // seconds without being hit before regen starts
 pub const DAMAGE_SIZE_FACTOR: f32 = 0.8;
 pub const DAMAGE_SPEED_FACTOR: f32 = 0.15;
 pub const DAMAGE_GLANCING_MULT: f32 = 0.4;
@@ -188,9 +189,9 @@ pub const SPARK_EMISSIVE: f32 = 15.0;
 pub const SPARK_COLOR: (f32, f32, f32) = (1.0, 0.7, 0.2);
 
 // Shield bubble
-pub const SHIELD_BUBBLE_RADIUS: f32 = 1.5;
-pub const SHIELD_BUBBLE_MAX_ALPHA: f32 = 0.02;
-pub const SHIELD_BUBBLE_EMISSIVE: f32 = 0.5;
+pub const SHIELD_BUBBLE_RADIUS: f32 = 1.3;
+pub const SHIELD_BUBBLE_MAX_ALPHA: f32 = 0.008;
+pub const SHIELD_BUBBLE_EMISSIVE: f32 = 0.15;
 pub const SHIELD_BUBBLE_COLOR: (f32, f32, f32) = (0.4, 0.7, 1.0);
 pub const SHIELD_BUBBLE_PULSE_SPEED: f32 = 2.0;
 pub const SHIELD_BUBBLE_PULSE_AMOUNT: f32 = 0.03;
@@ -254,7 +255,7 @@ pub const CRYSTAL_ASTEROID_BIAS: f32 = 0.3;
 // Near-miss shield recovery
 pub const NEAR_MISS_RANGE: f32 = 0.8; // outer edge beyond collision
 pub const NEAR_MISS_MIN_GAP: f32 = 0.3; // inner edge beyond collision (closest)
-pub const NEAR_MISS_SHIELD_RECOVERY: f32 = 0.5; // tiny shield recovery on near miss
+pub const NEAR_MISS_SHIELD_RECOVERY: f32 = 0.0; // no shield from near misses
 pub const NEAR_MISS_COOLDOWN: f32 = 2.0; // seconds before same asteroid can trigger again
 pub const NEAR_MISS_TEXT_COLOR: (f32, f32, f32) = (0.5, 0.85, 1.0); // light blue
 pub const NEAR_MISS_FLASH_DURATION: f32 = 0.15;

@@ -10,8 +10,9 @@ pub fn update_shield_regen(
     paused: Res<Paused>,
 ) {
     if !state.alive || paused.0 { return; }
-    // Slow constant regen — life NEVER regenerates
-    if state.shield < SHIELD_MAX {
+    state.since_last_hit += time.delta_secs();
+    // Shield only regens after delay without hits. Life NEVER regenerates.
+    if state.since_last_hit >= SHIELD_REGEN_DELAY && state.shield < SHIELD_MAX {
         state.shield = (state.shield + SHIELD_REGEN_RATE * time.delta_secs()).min(SHIELD_MAX);
     }
 }
