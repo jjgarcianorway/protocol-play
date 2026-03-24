@@ -50,8 +50,9 @@ pub fn setup_player(
             .filter(|e| {
                 let name = e.path().file_name().unwrap_or_default().to_string_lossy().to_string();
                 // Campaign levels match pattern: NN_NN_name.json (e.g. "01_03_the_zigzag.json")
-                name.ends_with(".json") && name.len() > 6
-                    && name.as_bytes()[2] == b'_' && name.as_bytes()[0].is_ascii_digit()
+                name.ends_with(".json") && !name.contains(".progress.")
+                    && name.len() > 6 && name.as_bytes()[2] == b'_'
+                    && name.as_bytes()[0].is_ascii_digit()
             }).collect();
         json_files.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
         for entry in json_files {

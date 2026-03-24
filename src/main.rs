@@ -130,9 +130,17 @@ fn main() {
         app.insert_resource(tr);
         app.insert_resource(ps);
         app.insert_resource(player_settings::SettingsOpenRequest::default());
-        // Setup at Startup (resources must exist before any Update systems)
-        app.add_systems(Startup, player::setup_player.after(setup_scene).after(setup_ui));
-        app.add_systems(Startup, player_anna::setup_bot_anna.after(player::setup_player));
+        // Playing setup: triggered when transitioning MainMenu → Playing
+        app.add_systems(OnEnter(PlayerPhase::Playing),
+            player::setup_player.after(setup_scene).after(setup_ui));
+        app.add_systems(OnEnter(PlayerPhase::Playing),
+            player_anna::setup_bot_anna.after(player::setup_player));
+        // Menu (Startup because OnEnter doesn't fire for default state)
+        app.add_systems(Startup, player_menu::enter_menu
+            .after(setup_scene).after(setup_ui));
+        app.add_systems(Update, player_menu::menu_interaction
+            .run_if(in_state(PlayerPhase::MainMenu)));
+        app.add_systems(OnExit(PlayerPhase::MainMenu), player_menu::exit_menu);
         // Settings overlay — runs in all states
         app.add_systems(Update, (
             player_settings::settings_request,
