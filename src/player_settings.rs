@@ -208,11 +208,10 @@ pub fn settings_overlay_input(
     close_q:  Query<&Interaction, (With<SettingsCloseBtn>, Changed<Interaction>)>,
     anna_q:   Query<(Entity, &Interaction, &Children), (With<AnnaToggleBtn>, Changed<Interaction>)>,
     lang_q:   Query<(&LangBtn, &Interaction), Changed<Interaction>>,
-    speed_q:  Query<(Entity, &SimSpeedBtn, &Interaction), Changed<Interaction>>,
-    all_speed_q: Query<(Entity, &SimSpeedBtn)>,
+    mut speed_q: Query<(Entity, &SimSpeedBtn, &Interaction, &mut BackgroundColor)>,
     overlay_q: Query<Entity, With<SettingsOverlay>>,
     mut text_q: Query<&mut Text>,
-    mut bg_q:   Query<&mut BackgroundColor>,
+    mut bg_q:   Query<&mut BackgroundColor, Without<SimSpeedBtn>>,
     mut settings: ResMut<PlayerSettings>,
     mut translations: ResMut<Translations>,
     mut req: ResMut<SettingsOpenRequest>,
@@ -239,14 +238,15 @@ pub fn settings_overlay_input(
     // Simulation speed toggle
     let speed_active   = Color::srgba(0.25, 0.45, 0.70, 0.90);
     let speed_inactive = Color::srgba(0.18, 0.20, 0.26, 0.70);
-    for (_, speed_btn, interaction) in speed_q.iter() {
-        if *interaction != Interaction::Pressed { continue; }
-        if (settings.sim_speed - speed_btn.0).abs() < 0.05 { continue; }
-        settings.sim_speed = speed_btn.0;
+    let pressed_speed = speed_q.iter().find_map(|(_, sb, i, _)| {
+        if *i == Interaction::Pressed && (settings.sim_speed - sb.0).abs() > 0.05 { Some(sb.0) } else { None }
+    });
+    if let Some(new_speed) = pressed_speed {
+        settings.sim_speed = new_speed;
         save_player_settings(&settings);
-        for (ent, sb) in all_speed_q.iter() {
+        for (_, sb, _, mut bg) in speed_q.iter_mut() {
             let active = (settings.sim_speed - sb.0).abs() < 0.05;
-            if let Ok(mut bg) = bg_q.get_mut(ent) { bg.0 = if active { speed_active } else { speed_inactive }; }
+            bg.0 = if active { speed_active } else { speed_inactive };
         }
     }
 

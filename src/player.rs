@@ -471,21 +471,23 @@ pub fn spawn_speed_hud(commands: &mut Commands, f: &Handle<Font>, settings: &Pla
 
 /// Handle 1×/2×/4× speed button clicks in the in-game HUD.
 pub fn speed_hud_interaction(
-    speed_q: Query<(Entity, &SpeedHudBtn, &Interaction), Changed<Interaction>>,
-    all_speed_q: Query<(Entity, &SpeedHudBtn)>,
-    mut bg_q: Query<&mut BackgroundColor>,
+    mut btn_q: Query<(Entity, &SpeedHudBtn, &Interaction, &mut BackgroundColor)>,
     mut settings: ResMut<PlayerSettings>,
 ) {
     let active_bg   = Color::srgba(0.25, 0.48, 0.75, 0.90);
     let inactive_bg = Color::srgba(0.10, 0.12, 0.18, 0.70);
-    for (_, btn, interaction) in speed_q.iter() {
-        if *interaction != Interaction::Pressed { continue; }
-        if (settings.sim_speed - btn.0).abs() < 0.05 { continue; }
-        settings.sim_speed = btn.0;
+    // Find which button was pressed
+    let pressed = btn_q.iter().find_map(|(_, btn, i, _)| {
+        if *i == Interaction::Pressed && (settings.sim_speed - btn.0).abs() > 0.05 {
+            Some(btn.0)
+        } else { None }
+    });
+    if let Some(new_speed) = pressed {
+        settings.sim_speed = new_speed;
         crate::player_settings::save_player_settings(&settings);
-        for (ent, sb) in all_speed_q.iter() {
+        for (_, sb, _, mut bg) in btn_q.iter_mut() {
             let active = (settings.sim_speed - sb.0).abs() < 0.05;
-            if let Ok(mut bg) = bg_q.get_mut(ent) { bg.0 = if active { active_bg } else { inactive_bg }; }
+            bg.0 = if active { active_bg } else { inactive_bg };
         }
     }
 }
