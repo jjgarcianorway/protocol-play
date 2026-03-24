@@ -136,6 +136,7 @@ fn main() {
             player::setup_player.after(setup_scene).after(setup_ui));
         app.add_systems(OnEnter(PlayerPhase::Playing),
             player_anna::setup_bot_anna.after(player::setup_player));
+        app.add_systems(OnEnter(PlayerPhase::Playing), player::show_play_button);
         // Menu (Startup because OnEnter doesn't fire for default state)
         app.add_systems(Startup, (
             player_menu::enter_menu.after(setup_scene).after(setup_ui),
@@ -438,12 +439,20 @@ fn setup_ui(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut fonts
     });
     }
 
-    // Play/Stop button
+    // Play/Stop button — only visible during gameplay, not in menu
     let play_icon = create_play_icon(&mut images);
     let stop_icon = create_stop_icon(&mut images);
     commands.insert_resource(PlayIcons { play: play_icon.clone(), stop: stop_icon });
-    commands.spawn((Node { position_type: PositionType::Absolute, right: Val::Px(10.0), top: Val::Px(-60.0), ..default()
-    }, UiTopAnim { target: TOP_SLIDE_SHOW, despawn_at_target: false })).with_child((
+    // In player mode: start hidden (top: -60), animate_ui_slides brings it in during Playing
+    // In editor mode: always visible
+    let play_btn_top = if cfg!(feature = "player") { Val::Px(-60.0) } else { Val::Px(-60.0) };
+    let play_btn_anim = if cfg!(feature = "player") {
+        UiTopAnim { target: -60.0, despawn_at_target: false } // stays hidden until Playing
+    } else {
+        UiTopAnim { target: TOP_SLIDE_SHOW, despawn_at_target: false }
+    };
+    commands.spawn((Node { position_type: PositionType::Absolute, right: Val::Px(10.0), top: play_btn_top, ..default()
+    }, play_btn_anim)).with_child((
         Button, Node { width: Val::Px(PLAY_BTN_SIZE), height: Val::Px(PLAY_BTN_SIZE), justify_content: JustifyContent::Center,
             align_items: AlignItems::Center, border: UiRect::all(Val::Px(PLAY_BTN_BORDER)),
             border_radius: BorderRadius::all(Val::Px(UI_CORNER_RADIUS)), ..default() },

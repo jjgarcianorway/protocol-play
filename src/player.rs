@@ -441,6 +441,11 @@ pub fn populate_stats(
     }
 }
 
+/// OnEnter(Playing): slide the Play/Stop button into view (hidden during menu).
+pub fn show_play_button(mut q: Query<&mut UiTopAnim>) {
+    for mut anim in q.iter_mut() { anim.target = TOP_SLIDE_SHOW; }
+}
+
 /// Spawn the persistent 1×/2×/4× speed HUD in the top-right corner.
 pub fn spawn_speed_hud(commands: &mut Commands, f: &Handle<Font>, settings: &PlayerSettings) {
     let active_bg   = Color::srgba(0.25, 0.48, 0.75, 0.90);
