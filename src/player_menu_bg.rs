@@ -8,6 +8,9 @@ use crate::board::{spawn_tile_at_scale, tile_world_pos};
 use crate::simulation::{BotMovement, BotPhase};
 
 #[derive(Resource)]
+pub struct MenuBotsSpawned(pub bool);
+
+#[derive(Resource)]
 pub struct MenuCamTracker {
     pub bot_idx: usize, pub time_on_bot: f32,
     pub last_dir: Direction, pub dir_changes: u32,
@@ -56,27 +59,8 @@ fn menu_board() -> (u32, Vec<(u32, u32, TileKind)>) {
     t.push((2, 5, Floor)); t.push((2, 4, Floor)); t.push((2, 3, Floor));
     // (2,3)→N→(2,2) Arrow(East) → loop resumes
 
-    // ═══ Bot 2 (cyan): figure-8 with teleport, 18 tiles ═══
-    // Path: (4,1)→E→(7,1)→S→(7,3)→teleport→(4,5)→W→(1,5)→N→(1,3)→E→(4,3)→N→(4,1) loop
-    t.push((4, 1, Source(6, East)));
-    t.push((5, 1, Floor)); t.push((6, 1, Floor));
-    t.push((7, 1, Arrow(g, South)));
-    t.push((7, 2, Floor));
-    t.push((7, 3, Teleport(g, 0)));        // entrance
-    t.push((4, 5, Teleport(g, 0)));        // exit — bot continues East
-    t.push((5, 5, Floor)); t.push((6, 5, Floor)); // these overlap with bot 1 path (sharing!)
-    // Wait, (6,5) is already Floor from bot 1. That's fine — bots share Floor tiles.
-    // But bot 2 needs to go West from (4,5), not East! Teleport preserves direction.
-    // Bot enters (7,3) going South. After teleport, continues South from (4,5).
-    // So bot goes (4,5)→S→(4,6)→... need to redirect.
-    // Let me redesign bot 2's path to be simpler:
-
-    // Actually let me redo bot 2 as a simple rectangle in the lower-left area:
+    // ═══ Bot 2 (cyan): lower-left rectangle, 12 tiles ═══
     // Path: (1,5)→E→(4,5)→S→(4,7)→W→(1,7)→N→(1,5) loop
-    // Source at (1,4) feeds in going South
-
-    // Remove the wrong tiles above — dedup will handle it
-    t.push((4, 1, Floor)); // override source — bot 2 moves elsewhere
     t.push((1, 4, Source(6, South)));
     t.push((1, 5, Arrow(g, East)));
     t.push((2, 5, Floor)); t.push((3, 5, Floor));
@@ -102,12 +86,6 @@ fn menu_board() -> (u32, Vec<(u32, u32, TileKind)>) {
     // Dedup: later entries win
     let mut grid = std::collections::HashMap::new();
     for (c, r, k) in t { grid.insert((c, r), k); }
-    // Remove the overridden sources
-    // (4,1) was Source then Floor — dedup keeps Floor. Good.
-    // Remove the bad teleport tiles from the first attempt
-    grid.remove(&(7, 3)); // was Teleport entrance
-    grid.remove(&(5, 1)); grid.remove(&(6, 1)); // were part of bad path
-    grid.remove(&(7, 1)); grid.remove(&(7, 2)); // were part of bad path
 
     let tiles: Vec<_> = grid.into_iter().map(|((c, r), k)| (c, r, k)).collect();
     (s, tiles)
@@ -124,16 +102,8 @@ pub fn setup_menu_background(
             .map(|&(_, _, k)| k).unwrap_or(TileKind::Empty);
         spawn_tile_at_scale(&mut commands, c, r, size, kind, &assets, Vec3::ONE);
     }}
-    let mut si = 0usize;
-    for &(col, row, kind) in &tiles {
-        if let TileKind::Source(ci, dir) = kind {
-            spawn_bot(&mut commands, &assets, col, row, size, ci, dir, si);
-            si += 1;
-        }
-    }
-    *play_mode = PlayMode::TestPlaying;
-    commands.insert_resource(crate::simulation::PlayTimer(
-        Timer::from_seconds(0.3, TimerMode::Once)));
+    // Don't spawn bots here — tiles are deferred. menu_sim_loop spawns them on first Update.
+    commands.insert_resource(MenuBotsSpawned(false));
     commands.insert_resource(MenuCamTracker {
         bot_idx: 0, time_on_bot: 0.0, last_dir: Direction::East, dir_changes: 0,
         offsets: vec![(3.8, 2.2, 0.3), (2.8, 1.6, -0.4), (3.2, 1.8, 0.8)],
@@ -151,7 +121,7 @@ fn spawn_bot(commands: &mut Commands, assets: &GameAssets,
             .with_rotation(Quat::from_rotation_y(dir.rotation())),
         TargetScale(Vec3::ONE), Bot, BotFormation::default(),
         BotMovement { direction: dir, color_index: ci, col: col as i32, row: row as i32,
-            progress: 0.5, speed: 0.0, phase: BotPhase::Accelerating,
+            progress: 0.5, speed: BOT_CRUISE_SPEED, phase: BotPhase::Cruising,
             spawn_index: si, switch_pending: false },
     )).with_children(|p| {
         let ez = -(BOT_SIZE / 2.0 + BOT_EYE_D / 2.0 + OVERLAY_MESH_THICKNESS);
@@ -162,12 +132,34 @@ fn spawn_bot(commands: &mut Commands, assets: &GameAssets,
     });
 }
 
-/// Respawn fallen bots at their source.
+/// First frame: spawn bots at source tiles. Every frame: respawn fallen bots.
 pub fn menu_sim_loop(
-    mut commands: Commands, bots: Query<(Entity, &BotMovement), With<Bot>>,
-    assets: Res<GameAssets>, board_size: Res<BoardSize>,
+    mut commands: Commands,
+    bots: Query<(Entity, &BotMovement), With<Bot>>,
+    assets: Res<GameAssets>,
+    board_size: Res<BoardSize>,
     tiles: Query<(&TileCoord, &TileKind), With<Tile>>,
+    mut spawned: ResMut<MenuBotsSpawned>,
+    mut play_mode: ResMut<PlayMode>,
 ) {
+    // First frame: spawn bots now that tiles are committed
+    if !spawned.0 {
+        spawned.0 = true;
+        *play_mode = PlayMode::TestPlaying;
+        commands.insert_resource(crate::simulation::PlayTimer(
+            Timer::from_seconds(0.1, TimerMode::Once)));
+        let mut si = 0usize;
+        for (coord, kind) in tiles.iter() {
+            if let TileKind::Source(ci, dir) = *kind {
+                spawn_bot(&mut commands, &assets, coord.col, coord.row,
+                    board_size.0, ci, dir, si);
+                si += 1;
+            }
+        }
+        return;
+    }
+
+    // Respawn fallen bots
     let sz = board_size.0 as i32;
     for (entity, mov) in bots.iter() {
         let off = mov.col < 0 || mov.row < 0 || mov.col >= sz || mov.row >= sz;
