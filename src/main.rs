@@ -145,7 +145,6 @@ fn main() {
         app.add_systems(Update, (
             player_menu::menu_interaction,
             player_menu::menu_fade_transition,
-            player_menu::menu_primary_pulse,
             player_menu::menu_keys,
             player_menu_bg::menu_camera,
             player_menu_bg::menu_sim_loop,
