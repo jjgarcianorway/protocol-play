@@ -5,7 +5,6 @@
 //! as chapter titles, adapted for non-intrusive in-game presence.
 
 use bevy::prelude::*;
-use crate::ui_theme::{palette, typo, spacing};
 
 // ─── Display constants ────────────────────────────────────────────────────────
 
@@ -14,6 +13,16 @@ pub const ANNA_FADE_OUT:    f32 = 0.80;
 pub const ANNA_WORDS_PER_S: f32 = 2.5;   // comfortable reading pace
 pub const ANNA_MIN_HOLD:    f32 = 5.0;
 pub const ANNA_MAX_HOLD:    f32 = 18.0;
+
+// Colors
+const ANNA_BG:      (f32,f32,f32,f32) = (0.04, 0.07, 0.12, 0.92);
+const ANNA_ACCENT:  (f32,f32,f32)     = (0.45, 0.65, 0.85);
+const ANNA_LABEL:   (f32,f32,f32)     = (0.45, 0.65, 0.85);
+const ANNA_TEXT:    (f32,f32,f32)     = (0.88, 0.90, 0.95);
+
+const ANNA_LABEL_SIZE: f32 = 10.0;
+const ANNA_TEXT_SIZE:  f32 = 15.0;
+const ANNA_ACCENT_PX:  f32 = 4.0;
 
 // ─── Resource ─────────────────────────────────────────────────────────────────
 
@@ -65,8 +74,8 @@ pub fn build_queue(pool: &[String], count: usize) -> Vec<(f32, String)> {
 /// a message is ready to show. `name_label` is the sender name shown above the
 /// message — typically "ANNA" or "ANNA" in all languages (it's a name).
 pub fn spawn_anna_ui(commands: &mut Commands, font: &Handle<Font>, name_label: &str) {
-    let label_font = TextFont { font: font.clone(), font_size: typo::MICRO, ..default() };
-    let msg_font   = TextFont { font: font.clone(), font_size: typo::SMALL, ..default() };
+    let label_font = TextFont { font: font.clone(), font_size: ANNA_LABEL_SIZE, ..default() };
+    let msg_font   = TextFont { font: font.clone(), font_size: ANNA_TEXT_SIZE,  ..default() };
 
     commands.spawn((
         AnnaPanel,
@@ -80,24 +89,24 @@ pub fn spawn_anna_ui(commands: &mut Commands, font: &Handle<Font>, name_label: &
                 left: Val::Px(24.0), right: Val::Px(24.0),
                 top: Val::Px(14.0),  bottom: Val::Px(14.0),
             },
-            border: UiRect { left: Val::Px(spacing::RADIUS_SM), ..default() },
+            border: UiRect { left: Val::Px(ANNA_ACCENT_PX), ..default() },
             row_gap: Val::Px(5.0),
             ..default()
         },
-        BackgroundColor(palette::ANNA_BG.with_alpha(0.0)),
-        BorderColor::all(palette::ANNA_ACCENT.with_alpha(0.0)),
+        BackgroundColor(Color::srgba(ANNA_BG.0, ANNA_BG.1, ANNA_BG.2, 0.0)),
+        BorderColor::all(Color::srgba(ANNA_ACCENT.0, ANNA_ACCENT.1, ANNA_ACCENT.2, 0.0)),
         GlobalZIndex(70),
     )).with_children(|p| {
         p.spawn((
             Text::new(name_label.to_string()),
             label_font,
-            TextColor(palette::ANNA_ACCENT.with_alpha(0.0)),
+            TextColor(Color::srgba(ANNA_LABEL.0, ANNA_LABEL.1, ANNA_LABEL.2, 0.0)),
             AnnaLabelText,
         ));
         p.spawn((
             Text::new(""),
             msg_font,
-            TextColor(palette::ANNA_TEXT.with_alpha(0.0)),
+            TextColor(Color::srgba(ANNA_TEXT.0, ANNA_TEXT.1, ANNA_TEXT.2, 0.0)),
             AnnaCommentText,
         ));
     });
@@ -148,15 +157,15 @@ pub fn tick_anna_comments(
     };
 
     // Apply alpha to panel background, accent border, label, and message
-    let bg_base = palette::ANNA_BG.to_srgba();
     for (mut bg, mut border) in panel.iter_mut() {
-        bg.0 = Color::srgba(bg_base.red, bg_base.green, bg_base.blue, bg_base.alpha * alpha);
-        *border = BorderColor::all(palette::ANNA_ACCENT.with_alpha(alpha));
+        bg.0 = Color::srgba(ANNA_BG.0, ANNA_BG.1, ANNA_BG.2, ANNA_BG.3 * alpha);
+        *border = BorderColor::all(
+            Color::srgba(ANNA_ACCENT.0, ANNA_ACCENT.1, ANNA_ACCENT.2, alpha));
     }
     for mut tc in label.iter_mut() {
-        tc.0 = palette::ANNA_ACCENT.with_alpha(alpha * 0.75);
+        tc.0 = Color::srgba(ANNA_LABEL.0, ANNA_LABEL.1, ANNA_LABEL.2, alpha * 0.75);
     }
     for (_, mut tc) in msg.iter_mut() {
-        tc.0 = palette::ANNA_TEXT.with_alpha(alpha);
+        tc.0 = Color::srgba(ANNA_TEXT.0, ANNA_TEXT.1, ANNA_TEXT.2, alpha);
     }
 }

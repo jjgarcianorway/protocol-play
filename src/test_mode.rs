@@ -2,7 +2,6 @@
 #![allow(dead_code)]
 use bevy::prelude::*;
 use crate::{constants::*, types::*, ui_helpers::*};
-use crate::ui_theme::{palette, spacing};
 use crate::board::spawn_tile;
 pub fn mark_button_interaction(
     mut play_mode: ResMut<PlayMode>,
@@ -220,8 +219,8 @@ pub fn spawn_test_inventory(commands: &mut Commands, test_inv: &TestInventory, i
                     w.spawn((Node { width: Val::Percent(100.0), justify_content: JustifyContent::Center,
                         position_type: PositionType::Absolute, bottom: Val::Px(0.0),
                         padding: UiRect::axes(Val::Px(2.0), Val::Px(1.0)),
-                        border_radius: BorderRadius::all(Val::Px(spacing::RADIUS_SM)), ..default() },
-                        BackgroundColor(palette::COUNT_BG),
+                        border_radius: BorderRadius::all(Val::Px(3.0)), ..default() },
+                        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.6)),
                     )).with_child((Text::new(format!("{count}")), gf(COUNT_FONT, f), TextColor(cc)));
                 });
             }

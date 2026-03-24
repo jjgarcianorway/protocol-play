@@ -52,20 +52,15 @@ fn menu_board() -> (u32, Vec<(u32, u32, TileKind)>) {
     tiles.push((5, 3, Painter(5)));         // changes blue→purple for visual flair
     tiles.push((6, 3, Arrow(g, South)));
     tiles.push((6, 4, Floor));
-    tiles.push((6, 5, Door(true)));         // open door on the path
+    tiles.push((6, 5, Floor));              // was Door+Switch — broke on second loop
     tiles.push((6, 6, Arrow(g, West)));
     tiles.push((5, 6, Floor));
-    tiles.push((4, 6, Bounce(g)));          // bounces west→east... no! We want to continue west.
-    // Actually Bounce reverses direction. That would break the loop. Use Floor instead.
+    tiles.push((4, 6, Floor));
     tiles.push((3, 6, Floor));
     tiles.push((2, 6, Arrow(g, North)));
     tiles.push((2, 5, Floor));
-    tiles.push((2, 4, Switch));             // switch toggles the door
+    tiles.push((2, 4, Floor));
     tiles.push((2, 3, Arrow(g, East)));     // completes the loop → (3,3) Arrow East
-
-    // Fix: replace (4,6) Bounce with Floor — Bounce would reverse direction
-    // (Already pushed Bounce, need to override it in the dedup step)
-    tiles.push((4, 6, Floor));
 
     // ── Bot 2 (color 6, cyan): small bounce corridor ──
     // Bounces back and forth between two bouncers
@@ -86,11 +81,10 @@ fn menu_board() -> (u32, Vec<(u32, u32, TileKind)>) {
     // Bot bounces between (4,7) and (7,7) forever!
     // Remove the original source at (4,1)
 
-    // ── Decorative tiles (visual interest, not on paths) ──
-    tiles.push((4, 4, Floor)); tiles.push((5, 4, Floor));
+    // ── Decorative tiles (visual interest, NOT on bot paths) ──
+    tiles.push((4, 4, Door(true)));  tiles.push((5, 4, Switch));
     tiles.push((4, 5, Floor)); tiles.push((5, 5, Floor));
     tiles.push((3, 4, Floor)); tiles.push((3, 5, Floor));
-    // Some teleport pairs for visual flair (not on bot paths)
     tiles.push((1, 2, Teleport(2, 0)));
     tiles.push((7, 6, Teleport(2, 0)));
     tiles.push((1, 4, ColorSwitch(1)));

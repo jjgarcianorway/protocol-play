@@ -15,7 +15,6 @@ mod inventory;
 pub mod sound;
 mod systems;
 mod simulation;
-mod ui_theme;
 mod messages;
 #[cfg(feature = "player")] mod i18n;
 mod bot_formation;

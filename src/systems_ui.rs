@@ -6,7 +6,6 @@ use crate::constants::*;
 use crate::types::*;
 use crate::ui_helpers::{gf, rgb, btn_bg, dialog_panel_node, dialog_btn_node};
 use crate::simulation::SimulationOverlay;
-use crate::ui_theme::palette;
 
 pub fn sync_ui_play_mode(
     mut commands: Commands,
@@ -57,7 +56,7 @@ pub fn escape_to_quit(
     if !keys.just_pressed(KeyCode::Escape) { return; }
     if !existing.is_empty() || !other_dialogs.is_empty() { return; }
     let tf = gf(DIALOG_TITLE_FONT, &font.0);
-    let tc = TextColor(palette::TEXT_BRIGHT);
+    let tc = TextColor(Color::WHITE);
     crate::ui_helpers::spawn_dialog(&mut commands, QuitDialog, dialog_panel_node(DIALOG_ROW_GAP), |panel| {
         panel.spawn((Text::new("Quit game?"), tf.clone(), tc));
         panel.spawn(Node { flex_direction: FlexDirection::Row, column_gap: Val::Px(DIALOG_BTN_GAP), ..default() })

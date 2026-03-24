@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 use bevy::prelude::*;
 use crate::constants::*; use crate::types::*; use crate::ui_helpers::*;
-use crate::ui_theme::palette;
 use crate::board::spawn_tile;
 use crate::test_mode::{group_tiles, spawn_test_inventory, set_tool_from_kind};
 use crate::simulation::SimulationResult;
@@ -265,7 +264,7 @@ fn spawn_congrats(commands: &mut Commands, f: &Handle<Font>, progress: &PlayerPr
         )).with_children(|card| {
             card.spawn((Text::new(ct), gf(SIM_MSG_FONT, f), TextColor(rgb(SIM_SUCCESS_COLOR))));
             card.spawn((Text::new(cm), gf(DIALOG_TITLE_FONT, f), tc));
-            card.spawn((Text::new(format!("★  {total_stars} / {max_stars}")), gf(DIALOG_TITLE_FONT, f), TextColor(palette::STAR_GOLD)));
+            card.spawn((Text::new(format!("★  {total_stars} / {max_stars}")), gf(DIALOG_TITLE_FONT, f), TextColor(Color::srgb(1.0, 0.85, 0.2))));
             card.spawn((Text::new(format!("{} {}:{:02}", t.ui_or("total_time", "Total time:"), secs / 60, secs % 60)), bf.clone(), tc));
             card.spawn((Text::new(format!("{} {ta}", t.ui_or("total_attempts", "Total attempts:"))), bf.clone(), tc));
             if tr > 0 { card.spawn((Text::new(format!("{} {tr}", t.ui_or("total_resets", "Total resets:"))), bf, tc)); }
@@ -444,6 +443,8 @@ pub fn populate_stats(
 
 /// Spawn the persistent 1×/2×/4× speed HUD in the top-right corner.
 pub fn spawn_speed_hud(commands: &mut Commands, f: &Handle<Font>, settings: &PlayerSettings) {
+    let active_bg   = Color::srgba(0.25, 0.48, 0.75, 0.90);
+    let inactive_bg = Color::srgba(0.10, 0.12, 0.18, 0.70);
     commands.spawn((
         SpeedHudContainer,
         Node {
@@ -467,9 +468,9 @@ pub fn spawn_speed_hud(commands: &mut Commands, f: &Handle<Font>, settings: &Pla
                     border_radius: BorderRadius::all(Val::Px(6.0)),
                     ..default()
                 },
-                BackgroundColor(if active { palette::ACTIVE } else { palette::INACTIVE }),
+                BackgroundColor(if active { active_bg } else { inactive_bg }),
             )).with_child((Text::new(*label),
-                gf(16.0, f), TextColor(palette::TEXT_MAIN)));
+                gf(16.0, f), TextColor(Color::srgba(1.0, 1.0, 1.0, 0.90))));
         }
     });
 }
@@ -479,6 +480,8 @@ pub fn speed_hud_interaction(
     mut btn_q: Query<(Entity, &SpeedHudBtn, &Interaction, &mut BackgroundColor)>,
     mut settings: ResMut<PlayerSettings>,
 ) {
+    let active_bg   = Color::srgba(0.25, 0.48, 0.75, 0.90);
+    let inactive_bg = Color::srgba(0.10, 0.12, 0.18, 0.70);
     // Find which button was pressed
     let pressed = btn_q.iter().find_map(|(_, btn, i, _)| {
         if *i == Interaction::Pressed && (settings.sim_speed - btn.0).abs() > 0.05 {
@@ -490,7 +493,7 @@ pub fn speed_hud_interaction(
         crate::player_settings::save_player_settings(&settings);
         for (_, sb, _, mut bg) in btn_q.iter_mut() {
             let active = (settings.sim_speed - sb.0).abs() < 0.05;
-            bg.0 = if active { palette::ACTIVE } else { palette::INACTIVE };
+            bg.0 = if active { active_bg } else { inactive_bg };
         }
     }
 }
