@@ -147,7 +147,10 @@ fn main() {
         app.add_systems(Update, (
             player_menu::menu_interaction, player_menu::menu_hover,
             player_menu_bg::menu_camera,
-        ).run_if(main_menu));
+            player_menu_bg::menu_sim_loop,
+            // Run core bot systems during menu for the animated background
+            move_bots, paint_bots.after(move_bots), toggle_doors.after(move_bots),
+        ).run_if(main_menu.clone()));
         app.add_systems(OnExit(PlayerPhase::MainMenu), (
             player_menu::exit_menu,
             player_menu_bg::cleanup_menu_background,
