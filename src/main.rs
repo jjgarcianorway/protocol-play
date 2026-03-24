@@ -161,14 +161,14 @@ fn main() {
             player_settings::settings_request,
             player_settings::settings_overlay_input.after(player_settings::settings_request),
         ));
-        // animate_ui_slides in ALL states (drives fade transitions)
+        // Systems needed in ALL states (menu + gameplay)
         app.add_systems(Update, animate_ui_slides);
-        // ALL gameplay systems gated to Playing state
+        app.add_systems(Update, animate_scale.after(move_bots)); // teleports need scale animation
+        // Gameplay-only systems
         let playing = in_state(PlayerPhase::Playing);
         app.add_systems(Update, (
             animate_node_width, update_hovered_cell,
             update_ghost_and_highlight.after(update_hovered_cell),
-            animate_scale.after(update_ghost_and_highlight).after(move_bots).after(apply_bot_formation),
             animate_border_fade, cleanup_despawned.after(animate_scale),
         ).run_if(playing.clone()));
         app.add_systems(Update, (escape_to_quit, quit_dialog_buttons, simulation::animate_sim_overlay_fade)

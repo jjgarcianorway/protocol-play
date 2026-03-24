@@ -12,11 +12,23 @@ use crate::level_gen_algo::{GenConfig, HolePlacement, generate_attempt};
 #[derive(Resource)] pub struct MenuBotsSpawned(pub bool);
 #[derive(Component)] pub struct MenuCelebrationTimer(pub f32);
 
+#[derive(Clone, Copy, PartialEq)]
+pub enum CamShot {
+    Follow,       // close-up following a bot
+    Wide,         // pulled-back overview
+    Sweep,        // slow pan across the board ("barrido")
+}
+
 #[derive(Resource)]
 pub struct MenuCamTracker {
-    pub bot_idx: usize, pub time_on_bot: f32,
-    pub last_dir: Direction, pub dir_changes: u32,
-    pub offsets: Vec<(f32, f32, f32)>,
+    pub bot_idx: usize,
+    pub time_on_shot: f32,
+    pub last_dir: Direction,
+    pub dir_changes: u32,
+    pub shot: CamShot,
+    pub sweep_angle: f32,    // for Sweep shots
+    pub zoom: f32,           // current zoom multiplier
+    pub target_zoom: f32,    // target zoom (lerps toward this)
 }
 
 const MENU_BOT_SPEED: f32 = 0.35; // very slow, meditative
@@ -82,13 +94,8 @@ pub fn setup_menu_background(
 
     // Camera offsets per bot (generated level has 4 bots)
     commands.insert_resource(MenuCamTracker {
-        bot_idx: 0, time_on_bot: 0.0, last_dir: Direction::East, dir_changes: 0,
-        offsets: vec![
-            (5.0, 2.8, 0.3),
-            (4.0, 2.0, -0.5),
-            (4.5, 2.4, 0.8),
-            (3.8, 1.8, -0.2),
-        ],
+        bot_idx: 0, time_on_shot: 0.0, last_dir: Direction::East, dir_changes: 0,
+        shot: CamShot::Wide, sweep_angle: 0.0, zoom: 1.2, target_zoom: 1.2,
     });
 }
 
@@ -169,53 +176,108 @@ pub fn menu_sim_loop(
     for mut timer in cel_q.iter_mut() { timer.0 -= dt; }
 }
 
-/// Cinematic camera — very slow, smooth, meditative. Offset right for panel.
+/// Cinematic "director" camera — intelligent shot selection, smooth transitions.
 pub fn menu_camera(
-    time: Res<Time>, mut tracker: ResMut<MenuCamTracker>,
+    time: Res<Time>, mut t: ResMut<MenuCamTracker>,
     bots: Query<(&Transform, &BotMovement), (With<Bot>, Without<Camera3d>)>,
     mut cameras: Query<&mut Transform, (With<Camera3d>, Without<Bot>)>,
+    board_size: Res<BoardSize>,
 ) {
     let list: Vec<_> = bots.iter().collect();
     let n = list.len();
     if n == 0 { return; }
     let dt = time.delta_secs();
-    tracker.time_on_bot += dt;
+    t.time_on_shot += dt;
+    t.sweep_angle += dt * 0.08; // slow sweep rotation
 
-    // Track interest level of current bot
-    if let Some((_, mov)) = list.get(tracker.bot_idx) {
-        if mov.direction != tracker.last_dir {
-            tracker.dir_changes += 1;
-            tracker.last_dir = mov.direction;
+    // Track current bot's activity
+    if let Some((_, mov)) = list.get(t.bot_idx) {
+        if mov.direction != t.last_dir { t.dir_changes += 1; t.last_dir = mov.direction; }
+    }
+
+    // ── Director logic: when to cut ──
+    let interest = (t.dir_changes as f32 * 1.0).min(6.0);
+    let min_time = match t.shot {
+        CamShot::Follow => CAM_SWITCH_MIN + interest,
+        CamShot::Wide => 8.0,
+        CamShot::Sweep => 12.0,
+    };
+    let should_cut = t.time_on_shot > min_time.min(CAM_SWITCH_MAX);
+
+    // Don't cut to a bot that's celebrating (about to disappear)
+    let bot_is_ending = |idx: usize| -> bool {
+        list.get(idx).is_some_and(|(_, m)| matches!(m.phase,
+            BotPhase::Spinning | BotPhase::Falling(_) | BotPhase::FallingPause(_)))
+    };
+
+    if should_cut && n > 0 {
+        t.time_on_shot = 0.0;
+        t.dir_changes = 0;
+
+        // Pick next shot type (cycle: Follow → Follow → Sweep → Follow → Wide → ...)
+        let shot_cycle = (time.elapsed_secs() / 15.0) as u32 % 5;
+        t.shot = match shot_cycle {
+            3 => CamShot::Sweep,
+            4 => CamShot::Wide,
+            _ => CamShot::Follow,
+        };
+
+        // For Follow shots: pick the most interesting non-ending bot
+        if t.shot == CamShot::Follow {
+            let mut best = t.bot_idx;
+            for i in 0..n {
+                let candidate = (t.bot_idx + 1 + i) % n;
+                if !bot_is_ending(candidate) { best = candidate; break; }
+            }
+            t.bot_idx = best;
         }
+
+        // Vary zoom per shot
+        t.target_zoom = match t.shot {
+            CamShot::Follow => 0.8 + (t.bot_idx as f32 * 0.15) % 0.4, // 0.8-1.2
+            CamShot::Wide => 1.8,
+            CamShot::Sweep => 1.4,
+        };
     }
 
-    // Smart switching: stay longer when bot is interesting
-    let interest = (tracker.dir_changes as f32 * 1.0).min(6.0);
-    let switch_time = (CAM_SWITCH_MIN + interest).min(CAM_SWITCH_MAX);
-    if tracker.time_on_bot > switch_time && n > 1 {
-        tracker.bot_idx = (tracker.bot_idx + 1) % n;
-        tracker.time_on_bot = 0.0;
-        tracker.dir_changes = 0;
-    }
+    // Smooth zoom interpolation
+    t.zoom += (t.target_zoom - t.zoom) * dt * 0.8;
 
-    let idx = tracker.bot_idx.min(n - 1);
-    let target = list[idx].0.translation;
-    let (h, d, a) = tracker.offsets.get(idx).copied().unwrap_or((4.5, 2.5, 0.0));
+    // ── Compute camera goal based on shot type ──
+    let right_offset = Vec3::new(-2.5, 0.0, 0.5);
+    let half = board_size.0 as f32 / 2.0;
+    let board_center = Vec3::new(-half + 0.5, 0.0, -half + 0.5) * 0.0; // board is centered at origin
 
-    // Camera positioned to see bot's face (slightly in front)
-    let bot_dir = list[idx].1.direction;
-    let (fwd_x, fwd_z) = bot_dir.grid_delta();
-    let face_offset = Vec3::new(fwd_x as f32 * 0.8, 0.0, fwd_z as f32 * 0.8);
+    let (cam_goal, look_goal) = match t.shot {
+        CamShot::Follow => {
+            let idx = t.bot_idx.min(n - 1);
+            let target = list[idx].0.translation;
+            let dir = list[idx].1.direction;
+            let (fx, fz) = dir.grid_delta();
+            let face = Vec3::new(fx as f32 * 0.6, 0.0, fz as f32 * 0.6);
+            let h = 3.5 * t.zoom;
+            let d = 2.0 * t.zoom;
+            (target + Vec3::new(d * 0.7, h, d * 0.7) + right_offset + face,
+             target + Vec3::new(0.0, 0.1, 0.0) + right_offset * 0.3)
+        }
+        CamShot::Wide => {
+            let h = 8.0 * t.zoom;
+            (board_center + Vec3::new(0.0, h, 3.0) + right_offset,
+             board_center + right_offset * 0.5)
+        }
+        CamShot::Sweep => {
+            let a = t.sweep_angle;
+            let r = 5.0 * t.zoom;
+            let h = 5.5 * t.zoom;
+            (board_center + Vec3::new(a.sin() * r, h, a.cos() * r) + right_offset,
+             board_center + right_offset * 0.4)
+        }
+    };
 
-    // Offset right so board fills the right 66% of screen
-    let right_offset = Vec3::new(-3.0, 0.0, 0.5);
-    let cam_goal = target + Vec3::new(d * a.cos(), h, d * a.sin()) + right_offset + face_offset;
-    let look_goal = target + Vec3::new(0.0, 0.1, 0.0) + right_offset * 0.3;
-
-    // Very smooth interpolation — slower during transitions, buttery when settled
-    let settle = (tracker.time_on_bot / CAM_SETTLE_TIME).min(1.0);
-    let base_speed = CAM_LERP_SLOW + settle * (CAM_LERP_FAST - CAM_LERP_SLOW);
-    let lerp = (base_speed * dt).min(0.06); // hard cap for smoothness
+    // Ultra-smooth interpolation
+    let settle = (t.time_on_shot / CAM_SETTLE_TIME).min(1.0);
+    let speed = CAM_LERP_SLOW + settle * (CAM_LERP_FAST - CAM_LERP_SLOW);
+    let lerp = (speed * dt).min(0.05);
 
     for mut tf in cameras.iter_mut() {
         let pos = tf.translation.lerp(cam_goal, lerp);
