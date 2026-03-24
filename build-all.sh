@@ -10,9 +10,9 @@ if ls target/release/*.progress.json target/release/stats.json target/release/st
     cp target/release/stats.jsonl "$PROGRESS_BAK/" 2>/dev/null || true
 fi
 
-echo "Building protocol play: repairing..."
+echo "Building protocol play: puzzle..."
 cargo build --release --features player
-cp target/release/protocol-play target/release/protocol-play-repairing
+cp target/release/protocol-play target/release/protocol-play-puzzle
 
 echo "Copying campaign levels and assets..."
 cp campaign_levels/*.json target/release/
@@ -34,6 +34,6 @@ rm -rf "$PROGRESS_BAK"
 
 echo ""
 echo "Done! Binary:"
-echo "  target/release/protocol-play-repairing (+ 149 campaign levels)"
+echo "  target/release/protocol-play-puzzle (+ 149 campaign levels)"
 echo ""
-echo "To run:  cd target/release && ./protocol-play-repairing"
+echo "To run:  cd target/release && ./protocol-play-puzzle"

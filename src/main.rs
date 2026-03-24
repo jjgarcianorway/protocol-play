@@ -101,7 +101,7 @@ fn main() {
         gathering::build_app(&mut app); app.run(); return;
     }
     gen_textures::ensure_textures();
-    let title = if cfg!(feature = "player") { "protocol play: repairing" } else { "protocol: play" };
+    let title = if cfg!(feature = "player") { "protocol play: puzzle" } else { "protocol: play" };
     let mut app = App::new();
     app.set_error_handler(bevy::ecs::error::warn);
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
