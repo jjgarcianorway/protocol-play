@@ -13,6 +13,7 @@ pub mod anna_comments;
 #[cfg(feature = "player")] mod player;
 #[cfg(feature = "player")] mod player_anna;
 #[cfg(feature = "player")] mod player_menu;
+#[cfg(feature = "player")] mod player_menu_bg;
 #[cfg(feature = "player")] mod player_progress;
 #[cfg(feature = "player")] mod player_settings;
 #[cfg(feature = "gathering")] mod gathering;
@@ -136,23 +137,33 @@ fn main() {
         app.add_systems(OnEnter(PlayerPhase::Playing),
             player_anna::setup_bot_anna.after(player::setup_player));
         // Menu (Startup because OnEnter doesn't fire for default state)
-        app.add_systems(Startup, player_menu::enter_menu
-            .after(setup_scene).after(setup_ui));
-        app.add_systems(Update, player_menu::menu_interaction
-            .run_if(in_state(PlayerPhase::MainMenu)));
-        app.add_systems(OnExit(PlayerPhase::MainMenu), player_menu::exit_menu);
+        app.add_systems(Startup, (
+            player_menu::enter_menu.after(setup_scene).after(setup_ui),
+            player_menu_bg::setup_menu_background.after(setup_scene).after(setup_ui),
+        ));
+        let main_menu = in_state(PlayerPhase::MainMenu);
+        app.add_systems(Update, (
+            player_menu::menu_interaction, player_menu::menu_hover,
+            player_menu_bg::animate_menu_camera,
+        ).run_if(main_menu));
+        app.add_systems(OnExit(PlayerPhase::MainMenu), (
+            player_menu::exit_menu,
+            player_menu_bg::cleanup_menu_background,
+        ));
         // Settings overlay — runs in all states
         app.add_systems(Update, (
             player_settings::settings_request,
             player_settings::settings_overlay_input.after(player_settings::settings_request),
         ));
+        // animate_ui_slides runs in all states (needed for fade effects in menu)
+        app.add_systems(Update, animate_ui_slides);
         // ALL gameplay systems gated to Playing state
         let playing = in_state(PlayerPhase::Playing);
         app.add_systems(Update, (
             animate_node_width, update_hovered_cell,
             update_ghost_and_highlight.after(update_hovered_cell),
             animate_scale.after(update_ghost_and_highlight).after(move_bots).after(apply_bot_formation),
-            animate_ui_slides, animate_border_fade, cleanup_despawned.after(animate_scale),
+            animate_border_fade, cleanup_despawned.after(animate_scale),
         ).run_if(playing.clone()));
         app.add_systems(Update, (escape_to_quit, quit_dialog_buttons, simulation::animate_sim_overlay_fade)
             .run_if(playing.clone()));
