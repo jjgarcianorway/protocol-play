@@ -374,8 +374,8 @@ pub fn menu_buttons(
 
 /// Hover effect for Play button.
 pub fn menu_btn_hover(
-    mut play_q: Query<(&Interaction, &mut BackgroundColor), (With<MenuPlayBtn>, Changed<Interaction>)>,
-    mut quit_q: Query<(&Interaction, &mut BackgroundColor), (With<MenuQuitBtn>, Changed<Interaction>)>,
+    mut play_q: Query<(&Interaction, &mut BackgroundColor), (With<MenuPlayBtn>, Without<MenuQuitBtn>, Changed<Interaction>)>,
+    mut quit_q: Query<(&Interaction, &mut BackgroundColor), (With<MenuQuitBtn>, Without<MenuPlayBtn>, Changed<Interaction>)>,
 ) {
     for (interaction, mut bg) in play_q.iter_mut() {
         bg.0 = match interaction {
