@@ -83,6 +83,12 @@ pub fn register_integrated_systems(app: &mut App) {
             handle_bot_level_complete,
             spawn_bot_inventory_once,
         ).run_if(in_state(GameScene::BotPuzzle)));
+    // Speed HUD + simulation speed (feature-gated for integrated mode)
+    #[cfg(feature = "player")]
+    app.add_systems(Update, (
+        crate::player::speed_hud_interaction,
+        crate::player::apply_sim_speed,
+    ).run_if(in_state(GameScene::BotPuzzle)));
 }
 
 /// Spawn the test inventory UI one frame after enter (resources now exist).
@@ -109,9 +115,10 @@ fn handle_bot_level_complete(
     validated.0 = false;
     let Some(_level) = level else { return };
 
-    // Increment bot_level and save
+    // Increment bot_level and clear pending
     let mut gs = load_game_state();
     gs.bot_level += 1;
+    gs.pending_game = None;
     save_game_state(&gs);
 
     // Return to Dashboard

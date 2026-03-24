@@ -172,6 +172,7 @@ pub fn save_converter_results(
     gs.crystals_blue = gs.crystals_blue.saturating_sub(per_color);
     gs.crystals_yellow = gs.crystals_yellow.saturating_sub(per_color);
     gs.crystals_purple = gs.crystals_purple.saturating_sub(per_color);
+    gs.pending_game = None;
     crate::save_state::save_game_state(&gs);
 }
 
@@ -181,33 +182,22 @@ pub fn return_button_interaction(
         (&Interaction, &mut BackgroundColor),
         (Changed<Interaction>, With<ReturnButton>),
     >,
+    #[cfg(not(feature = "full"))]
     mut next_state: ResMut<NextState<ConverterPhase>>,
-    mut grid_state: ResMut<GridState>,
-    mut pile: ResMut<CrystalPile>,
-    mut tanks: ResMut<ResourceTanks>,
-    mut stats: ResMut<ConversionStats>,
+    #[cfg(feature = "full")]
+    mut next_scene: ResMut<NextState<crate::mission::types::GameScene>>,
     results_q: Query<Entity, With<ResultsScreen>>,
     mut commands: Commands,
 ) {
     for (interaction, mut bg) in interaction_q.iter_mut() {
         match *interaction {
             Interaction::Pressed => {
-                let gs = crate::save_state::load_game_state();
-                let crystal_count = gs.total_crystals();
-                let pile_size = if crystal_count > 0 {
-                    crystal_count.max(MIN_PILE_SIZE)
-                } else {
-                    INITIAL_PILE_SIZE
-                };
-                *grid_state = GridState::default();
-                *pile = CrystalPile { total: pile_size, remaining: pile_size };
-                *tanks = ResourceTanks::default();
-                *stats = ConversionStats::default();
-                grid_state.phase = GridPhase::Refilling;
-                grid_state.phase_timer = REFILL_DELAY;
                 for entity in results_q.iter() {
                     commands.entity(entity).despawn();
                 }
+                #[cfg(feature = "full")]
+                next_scene.set(crate::mission::types::GameScene::Dashboard);
+                #[cfg(not(feature = "full"))]
                 next_state.set(ConverterPhase::Processing);
             }
             Interaction::Hovered => {

@@ -198,7 +198,7 @@ pub const SHIELD_BUBBLE_PULSE_AMOUNT: f32 = 0.03;
 
 // Warning indicators (screen-edge asteroid approach)
 pub const WARNING_LEAD_TIME: f32 = 3.0;
-pub const WARNING_ARROW_SIZE: f32 = 20.0;
+pub const WARNING_ARROW_SIZE: f32 = 28.0;
 pub const WARNING_ARROW_COLOR: (f32, f32, f32) = (1.0, 0.2, 0.15);
 pub const WARNING_MARGIN_PX: f32 = 8.0;
 

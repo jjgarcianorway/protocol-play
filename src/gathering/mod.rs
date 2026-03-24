@@ -158,6 +158,7 @@ fn setup_gathering(
         Projection::Perspective(PerspectiveProjection {
             fov: CAMERA_FOV.to_radians(), ..default()
         }),
+        GatheringEntity,
     ));
 
     commands.spawn((

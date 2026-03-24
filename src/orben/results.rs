@@ -5,6 +5,14 @@ use super::constants::*;
 use super::types::*;
 use super::rules;
 
+/// Save Orben results to cross-game state.
+fn save_orben_results() {
+    let mut gs = crate::save_state::load_game_state();
+    gs.orben_games_played += 1;
+    gs.pending_game = None;
+    crate::save_state::save_game_state(&gs);
+}
+
 /// Spawn the results screen overlay.
 pub fn spawn_results_screen(
     mut commands: Commands,
@@ -13,6 +21,8 @@ pub fn spawn_results_screen(
 ) {
     let f = &font.0;
     let tf = |size: f32| TextFont { font: f.clone(), font_size: size, ..default() };
+
+    save_orben_results();
 
     let (player_wins, npc_wins) = rules::determine_winner(
         state.player_captured_orbs,
@@ -111,7 +121,6 @@ pub fn spawn_results_screen(
 
             card.spawn(Node { height: Val::Px(8.0), ..default() });
 
-            // Play Again button
             card.spawn((
                 Button,
                 Node {
@@ -121,17 +130,13 @@ pub fn spawn_results_screen(
                     align_items: AlignItems::Center,
                     ..default()
                 },
-                BackgroundColor(Color::srgb(
-                    BTN_BG_O.0, BTN_BG_O.1, BTN_BG_O.2,
-                )),
-                PlayAgainButton,
-            )).with_children(|btn| {
-                btn.spawn((
-                    Text::new("Play Again"),
-                    tf(RESULTS_BTN_FONT_O),
-                    TextColor(Color::WHITE),
-                ));
-            });
+                BackgroundColor(Color::srgb(0.15, 0.25, 0.35)),
+                OrbenReturnButton,
+            )).with_child((
+                Text::new("Return to Mission Control"),
+                tf(RESULTS_BTN_FONT_O),
+                TextColor(Color::srgba(0.8, 0.9, 1.0, 0.9)),
+            ));
         });
     });
 }
@@ -154,6 +159,30 @@ fn stat_row(
         row.spawn((Text::new(label), font.clone(), TextColor(label_color)));
         row.spawn((Text::new(value), font.clone(), TextColor(value_color)));
     });
+}
+
+/// Handle "Mission Control" return button (integrated mode only).
+pub fn return_button_interaction(
+    mut interaction_q: Query<
+        (&Interaction, &mut BackgroundColor),
+        (Changed<Interaction>, With<OrbenReturnButton>),
+    >,
+    #[cfg(feature = "full")]
+    mut next_scene: ResMut<NextState<crate::mission::types::GameScene>>,
+    results_q: Query<Entity, With<ResultsScreen>>,
+    mut commands: Commands,
+) {
+    for (interaction, mut bg) in interaction_q.iter_mut() {
+        match *interaction {
+            Interaction::Pressed => {
+                for entity in results_q.iter() { commands.entity(entity).despawn(); }
+                #[cfg(feature = "full")]
+                next_scene.set(crate::mission::types::GameScene::Dashboard);
+            }
+            Interaction::Hovered => { *bg = BackgroundColor(Color::srgb(0.2, 0.35, 0.5)); }
+            Interaction::None => { *bg = BackgroundColor(Color::srgb(0.15, 0.25, 0.35)); }
+        }
+    }
 }
 
 /// Handle play again button interaction.

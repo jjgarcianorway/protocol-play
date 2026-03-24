@@ -8,27 +8,27 @@ use super::types::*;
 
 /// Set up Anna comments for The Gathering.
 pub fn setup_gathering_anna(mut commands: Commands, font: Res<GatheringFont>) {
-    let pool: Vec<&str> = vec![
-        "Watch the big ones.",
-        "The crystals are remnants of dead stars.",
-        "Stay sharp out there.",
-        "Every crystal counts.",
-        "The ice ones are beautiful, aren't they?",
-        "I mapped these fields from the bridge.",
-        "You make it look easy.",
-        "Don't fly too close to the metallic ones.",
-        "The ship is holding together. Barely.",
-        "I can feel the hull vibrate from here.",
-        "Those crystals will power the colony for weeks.",
-        "Focus. Breathe. Dodge.",
-        "The asteroid density is increasing ahead.",
-        "You're doing better than my simulations predicted.",
-        "I'm tracking your trajectory. Elegant.",
-        "This field reminds me of the Oort Cloud data.",
+    let pool: Vec<String> = vec![
+        "Watch the big ones.".into(),
+        "The crystals are remnants of dead stars.".into(),
+        "Stay sharp out there.".into(),
+        "Every crystal counts.".into(),
+        "The ice ones are beautiful, aren't they?".into(),
+        "I mapped these fields from the bridge.".into(),
+        "You make it look easy.".into(),
+        "Don't fly too close to the metallic ones.".into(),
+        "The ship is holding together. Barely.".into(),
+        "I can feel the hull vibrate from here.".into(),
+        "Those crystals will power the colony for weeks.".into(),
+        "Focus. Breathe. Dodge.".into(),
+        "The asteroid density is increasing ahead.".into(),
+        "You're doing better than my simulations predicted.".into(),
+        "I'm tracking your trajectory. Elegant.".into(),
+        "This field reminds me of the Oort Cloud data.".into(),
     ];
     let queue = build_queue(&pool, 6);
     commands.insert_resource(AnnaComments { queue, current: None });
-    spawn_anna_ui(&mut commands, &font.0);
+    spawn_anna_ui(&mut commands, &font.0, "ANNA");
 }
 
 /// Tracks which reactive comments have already been shown to avoid repetition.

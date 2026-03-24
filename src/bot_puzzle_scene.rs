@@ -23,13 +23,15 @@ pub fn enter_bot_puzzle(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut images: ResMut<Assets<Image>>,
     mut fonts: ResMut<Assets<Font>>,
-    camera_q: Query<Entity, With<MissionCamera>>,
+    mut camera_q: Query<(Entity, &mut Camera), With<MissionCamera>>,
     root_ui_q: Query<Entity, (With<Node>, Without<bevy::prelude::ChildOf>)>,
     mut clear_color: ResMut<ClearColor>,
     mut ambient: ResMut<GlobalAmbientLight>,
+    player_settings: Option<Res<crate::player_settings::PlayerSettings>>,
 ) {
     // Hide Mission Control camera + UI
-    for e in camera_q.iter() {
+    for (e, mut cam) in camera_q.iter_mut() {
+        cam.is_active = false;
         commands.entity(e).insert(Visibility::Hidden);
     }
     for e in root_ui_q.iter() {
@@ -60,6 +62,11 @@ pub fn enter_bot_puzzle(
     let font = fonts.add(Font::try_from_bytes(font_bytes).unwrap());
     commands.insert_resource(GameFont(font.clone()));
 
+    // Speed HUD (1×/2×/4× buttons shown while playing)
+    if let Some(ref ps) = player_settings {
+        crate::player::spawn_speed_hud(&mut commands, &font, ps);
+    }
+
     // Icons
     let delete_icon = create_delete_icon(&mut images);
     let icons = crate::icon_render::build_inventory_icons(&mut images, delete_icon);
@@ -69,6 +76,11 @@ pub fn enter_bot_puzzle(
     let play_icon = create_play_icon(&mut images);
     let stop_icon = create_stop_icon(&mut images);
     commands.insert_resource(PlayIcons { play: play_icon.clone(), stop: stop_icon });
+
+    // Mark game as in-progress
+    let mut gs = crate::save_state::load_game_state();
+    gs.pending_game = Some("bot_puzzle".to_string());
+    crate::save_state::save_game_state(&gs);
 
     // Load the level
     let gs = crate::save_state::load_game_state();
@@ -265,7 +277,8 @@ pub fn exit_bot_puzzle(
     sim_overlay_q: Query<Entity, With<crate::simulation::SimulationOverlay>>,
     ghost_trail_q: Query<Entity, With<GhostTrail>>,
     merge_flash_q: Query<Entity, With<MergeFlash>>,
-    camera_q: Query<Entity, With<MissionCamera>>,
+    speed_hud_q: Query<Entity, With<crate::player::SpeedHudContainer>>,
+    mut camera_q: Query<(Entity, &mut Camera), With<MissionCamera>>,
     root_ui_q: Query<Entity, (With<Node>, Without<bevy::prelude::ChildOf>)>,
     mut clear_color: ResMut<ClearColor>,
     mut ambient: ResMut<GlobalAmbientLight>,
@@ -278,6 +291,7 @@ pub fn exit_bot_puzzle(
     for e in sim_overlay_q.iter() { commands.entity(e).despawn(); }
     for e in ghost_trail_q.iter() { commands.entity(e).despawn(); }
     for e in merge_flash_q.iter() { commands.entity(e).despawn(); }
+    for e in speed_hud_q.iter() { commands.entity(e).despawn(); }
 
     // Remove bot puzzle resources
     commands.remove_resource::<GameAssets>();
@@ -304,7 +318,8 @@ pub fn exit_bot_puzzle(
     commands.remove_resource::<crate::simulation::PlayTimer>();
 
     // Restore Mission Control camera + UI
-    for e in camera_q.iter() {
+    for (e, mut cam) in camera_q.iter_mut() {
+        cam.is_active = true;
         commands.entity(e).insert(Visibility::Visible);
     }
     for e in root_ui_q.iter() {

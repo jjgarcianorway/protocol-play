@@ -144,13 +144,26 @@ pub struct JourneyText;
 pub struct CrystalText;
 
 /// Marker for a game selection card.
-#[derive(Component, Clone, Copy)]
+#[derive(Component, Clone, Copy, PartialEq, Eq)]
 pub enum GameCard {
     BotGame,
     Gathering,
     Converter,
     Delivery,
     Orben,
+}
+
+impl GameCard {
+    /// The key stored in `GameState::pending_game`.
+    pub fn save_name(self) -> &'static str {
+        match self {
+            GameCard::BotGame => "bot_puzzle",
+            GameCard::Gathering => "gathering",
+            GameCard::Converter => "converter",
+            GameCard::Delivery => "delivery",
+            GameCard::Orben => "orben",
+        }
+    }
 }
 
 /// Marker for game card status text.

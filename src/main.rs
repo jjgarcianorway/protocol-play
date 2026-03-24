@@ -12,6 +12,8 @@ pub mod sound;
 pub mod anna_comments;
 #[cfg(feature = "player")] mod player;
 #[cfg(feature = "player")] mod player_anna;
+#[cfg(feature = "player")] mod player_menu;
+#[cfg(feature = "player")] mod player_settings;
 #[cfg(feature = "gathering")] mod gathering;
 #[cfg(feature = "converter")] mod converter;
 #[cfg(feature = "delivery")] mod delivery;
@@ -98,7 +100,7 @@ fn main() {
         gathering::build_app(&mut app); app.run(); return;
     }
     gen_textures::ensure_textures();
-    let title = if cfg!(feature = "player") { "protocol: play (player)" } else { "protocol: play" };
+    let title = if cfg!(feature = "player") { "protocol play: repairing" } else { "protocol: play" };
     let mut app = App::new();
     app.set_error_handler(bevy::ecs::error::ignore);
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
@@ -119,7 +121,34 @@ fn main() {
         .insert_resource(GenSettings::default()).insert_resource(GeneratorState::default())
         .add_systems(Startup, (setup_scene, setup_ui));
     #[cfg(feature = "player")]
-    app.add_systems(Startup, player::setup_player.after(setup_scene).after(setup_ui));
+    {
+        use player_menu::PlayerPhase;
+        app.init_state::<PlayerPhase>();
+        app.insert_resource(player_menu::MenuCamAngle::default());
+        app.insert_resource(player_menu::MenuFade::default());
+        let ps = player_settings::load_player_settings();
+        let tr = crate::i18n::load_translations(&ps.language);
+        app.insert_resource(tr);
+        app.insert_resource(ps);
+        app.insert_resource(player_settings::SettingsOpenRequest::default());
+        // Main menu
+        app.add_systems(OnEnter(PlayerPhase::MainMenu), player_menu::setup_main_menu
+            .after(setup_scene).after(setup_ui));
+        app.add_systems(Update, player_menu::animate_menu.run_if(in_state(PlayerPhase::MainMenu)));
+        app.add_systems(Update, player_menu::menu_buttons.run_if(in_state(PlayerPhase::MainMenu)));
+        app.add_systems(Update, player_menu::menu_btn_hover.run_if(in_state(PlayerPhase::MainMenu)));
+        app.add_systems(OnExit(PlayerPhase::MainMenu), player_menu::cleanup_main_menu);
+        // Playing
+        app.add_systems(OnEnter(PlayerPhase::Playing),
+            player::setup_player.after(setup_scene).after(setup_ui));
+        app.add_systems(OnEnter(PlayerPhase::Playing),
+            player_anna::setup_bot_anna.after(player::setup_player));
+        // Settings overlay — runs in all player states
+        app.add_systems(Update, (
+            player_settings::settings_request,
+            player_settings::settings_overlay_input.after(player_settings::settings_request),
+        ));
+    }
     app.add_systems(Update, (
             animate_node_width, update_hovered_cell,
             update_ghost_and_highlight.after(update_hovered_cell),
@@ -164,16 +193,28 @@ fn main() {
             gen_apply_result, update_generator,
         ));
     #[cfg(feature = "player")]
-    { app.insert_resource(player::ChapterState { bg_target: Color::srgb(CLEAR_COLOR.0, CLEAR_COLOR.1, CLEAR_COLOR.2), current: usize::MAX });
-      app.add_systems(Update, (handle_test_tile_click.after(update_hovered_cell),
-        test_inventory_interaction, reset_test_interaction, update_status_bar,
-        test_mode::test_tile_sound.after(handle_test_tile_click)));
-      app.add_systems(Update, (player::player_nav_interaction, player::update_player_stats));
-      app.add_systems(Update, (player::auto_save_progress, player::handle_level_complete));
-      app.add_systems(Update, player::populate_stats.before(spawn_simulation_overlay));
-      app.add_systems(Update, (player::cleanup_stale_inventory, player::animate_bg_color, player::animate_chapter_title, player::update_version_label));
-      app.add_systems(Startup, player_anna::setup_bot_anna.after(player::setup_player));
-      app.add_systems(Update, anna_comments::tick_anna_comments); }
+    {
+        use player_menu::PlayerPhase;
+        app.insert_resource(player::ChapterState {
+            bg_target: Color::srgb(CLEAR_COLOR.0, CLEAR_COLOR.1, CLEAR_COLOR.2), current: usize::MAX });
+        // These systems only run during active gameplay
+        app.add_systems(Update, (handle_test_tile_click.after(update_hovered_cell),
+            test_inventory_interaction, reset_test_interaction, update_status_bar,
+            test_mode::test_tile_sound.after(handle_test_tile_click),
+        ).run_if(in_state(PlayerPhase::Playing)));
+        app.add_systems(Update, (player::player_nav_interaction, player::update_player_stats,
+            player::auto_save_progress, player::handle_level_complete,
+        ).run_if(in_state(PlayerPhase::Playing)));
+        app.add_systems(Update, player::populate_stats
+            .before(spawn_simulation_overlay)
+            .run_if(in_state(PlayerPhase::Playing)));
+        app.add_systems(Update, (
+            player::cleanup_stale_inventory, player::animate_bg_color,
+            player::animate_chapter_title, player::update_version_label,
+            anna_comments::tick_anna_comments, player::apply_sim_speed,
+            player::speed_hud_interaction,
+        ).run_if(in_state(PlayerPhase::Playing)));
+    }
     app.run();
 }
 fn setup_scene(

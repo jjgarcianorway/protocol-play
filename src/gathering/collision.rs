@@ -50,11 +50,10 @@ pub fn check_collisions(
             state.since_last_hit = 0.0; // reset regen cooldown
             state.control_loss_timer = CONTROL_LOSS_DURATION;
             shake.intensity = (shake.intensity + damage * 0.15).min(3.0);
-            // Hit sound disabled — needs better sound design
             hit_flash.timer = HIT_FLASH_DURATION;
             commands.entity(entity).insert(HitCooldown(HIT_COOLDOWN_SECS));
 
-            // direction blocks disabled
+            spawn_damage_direction(&mut commands, ship_pos, ast_pos);
 
             if state.life <= 0.0 {
                 state.life = 0.0;
@@ -136,7 +135,6 @@ pub fn tick_near_miss_cooldowns(
     }
 }
 
-#[allow(dead_code)]
 fn spawn_damage_direction(commands: &mut Commands, ship_pos: Vec2, ast_pos: Vec2) {
     let diff = ast_pos - ship_pos;
     // Determine which edge to show the indicator on

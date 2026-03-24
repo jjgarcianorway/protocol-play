@@ -36,6 +36,7 @@ pub fn spawn_results_screen(
         gs.cryo = (gs.cryo + state.score[2] as f32 * efficiency_factor * 0.5).clamp(0.0, 100.0);
         gs.shields = (gs.shields + state.score[3] as f32 * efficiency_factor * 0.5).clamp(0.0, 100.0);
         gs.repair = (gs.repair + state.score[4] as f32 * efficiency_factor * 0.5).clamp(0.0, 100.0);
+        gs.pending_game = None;
         crate::save_state::save_game_state(&gs);
     }
 
@@ -127,56 +128,28 @@ pub fn spawn_results_screen(
     });
 }
 
-/// Handle return button interaction — reset the game.
+/// Handle return button interaction — return to Mission Control (integrated) or restart (standalone).
 pub fn return_button_interaction(
     mut interaction_q: Query<
         (&Interaction, &mut BackgroundColor),
         (Changed<Interaction>, With<ReturnButton>),
     >,
+    #[cfg(not(feature = "full"))]
     mut next_state: ResMut<NextState<DeliveryPhase>>,
-    mut state: ResMut<DeliveryState>,
+    #[cfg(feature = "full")]
+    mut next_scene: ResMut<NextState<crate::mission::types::GameScene>>,
     results_q: Query<Entity, With<ResultsScreen>>,
-    root_q: Query<Entity, With<DeliveryRoot>>,
-    pod_q: Query<Entity, With<Pod>>,
-    trail_q: Query<Entity, With<PodTrail>>,
-    popup_q: Query<Entity, With<StreakPopup>>,
-    star_q: Query<Entity, With<StarDotD>>,
     mut commands: Commands,
 ) {
     for (interaction, mut bg) in interaction_q.iter_mut() {
         match *interaction {
             Interaction::Pressed => {
-                // Reload GameState for updated resource levels
-                let gs = crate::save_state::load_game_state();
-                let resource_sum = (gs.power + gs.life_support + gs.cryo
-                    + gs.shields + gs.repair) as u32;
-                let pod_count = if resource_sum > 0 {
-                    resource_sum.clamp(MIN_PODS, MAX_PODS)
-                } else {
-                    TOTAL_PODS
-                };
-
-                *state = DeliveryState::default();
-                state.total_pods = pod_count;
-
                 for entity in results_q.iter() {
                     commands.entity(entity).despawn();
                 }
-                for entity in root_q.iter() {
-                    commands.entity(entity).despawn();
-                }
-                for entity in pod_q.iter() {
-                    commands.entity(entity).despawn();
-                }
-                for entity in trail_q.iter() {
-                    commands.entity(entity).despawn();
-                }
-                for entity in popup_q.iter() {
-                    commands.entity(entity).despawn();
-                }
-                for entity in star_q.iter() {
-                    commands.entity(entity).despawn();
-                }
+                #[cfg(feature = "full")]
+                next_scene.set(crate::mission::types::GameScene::Dashboard);
+                #[cfg(not(feature = "full"))]
                 next_state.set(DeliveryPhase::Playing);
             }
             Interaction::Hovered => {

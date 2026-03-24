@@ -10,35 +10,20 @@ if ls target/release/*.progress.json target/release/stats.json target/release/st
     cp target/release/stats.jsonl "$PROGRESS_BAK/" 2>/dev/null || true
 fi
 
-echo "Building editor..."
-cargo build --release
-cp target/release/protocol-play target/release/protocol-play-editor
-echo "Building player..."
+echo "Building protocol play: repairing..."
 cargo build --release --features player
 cp target/release/protocol-play target/release/protocol-play-player
-echo "Building gathering..."
-cargo build --release --features gathering
-cp target/release/protocol-play target/release/protocol-play-gathering
-echo "Building converter..."
-cargo build --release --features converter
-cp target/release/protocol-play target/release/protocol-play-converter
-echo "Building delivery..."
-cargo build --release --features delivery
-cp target/release/protocol-play target/release/protocol-play-delivery
-echo "Building mission control..."
-cargo build --release --features mission
-cp target/release/protocol-play target/release/protocol-play-mission
-echo "Building orben..."
-cargo build --release --features orben
-cp target/release/protocol-play target/release/protocol-play-orben
-echo "Building full (integrated)..."
-cargo build --release --features full
-cp target/release/protocol-play target/release/protocol-play-full
-echo "Copying campaign levels and icons next to player binary..."
+
+echo "Copying campaign levels and assets..."
 cp campaign_levels/*.json target/release/
-mkdir -p target/release/assets/icons target/release/assets/textures
+mkdir -p target/release/assets/icons target/release/assets/textures target/release/assets/fonts
 cp assets/icons/*.png target/release/assets/icons/ 2>/dev/null || true
 cp assets/textures/*.png target/release/assets/textures/ 2>/dev/null || true
+cp assets/fonts/*.ttf target/release/assets/fonts/ 2>/dev/null || true
+
+# Copy i18n files
+mkdir -p target/release/i18n
+cp i18n/*.json target/release/i18n/ 2>/dev/null || true
 
 # Restore progress files
 if ls "$PROGRESS_BAK"/*.json "$PROGRESS_BAK"/*.jsonl 2>/dev/null | head -1 > /dev/null 2>&1; then
@@ -47,12 +32,8 @@ if ls "$PROGRESS_BAK"/*.json "$PROGRESS_BAK"/*.jsonl 2>/dev/null | head -1 > /de
 fi
 rm -rf "$PROGRESS_BAK"
 
-echo "Done! Binaries:"
-echo "  target/release/protocol-play-editor"
+echo ""
+echo "Done! Binary:"
 echo "  target/release/protocol-play-player (+ 149 campaign levels)"
-echo "  target/release/protocol-play-gathering"
-echo "  target/release/protocol-play-converter"
-echo "  target/release/protocol-play-delivery"
-echo "  target/release/protocol-play-mission"
-echo "  target/release/protocol-play-orben"
-echo "  target/release/protocol-play-full (integrated game)"
+echo ""
+echo "To run:  cd target/release && ./protocol-play-player"

@@ -61,7 +61,7 @@ pub fn spawn_ship(
 pub fn move_ship(
     windows: Query<&Window>,
     mut cursor_opts: Query<&mut CursorOptions>,
-    cameras: Query<(&Camera, &GlobalTransform)>,
+    cameras: Query<(&Camera, &GlobalTransform), With<super::types::GatheringEntity>>,
     mut ship_q: Query<&mut Transform, With<Ship>>,
     mut state: ResMut<ShipState>,
     time: Res<Time>,

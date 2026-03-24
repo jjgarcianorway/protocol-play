@@ -179,6 +179,10 @@ pub fn enter_loading(
                         LOADING_DETAIL_COLOR.0, LOADING_DETAIL_COLOR.1,
                         LOADING_DETAIL_COLOR.2, 0.0,
                     )),
+                    Node {
+                        max_width: Val::Px(LOADING_BAR_WIDTH + 100.0),
+                        ..default()
+                    },
                 ));
             }
         });

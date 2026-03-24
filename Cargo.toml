@@ -1,6 +1,6 @@
 [package]
 name = "protocol-play"
-version = "0.56.0"
+version = "0.57.0"
 edition = "2024"
 license = "GPL-3.0-or-later"
 description = "protocol: play - a game built with Bevy"
@@ -41,6 +41,10 @@ path = "src/smart_solver.rs"
 [[bin]]
 name = "generate-icons"
 path = "src/gen_icons.rs"
+
+[[bin]]
+name = "count-solutions"
+path = "src/count_solutions.rs"
 
 [profile.dev]
 opt-level = 1

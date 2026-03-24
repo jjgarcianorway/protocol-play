@@ -365,6 +365,9 @@ fn end_scene(
     }
 
     state.active_scene = None;
+    // Reset trigger check so any newly-unlocked scenes fire immediately
+    // (e.g. SCENE_FIRST_WORDS fires right after awakening ends)
+    reset_dialog_check(state);
     dialog_ui::despawn_dialog_overlay(commands, despawn_q);
 }
 

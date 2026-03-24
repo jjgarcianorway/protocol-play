@@ -105,6 +105,7 @@ pub fn spawn_game_over_screen(
     gs.gathering_runs += 1;
     gs.total_crystals_gathered += state.crystals;
     gs.distance_au += state.distance * 0.01;
+    gs.pending_game = None;
     crate::save_state::save_game_state(&gs);
 
     let title_font = TextFont { font: font.0.clone(), font_size: STATS_TITLE_FONT, ..default() };
@@ -161,16 +162,16 @@ pub fn spawn_game_over_screen(
             }
             card.spawn(Node { height: Val::Px(8.0), ..default() });
             card.spawn((
-                Button, TryAgainButton,
+                Button, ReturnToMissionButton,
                 Node {
-                    padding: UiRect::axes(Val::Px(24.0), Val::Px(10.0)),
+                    padding: UiRect::axes(Val::Px(32.0), Val::Px(12.0)),
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
                     border_radius: BorderRadius::all(Val::Px(6.0)),
                     ..default()
                 },
-                BackgroundColor(Color::srgb(0.2, 0.2, 0.3)),
-            )).with_child((Text::new("Try Again"), stat_font.clone(), TextColor(Color::WHITE)));
+                BackgroundColor(Color::srgb(0.15, 0.25, 0.35)),
+            )).with_child((Text::new("Return to Mission Control"), stat_font.clone(), TextColor(Color::srgba(0.8, 0.9, 1.0, 0.9))));
         });
     });
 }
@@ -224,6 +225,18 @@ pub fn try_again_hover(
             Interaction::Pressed => Color::srgb(0.15, 0.4, 0.6),
             Interaction::Hovered => Color::srgb(0.3, 0.3, 0.45),
             Interaction::None => Color::srgb(0.2, 0.2, 0.3),
+        };
+    }
+}
+
+pub fn return_to_mission_hover(
+    mut query: Query<(&Interaction, &mut BackgroundColor), (Changed<Interaction>, With<ReturnToMissionButton>)>,
+) {
+    for (interaction, mut bg) in query.iter_mut() {
+        bg.0 = match interaction {
+            Interaction::Pressed => Color::srgb(0.1, 0.35, 0.55),
+            Interaction::Hovered => Color::srgb(0.2, 0.35, 0.5),
+            Interaction::None => Color::srgb(0.15, 0.25, 0.35),
         };
     }
 }

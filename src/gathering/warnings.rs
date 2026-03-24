@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Feature #1: Screen-edge asteroid warning indicators.
-//! Shows red chevron arrows on screen edges when side-velocity asteroids approach.
+//! Shows chevron arrows (◄ ►) on screen edges when side-velocity asteroids approach.
 
 use bevy::prelude::*;
 use super::constants::*;
@@ -10,15 +10,16 @@ use super::types::*;
 pub fn update_warning_indicators(
     mut commands: Commands,
     asteroid_q: Query<(Entity, &Asteroid, &Transform)>,
-    mut indicator_q: Query<(Entity, &WarningIndicator, &mut Node, &mut BackgroundColor)>,
+    mut indicator_q: Query<(Entity, &WarningIndicator, &mut Node, &Children)>,
+    mut text_color_q: Query<&mut TextColor>,
     bounds: Res<ViewBounds>,
     state: Res<ShipState>,
     paused: Res<Paused>,
     ship_q: Query<&Transform, With<Ship>>,
     time: Res<Time>,
+    font: Res<GatheringFont>,
 ) {
     if !state.alive || paused.0 {
-        // Despawn all indicators when paused or dead
         for (entity, _, _, _) in indicator_q.iter() {
             commands.entity(entity).despawn();
         }
@@ -26,22 +27,17 @@ pub fn update_warning_indicators(
     }
 
     let ship_y = ship_q.iter().next().map(|t| t.translation.y).unwrap_or(0.0);
-
-    // Track which asteroid entities still have valid warnings
     let mut active_asteroids: Vec<Entity> = Vec::new();
 
     for (ast_entity, asteroid, ast_tf) in asteroid_q.iter() {
         let pos = ast_tf.translation;
         let vel = asteroid.velocity;
 
-        // Only warn for asteroids with significant side velocity
         if vel.x.abs() < 1.5 { continue; }
 
-        // Must be off-screen horizontally
         let screen_edge = bounds.half_width;
         if pos.x.abs() < screen_edge { continue; }
 
-        // Check if asteroid would enter the viewport within WARNING_LEAD_TIME
         let time_to_edge = if vel.x > 0.0 && pos.x < -screen_edge {
             (-screen_edge - pos.x) / vel.x
         } else if vel.x < 0.0 && pos.x > screen_edge {
@@ -52,32 +48,28 @@ pub fn update_warning_indicators(
 
         if time_to_edge < 0.0 || time_to_edge > WARNING_LEAD_TIME { continue; }
 
-        // Check if asteroid is within ship's vertical range (generous margin)
         let future_y = pos.y + vel.y * time_to_edge;
         let y_range = bounds.half_height * 0.8;
         if (future_y - ship_y).abs() > y_range { continue; }
 
         active_asteroids.push(ast_entity);
 
-        // Calculate indicator properties -- pulse faster as asteroid gets closer
         let proximity = 1.0 - (time_to_edge / WARNING_LEAD_TIME).clamp(0.0, 1.0);
         let pulse = 1.0 - (time.elapsed_secs() * WARNING_PULSE_SPEED).sin().abs()
             * WARNING_PULSE_AMOUNT * proximity;
-        let alpha = proximity * 0.8 * pulse;
+        let alpha = proximity * 0.9 * pulse;
         let from_left = pos.x < 0.0;
 
-        // Calculate vertical position on screen (0..100%)
         let y_pct = ((pos.y + bounds.half_height) / (bounds.half_height * 2.0))
-            .clamp(0.05, 0.95);
-        // Screen Y is inverted (top = 0)
+            .clamp(0.05, 0.93);
         let screen_y_pct = (1.0 - y_pct) * 100.0;
 
-        // Check if indicator already exists for this asteroid
+        let (r, g, b) = WARNING_ARROW_COLOR;
+
         let mut found = false;
-        for (_, indicator, mut node, mut bg) in indicator_q.iter_mut() {
+        for (_, indicator, mut node, children) in indicator_q.iter_mut() {
             if indicator.asteroid_entity == ast_entity {
                 found = true;
-                // Update position and alpha
                 node.top = Val::Percent(screen_y_pct);
                 if from_left {
                     node.left = Val::Px(WARNING_MARGIN_PX);
@@ -86,20 +78,20 @@ pub fn update_warning_indicators(
                     node.right = Val::Px(WARNING_MARGIN_PX);
                     node.left = Val::Auto;
                 }
-                let (r, g, b) = WARNING_ARROW_COLOR;
-                bg.0 = Color::srgba(r, g, b, alpha);
+                for child in children.iter() {
+                    if let Ok(mut tc) = text_color_q.get_mut(child) {
+                        tc.0 = Color::srgba(r, g, b, alpha);
+                    }
+                }
                 break;
             }
         }
 
         if !found {
-            let (r, g, b) = WARNING_ARROW_COLOR;
+            let arrow_char = if from_left { "◄" } else { "►" };
             let mut node = Node {
                 position_type: PositionType::Absolute,
                 top: Val::Percent(screen_y_pct),
-                width: Val::Px(WARNING_ARROW_SIZE * 0.6),
-                height: Val::Px(WARNING_ARROW_SIZE),
-                border_radius: BorderRadius::all(Val::Px(3.0)),
                 ..default()
             };
             if from_left {
@@ -110,8 +102,11 @@ pub fn update_warning_indicators(
             commands.spawn((
                 WarningIndicator { asteroid_entity: ast_entity },
                 node,
-                BackgroundColor(Color::srgba(r, g, b, alpha)),
                 ZIndex(8),
+            )).with_child((
+                Text::new(arrow_char),
+                TextFont { font: font.0.clone(), font_size: WARNING_ARROW_SIZE, ..default() },
+                TextColor(Color::srgba(r, g, b, alpha)),
             ));
         }
     }

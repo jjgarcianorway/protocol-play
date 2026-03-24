@@ -14,8 +14,8 @@ pub struct StoryChapter {
 pub const STORY_CHAPTERS: &[StoryChapter] = &[
     StoryChapter {
         id: 0,
-        required_level: 0,
-        message: "Welcome. I'm Anna. Systems need repair.",
+        required_level: 1,
+        message: "You repaired your first system. There are many more.",
     },
     StoryChapter {
         id: 1,

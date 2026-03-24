@@ -45,6 +45,9 @@ pub struct SettingsLangBtn(pub usize);
 pub struct SettingsResetBtn;
 
 #[derive(Component)]
+pub struct SettingsMainMenuBtn;
+
+#[derive(Component)]
 pub struct SettingsConfirmReset;
 
 #[derive(Component)]
@@ -256,6 +259,30 @@ fn spawn_game_content(
     parent.spawn(Node { height: Val::Px(10.0), ..default() });
     settings_seed::spawn_seed_input(parent, font);
     parent.spawn(Node { height: Val::Px(12.0), ..default() });
+    parent.spawn((
+        Button, SettingsMainMenuBtn,
+        Node {
+            padding: UiRect::axes(Val::Px(SETTINGS_BTN_PAD_X), Val::Px(SETTINGS_BTN_PAD_Y)),
+            border: UiRect::all(Val::Px(2.0)),
+            border_radius: BorderRadius::all(Val::Px(SETTINGS_BTN_CORNER)),
+            ..default()
+        },
+        BackgroundColor(Color::srgba(
+            SETTINGS_BTN_BG.0, SETTINGS_BTN_BG.1,
+            SETTINGS_BTN_BG.2, SETTINGS_BTN_BG.3,
+        )),
+        BorderColor::all(Color::srgba(
+            SETTINGS_BTN_BORDER.0, SETTINGS_BTN_BORDER.1,
+            SETTINGS_BTN_BORDER.2, SETTINGS_BTN_BORDER.3,
+        )),
+    )).with_child((
+        Text::new("Back to Main Menu"),
+        TextFont { font: font.clone(), font_size: SETTINGS_BTN_FONT, ..default() },
+        TextColor(Color::srgb(
+            SETTINGS_BTN_COLOR.0, SETTINGS_BTN_COLOR.1, SETTINGS_BTN_COLOR.2,
+        )),
+    ));
+    parent.spawn(Node { height: Val::Px(6.0), ..default() });
     parent.spawn((
         Button, SettingsResetBtn,
         Node {

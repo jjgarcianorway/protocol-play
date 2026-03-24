@@ -258,6 +258,73 @@ fn find_needs(size: u32, _board: &[(u32,u32,TileKind)], fg: &FastGrid, floor_set
     stuck
 }
 
+/// Count distinct valid solutions up to `max_count`. Stops early when limit or time is reached.
+/// Returns (count, is_exact) — is_exact=false means there may be more solutions than reported.
+pub fn count_solutions(data: &LevelData, max_count: u32) -> (u32, bool) {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs_f64(0.1);
+    let size = data.board_size;
+    let mut board: Vec<(u32, u32, TileKind)> = Vec::new();
+    let mut inventory: Vec<TileKind> = Vec::new();
+    for &(c, r, kind, marked) in &data.tiles {
+        if marked {
+            inventory.push(kind);
+            board.push((c, r, TileKind::Floor));
+        } else {
+            board.push((c, r, kind));
+        }
+    }
+    if inventory.is_empty() {
+        let fg = FastGrid::new(size, &board);
+        let ok = fg.simulate();
+        return (if ok { 1 } else { 0 }, true);
+    }
+    // Sort to group identical tiles (symmetry breaking)
+    inventory.sort_by(|a, b| tile_sort_key(a).cmp(&tile_sort_key(b)));
+    let mut floors: Vec<(u32, u32)> = board.iter()
+        .filter(|(_, _, k)| matches!(k, TileKind::Floor))
+        .map(|(c, r, _)| (*c, *r)).collect();
+    floors.sort(); // sorted for symmetry breaking
+    let mut fg = FastGrid::new(size, &board);
+    let mut count = 0u32;
+    let mut att = 0u64;
+    let mut placed: Vec<(u32, u32)> = Vec::new();
+    let timed_out = brute_count(
+        &inventory, 0, &floors, &mut placed, &mut fg, &mut count, max_count, &mut att, &deadline,
+    );
+    (count, !timed_out && count < max_count)
+}
+
+/// Simple brute-force backtrack: try every permutation of inventory on floor cells.
+/// Symmetry breaking: identical tile types must be placed in increasing position order.
+fn brute_count(
+    inv: &[TileKind], depth: usize, floors: &[(u32, u32)],
+    placed: &mut Vec<(u32, u32)>, fg: &mut FastGrid,
+    count: &mut u32, max_count: u32, att: &mut u64, deadline: &std::time::Instant,
+) -> bool {
+    if *count >= max_count { return true; }
+    if *att % 2_000 == 0 && std::time::Instant::now() > *deadline { return true; }
+    if depth == inv.len() {
+        *att += 1;
+        if fg.simulate() { *count += 1; }
+        return false;
+    }
+    // For identical tiles, start search after last placed position to avoid double counting
+    let min_pos = if depth > 0 && inv[depth] == inv[depth - 1] {
+        placed.last().and_then(|last| floors.iter().position(|p| p > last).unwrap_or(floors.len()).into()).unwrap_or(0)
+    } else { 0 };
+    for i in min_pos..floors.len() {
+        let (c, r) = floors[i];
+        if placed.contains(&(c, r)) { continue; }
+        placed.push((c, r));
+        fg.set(c, r, inv[depth]);
+        let timed_out = brute_count(inv, depth + 1, floors, placed, fg, count, max_count, att, deadline);
+        fg.set(c, r, TileKind::Floor);
+        placed.pop();
+        if timed_out { return true; }
+    }
+    false
+}
+
 fn mk_result(ok: bool, att: u64, s: &str, n: usize) -> SolveResult {
     let d = if n<=2||att<=10{"easy"} else if att<=200{"medium"} else if att<=10_000{"hard"} else {"expert"};
     SolveResult{solved:ok,attempts:att,strategy:s.to_string(),difficulty:d}

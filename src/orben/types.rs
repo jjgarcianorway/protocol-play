@@ -183,6 +183,9 @@ pub struct ResultsScreen;
 pub struct PlayAgainButton;
 
 #[derive(Component)]
+pub struct OrbenReturnButton;
+
+#[derive(Component)]
 pub struct StarDot;
 
 #[derive(Component)]

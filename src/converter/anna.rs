@@ -8,23 +8,23 @@ use super::types::*;
 
 /// Set up Anna comments for The Converter.
 pub fn setup_converter_anna(mut commands: Commands, font: Res<ConverterFont>) {
-    let pool: Vec<&str> = vec![
-        "I love watching the chains cascade.",
-        "Keep going.",
-        "Resources flowing. The ship thanks you.",
-        "You have a good eye for patterns.",
-        "The bigger the chain, the more efficient the conversion.",
-        "Each crystal holds energy from a star that died billions of years ago.",
-        "Four or more to cascade. Think ahead.",
-        "The tanks are filling. The ship can feel it.",
-        "You're turning starlight into survival.",
-        "I designed this converter. Watching you use it is... satisfying.",
-        "Look for the cascade opportunities. They multiply.",
-        "These crystals are the only fuel we have. Make them count.",
+    let pool: Vec<String> = vec![
+        "I love watching the chains cascade.".into(),
+        "Keep going.".into(),
+        "Resources flowing. The ship thanks you.".into(),
+        "You have a good eye for patterns.".into(),
+        "The bigger the chain, the more efficient the conversion.".into(),
+        "Each crystal holds energy from a star that died billions of years ago.".into(),
+        "Four or more to cascade. Think ahead.".into(),
+        "The tanks are filling. The ship can feel it.".into(),
+        "You're turning starlight into survival.".into(),
+        "I designed this converter. Watching you use it is... satisfying.".into(),
+        "Look for the cascade opportunities. They multiply.".into(),
+        "These crystals are the only fuel we have. Make them count.".into(),
     ];
     let queue = build_queue(&pool, 5);
     commands.insert_resource(AnnaComments { queue, current: None });
-    spawn_anna_ui(&mut commands, &font.0);
+    spawn_anna_ui(&mut commands, &font.0, "ANNA");
 }
 
 /// React to big chains in the converter.

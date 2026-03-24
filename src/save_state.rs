@@ -69,6 +69,11 @@ pub struct GameState {
     // Language code ("en", "es", etc.)
     #[serde(default = "default_language")]
     pub language: String,
+
+    // Which minigame is currently in-progress (set on enter, cleared on completion).
+    // Blocks starting other games until this one finishes.
+    #[serde(default)]
+    pub pending_game: Option<String>,
 }
 
 fn default_language() -> String {
@@ -105,6 +110,7 @@ impl Default for GameState {
             discovered_arks: Vec::new(),
             orben_games_played: 0,
             language: "en".to_string(),
+            pending_game: None,
         }
     }
 }

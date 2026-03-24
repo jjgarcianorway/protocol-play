@@ -343,6 +343,8 @@ pub struct TestInventory {
     pub name: String, pub board_size: u32, pub tiles: Vec<(u32, u32, TileKind, bool)>,
     #[serde(default)] pub solution: Vec<(u32, u32, TileKind)>,
     #[serde(default)] pub seed: Option<u64>, #[serde(default)] pub difficulty: Option<u32>,
+    /// Number of distinct valid solutions. None = not computed. 0 = unsolvable. >1 = multiple paths.
+    #[serde(default)] pub solution_count: Option<u32>,
 }
 #[derive(Component)] pub struct SaveButton;
 #[derive(Component)] pub struct LoadButton;

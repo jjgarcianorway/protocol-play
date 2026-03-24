@@ -68,10 +68,11 @@ fn enter_converter(
     mut fonts: ResMut<Assets<Font>>,
     mut images: ResMut<Assets<Image>>,
     mut clear_color: ResMut<ClearColor>,
-    camera_q: Query<Entity, With<crate::mission::types::MissionCamera>>,
+    mut camera_q: Query<(Entity, &mut Camera), With<crate::mission::types::MissionCamera>>,
     root_ui_q: Query<Entity, (With<Node>, Without<bevy::prelude::ChildOf>)>,
 ) {
-    for entity in camera_q.iter() {
+    for (entity, mut cam) in camera_q.iter_mut() {
+        cam.is_active = false;
         commands.entity(entity).insert(Visibility::Hidden);
     }
     for entity in root_ui_q.iter() { commands.entity(entity).insert(Visibility::Hidden); }
@@ -81,7 +82,9 @@ fn enter_converter(
     ));
 
     // Insert game resources
-    let gs = crate::save_state::load_game_state();
+    let mut gs = crate::save_state::load_game_state();
+    gs.pending_game = Some("converter".to_string());
+    crate::save_state::save_game_state(&gs);
     let crystal_count = gs.total_crystals();
     let pile_size = if crystal_count > 0 {
         crystal_count.max(MIN_PILE_SIZE)
@@ -149,7 +152,7 @@ fn exit_converter(
         With<ResultsScreen>, With<PopParticle>, With<TankFloatText>,
         With<StarDot>,
     )>>,
-    camera_q: Query<Entity, With<crate::mission::types::MissionCamera>>,
+    mut camera_q: Query<(Entity, &mut Camera), With<crate::mission::types::MissionCamera>>,
     root_ui_q: Query<Entity, (With<Node>, Without<bevy::prelude::ChildOf>)>,
     mut clear_color: ResMut<ClearColor>,
 ) {
@@ -165,7 +168,8 @@ fn exit_converter(
     commands.remove_resource::<ConverterFont>();
     commands.remove_resource::<crate::anna_comments::AnnaComments>();
 
-    for entity in camera_q.iter() {
+    for (entity, mut cam) in camera_q.iter_mut() {
+        cam.is_active = true;
         commands.entity(entity).insert(Visibility::Visible);
     }
     for entity in root_ui_q.iter() {

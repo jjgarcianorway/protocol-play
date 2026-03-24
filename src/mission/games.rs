@@ -42,24 +42,30 @@ fn card_info(card: GameCard, ship: &ShipStatus) -> (&'static str, String, bool, 
             ship.repair < 50.0,
             true,
         ),
-        GameCard::Gathering => (
-            "Gather Resources",
-            format!("Shields at {}%", ship.shields as u32),
-            ship.shields < 50.0,
-            true,
-        ),
+        GameCard::Gathering => {
+            let available = ship.bot_level > 0;
+            let status = if available {
+                format!("Shields at {}%", ship.shields as u32)
+            } else {
+                "Repair systems first".to_string()
+            };
+            ("Gather Resources", status, available && ship.shields < 50.0, available)
+        }
         GameCard::Converter => (
             "Process Crystals",
             format!("{} crystals available", ship.crystals),
             ship.crystals > 0,
             ship.crystals > 0,
         ),
-        GameCard::Delivery => (
-            "Distribute Resources",
-            format!("{}% average systems", avg_resources(ship) as u32),
-            false,
-            true,
-        ),
+        GameCard::Delivery => {
+            let available = ship.crystals > 0;
+            let status = if available {
+                format!("{}% average systems", avg_resources(ship) as u32)
+            } else {
+                "Gather resources first".to_string()
+            };
+            ("Distribute Resources", status, false, available)
+        }
         GameCard::Orben => (
             "Play Orben",
             "Stay human. Play cards.".to_string(),
@@ -152,8 +158,13 @@ fn spawn_card(
 /// System: handle game card hover effects.
 pub fn card_hover_interaction(
     mut query: Query<(&Interaction, &GameCard, &mut BackgroundColor, &mut BorderColor)>,
+    gs: Res<GameState>,
 ) {
-    for (interaction, _card, mut bg, mut border) in query.iter_mut() {
+    for (interaction, card, mut bg, mut border) in query.iter_mut() {
+        let is_blocked = gs.pending_game.as_deref()
+            .map_or(false, |p| p != card.save_name());
+        if is_blocked { continue; }
+
         match interaction {
             Interaction::Hovered | Interaction::Pressed => {
                 *bg = BackgroundColor(Color::srgba(
@@ -201,6 +212,7 @@ pub fn card_click_interaction(
     mut running: ResMut<RunningGame>,
     mut anna: ResMut<AnnaState>,
     mut next_scene: Option<ResMut<NextState<GameScene>>>,
+    gs: Res<GameState>,
 ) {
     // Don't launch if a game is already running
     if running.0.is_some() {
@@ -209,6 +221,11 @@ pub fn card_click_interaction(
 
     for (interaction, card) in query.iter() {
         if *interaction != Interaction::Pressed { continue; }
+
+        // Block other games if one is pending
+        if let Some(ref pending) = gs.pending_game {
+            if pending.as_str() != card.save_name() { continue; }
+        }
 
         // If GameScene sub-state is available (full mode), use scene transitions
         if let Some(ref mut scene_state) = next_scene {
@@ -226,6 +243,44 @@ pub fn card_click_interaction(
 
         // Standalone mode: launch child process
         launch_child_process(card, &mut running, &mut anna);
+    }
+}
+
+/// System: update card visuals when a game is pending.
+/// Dims blocked cards, highlights the pending one.
+pub fn update_pending_card_visuals(
+    gs: Res<GameState>,
+    mut card_q: Query<(&GameCard, &mut BackgroundColor, &mut BorderColor)>,
+    mut status_q: Query<(&CardStatusText, &mut Text, &mut TextColor)>,
+) {
+    if !gs.is_changed() { return; }
+    let pending = gs.pending_game.as_deref();
+
+    for (card, mut bg, mut border) in card_q.iter_mut() {
+        let is_pending = pending.map_or(false, |p| p == card.save_name());
+        let is_blocked = pending.is_some() && !is_pending;
+        if is_pending {
+            *border = BorderColor::all(Color::srgba(0.35, 0.75, 1.0, 0.85));
+            *bg = BackgroundColor(Color::srgba(CARD_BG.0, CARD_BG.1, CARD_BG.2, CARD_BG.3));
+        } else if is_blocked {
+            *border = BorderColor::all(Color::srgba(
+                CARD_BORDER_COLOR.0, CARD_BORDER_COLOR.1, CARD_BORDER_COLOR.2, 0.2,
+            ));
+            *bg = BackgroundColor(Color::srgba(CARD_BG.0, CARD_BG.1, CARD_BG.2, 0.2));
+        } else {
+            *border = BorderColor::all(Color::srgba(
+                CARD_BORDER_COLOR.0, CARD_BORDER_COLOR.1, CARD_BORDER_COLOR.2, CARD_BORDER_COLOR.3,
+            ));
+            *bg = BackgroundColor(Color::srgba(CARD_BG.0, CARD_BG.1, CARD_BG.2, CARD_BG.3));
+        }
+    }
+
+    for (CardStatusText(card), mut text, mut color) in status_q.iter_mut() {
+        let is_pending = pending.map_or(false, |p| p == card.save_name());
+        if is_pending {
+            **text = "IN PROGRESS — Resume".to_string();
+            *color = TextColor(Color::srgba(0.4, 0.9, 0.6, 0.9));
+        }
     }
 }
 

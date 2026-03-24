@@ -65,10 +65,11 @@ fn enter_delivery(
     mut fonts: ResMut<Assets<Font>>,
     mut images: ResMut<Assets<Image>>,
     mut clear_color: ResMut<ClearColor>,
-    camera_q: Query<Entity, With<crate::mission::types::MissionCamera>>,
+    mut camera_q: Query<(Entity, &mut Camera), With<crate::mission::types::MissionCamera>>,
     root_ui_q: Query<Entity, (With<Node>, Without<bevy::prelude::ChildOf>)>,
 ) {
-    for entity in camera_q.iter() {
+    for (entity, mut cam) in camera_q.iter_mut() {
+        cam.is_active = false;
         commands.entity(entity).insert(Visibility::Hidden);
     }
     for entity in root_ui_q.iter() { commands.entity(entity).insert(Visibility::Hidden); }
@@ -78,7 +79,9 @@ fn enter_delivery(
     ));
 
     // Initialize state from save
-    let gs = crate::save_state::load_game_state();
+    let mut gs = crate::save_state::load_game_state();
+    gs.pending_game = Some("delivery".to_string());
+    crate::save_state::save_game_state(&gs);
     let resource_sum =
         (gs.power + gs.life_support + gs.cryo + gs.shields + gs.repair) as u32;
     let pod_count = if resource_sum > 0 {
@@ -142,7 +145,7 @@ fn exit_delivery(
         With<DepositSlot>, With<ResultsScreen>, With<PodVisual>,
         With<PodTrail>, With<StarDotD>, With<StreakPopup>,
     )>>,
-    camera_q: Query<Entity, With<crate::mission::types::MissionCamera>>,
+    mut camera_q: Query<(Entity, &mut Camera), With<crate::mission::types::MissionCamera>>,
     root_ui_q: Query<Entity, (With<Node>, Without<bevy::prelude::ChildOf>)>,
     mut clear_color: ResMut<ClearColor>,
 ) {
@@ -154,7 +157,8 @@ fn exit_delivery(
     commands.remove_resource::<DeliveryFont>();
     commands.remove_resource::<crate::anna_comments::AnnaComments>();
 
-    for entity in camera_q.iter() {
+    for (entity, mut cam) in camera_q.iter_mut() {
+        cam.is_active = true;
         commands.entity(entity).insert(Visibility::Visible);
     }
     for entity in root_ui_q.iter() {

@@ -168,6 +168,10 @@ pub fn build_app(app: &mut App) {
     .insert_resource(SceneFade::default())
     .add_sub_state::<GameScene>()
     .add_systems(Startup, setup_shared);
+    #[cfg(feature = "player")] {
+        let ps = crate::player_settings::load_player_settings();
+        app.insert_resource(ps);
+    }
 
     systems_reg::register_profile_systems(app);
     systems_reg::register_menu_systems(app);

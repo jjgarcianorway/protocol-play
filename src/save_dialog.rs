@@ -224,6 +224,7 @@ pub fn save_dialog_buttons(
     let level = LevelData {
         name: raw_name.clone(), board_size: bs, tiles: tile_data, solution,
         seed: loaded_name.gen_seed, difficulty: loaded_name.gen_difficulty,
+        solution_count: None,
     };
     let path = levels_dir().join(format!("{name}.json"));
     loaded_name.name = Some(name.clone());

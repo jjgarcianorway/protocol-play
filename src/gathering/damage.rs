@@ -20,13 +20,40 @@ pub fn update_shield_regen(
 pub fn update_hit_flash(
     mut hit_flash: ResMut<HitFlash>,
     mut flash_q: Query<&mut BackgroundColor, With<HitFlashOverlay>>,
+    ship_q: Query<Entity, With<Ship>>,
+    children_q: Query<&Children>,
+    material_q: Query<&MeshMaterial3d<StandardMaterial>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     time: Res<Time>,
 ) {
-    // Hit flash disabled — was ugly blocky red overlay
+    let prev_timer = hit_flash.timer;
     if hit_flash.timer > 0.0 {
         hit_flash.timer = (hit_flash.timer - time.delta_secs()).max(0.0);
     }
+    let just_ended = prev_timer > 0.0 && hit_flash.timer <= 0.0;
+
+    // Keep the overlay invisible (no ugly red screen)
     for mut bg in flash_q.iter_mut() { bg.0 = Color::NONE; }
+
+    // Instead: orange-red emissive glow on the ship model
+    let Ok(ship_entity) = ship_q.single() else { return; };
+    let mut stack = vec![ship_entity];
+    while let Some(entity) = stack.pop() {
+        if let Ok(mat_handle) = material_q.get(entity) {
+            if let Some(mat) = materials.get_mut(&mat_handle.0) {
+                if just_ended {
+                    mat.emissive = LinearRgba::new(0.0, 0.0, 0.0, 1.0);
+                } else if hit_flash.timer > 0.0 {
+                    let flash_t = hit_flash.timer / HIT_FLASH_DURATION;
+                    let intensity = flash_t * 8.0;
+                    mat.emissive = LinearRgba::new(intensity, intensity * 0.25, 0.0, 1.0);
+                }
+            }
+        }
+        if let Ok(children) = children_q.get(entity) {
+            for child in children.iter() { stack.push(child); }
+        }
+    }
 }
 
 /// Near-miss teal flash on ship (brief shield absorption effect).

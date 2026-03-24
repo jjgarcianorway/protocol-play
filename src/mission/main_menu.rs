@@ -36,6 +36,7 @@ pub enum MenuButton {
     NewGame,     // Opens sub-menu with journey/world options
     NewJourney,  // Reset progress, keep world seed
     NewWorld,    // New world seed + full reset
+    CancelNewGame, // Close new game submenu
     Settings,
     CrewManifest,
     Credits,
@@ -278,6 +279,11 @@ pub fn menu_button_click(
                     for entity in submenu_q.iter() {
                         commands.entity(entity).despawn();
                     }
+                }
+            }
+            MenuButton::CancelNewGame => {
+                for entity in submenu_q.iter() {
+                    commands.entity(entity).despawn();
                 }
             }
             MenuButton::NewJourney => {

@@ -31,6 +31,8 @@ pub struct GenConfig {
     pub weights: [u32; GEN_NUM_WEIGHTS], pub unique_solution: bool,
     pub inventory_target: u32, pub door_chains: u32,
     pub path_sharing: bool, pub confusion_tiles: bool,
+    /// Chapter index (0-based). Used to bias bot colors so each chapter has a distinct palette.
+    pub chapter_idx: usize,
     #[allow(dead_code)] pub required_tile: Option<fn(&TileKind) -> bool>,
 }
 pub enum GenPhase {
@@ -45,6 +47,32 @@ pub struct GeneratorState { pub phase: GenPhase }
 impl Default for GeneratorState {
     fn default() -> Self { Self { phase: GenPhase::Idle } }
 }
+/// Returns the bot's direction after entering `tile`, or None if the tile cannot be traversed.
+/// Used for mechanic sharing: lets a second bot's path walk through existing mechanic tiles.
+///
+/// Only allows passthrough (direction unchanged) to keep the generator simple and fast.
+/// A bot can cross a mechanic tile placed by another bot ONLY if that mechanic doesn't
+/// affect the traversing bot (e.g., a red Turn tile doesn't redirect a blue bot).
+/// Gray tiles and direction-changing cases are excluded to avoid generator complexity.
+fn mechanic_traversal_dir(tile: TileKind, ci: usize, dir: Direction) -> Option<Direction> {
+    match tile {
+        TileKind::Floor => Some(dir),
+        // Turn of different color: this bot passes through unchanged (correct per simulation)
+        // Turn of same color or gray: would redirect this bot → skip (too complex for generator)
+        TileKind::Turn(c, _) if c != ci && c != NUM_COLORS => Some(dir),
+        // TurnBut: activates for bots where c != bot.color. So TurnBut(c) where c==ci
+        // means "except ci" → doesn't activate for ci → passthrough.
+        TileKind::TurnBut(c, _) if c == ci => Some(dir),
+        // Arrow of different color: passthrough for this bot
+        TileKind::Arrow(c, _) if c != ci && c != NUM_COLORS => Some(dir),
+        // ArrowBut(c): activates when c != bot.color. ArrowBut(ci) → doesn't activate for ci.
+        TileKind::ArrowBut(c, _) if c == ci => Some(dir),
+        // All other cases (including gray mechanics, Bounce, Teleport, Source, Goal):
+        // not shareable in the generator
+        _ => None,
+    }
+}
+
 pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(u32, u32, TileKind, bool)>, u32)> {
     let size = config.board_size;
     let diff = config.difficulty as f32 / 100.0;
@@ -53,12 +81,18 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
     let mut bot_floor_paths: Vec<Vec<(u32, u32)>> = Vec::new();
     let total_cells = (size * size) as usize;
     let sharing = config.path_sharing || config.num_bots >= 3;
+    // Mechanic sharing: let bots walk through other-color Turn/Arrow tiles (passthrough).
+    // Only for 3-5 bot levels — beyond that, too many tiles on the board cause frequent failures.
+    let mech_sharing = sharing && config.num_bots >= 3 && config.num_bots <= 5;
     let nb = config.num_bots as f32;
     let bot_scale = if config.num_bots <= 2 { 1.0 } else { (2.5 / nb).max(0.4) };
     let cell_budget = total_cells * 2 / (config.num_bots.max(2) as usize + 1);
     let ideal_step = NUM_COLORS / config.num_bots.max(1) as usize;
     let color_step = if config.num_bots <= 3 { ideal_step.max(3) } else { ideal_step.max(2) };
-    let color_offset: usize = rng.gen_range(0..NUM_COLORS);
+    // Bias color offset by chapter so each chapter has a visually distinct bot palette.
+    // Small random jitter (0-2) preserves variety within the chapter.
+    let chapter_base = (config.chapter_idx * 2) % NUM_COLORS;
+    let color_offset: usize = (chapter_base + rng.gen_range(0..3)) % NUM_COLORS;
     for bot_idx in 0..config.num_bots {
         let ci = (bot_idx as usize * color_step + color_offset) % NUM_COLORS;
         let (sc, sr, sd) = pick_start(size, rng, &grid)?;
@@ -82,8 +116,12 @@ pub fn generate_attempt(config: &GenConfig, rng: &mut impl Rng) -> Option<(Vec<(
             let (dc, dr) = dir.grid_delta();
             let (nc, nr) = (col + dc, row + dr);
             let next_tile = if in_bounds(nc, nr, size) { grid.get(&(nc as u32, nr as u32)).copied() } else { None };
-            let can_advance = in_bounds(nc, nr, size)
-                && (next_tile.is_none() || (sharing && next_tile == Some(TileKind::Floor)));
+            let can_advance = in_bounds(nc, nr, size) && match next_tile {
+                None => true,
+                Some(TileKind::Floor) if sharing => true,
+                Some(tile) if mech_sharing => mechanic_traversal_dir(tile, ci, dir).is_some(),
+                _ => false,
+            };
             if !can_advance || steps >= target {
                 if steps >= min_len && turns > 0 {
                     if try_place_goal_lookback(&mut grid, col, row, current_color, &path_history) {

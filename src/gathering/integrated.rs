@@ -65,13 +65,8 @@ pub fn register_integrated_systems(app: &mut App) {
         hud::update_game_time,
         game_over::check_game_over.after(collision::check_collisions),
         game_over::update_fade,
-        game_over::try_again_interaction,
-        game_over::try_again_hover,
         game_over::update_intro_fade,
-        game_over::try_again_cleanup.after(game_over::try_again_interaction),
-        game_over::spawn_game_over_screen
-            .after(game_over::check_game_over)
-            .after(game_over::try_again_interaction),
+        game_over::spawn_game_over_screen.after(game_over::check_game_over),
     ).run_if(gathering_no_new_earth))
     .add_systems(Update, (
         ship::restore_cursor.run_if(
@@ -81,13 +76,11 @@ pub fn register_integrated_systems(app: &mut App) {
         ship::update_shield_bubble,
         ship::spawn_engine_particles,
         ship::move_engine_particles,
-        pause::toggle_pause,
-        pause::resume_button_interaction,
-        pause::resume_button_hover,
     ).run_if(gathering_no_new_earth))
     .add_systems(Update, (
         game_over::update_game_over_fade,
-        pause::update_pause_fade,
+        return_to_mission_click,
+        game_over::return_to_mission_hover,
     ).run_if(gathering_no_new_earth))
     .add_systems(Update, (
         crate::anna_comments::tick_anna_comments,
@@ -129,12 +122,13 @@ fn enter_gathering(
     asset_server: Res<AssetServer>,
     mut clear_color: ResMut<ClearColor>,
     mut ambient: ResMut<GlobalAmbientLight>,
-    camera_q: Query<Entity, With<crate::mission::types::MissionCamera>>,
+    mut camera_q: Query<(Entity, &mut Camera), With<crate::mission::types::MissionCamera>>,
     // Hide ALL root UI nodes (dashboard, Anna panel, etc.)
     root_ui_q: Query<Entity, (With<Node>, Without<bevy::prelude::ChildOf>)>,
 ) {
-    // Hide Mission Control camera and ALL UI
-    for entity in camera_q.iter() {
+    // Deactivate and hide Mission Control camera; hide ALL UI
+    for (entity, mut cam) in camera_q.iter_mut() {
+        cam.is_active = false;
         commands.entity(entity).insert(Visibility::Hidden);
     }
     for entity in root_ui_q.iter() {
@@ -152,6 +146,13 @@ fn enter_gathering(
         brightness: AMBIENT_BRIGHTNESS_G,
         ..default()
     };
+
+    // Mark game as in-progress
+    {
+        let mut gs = crate::save_state::load_game_state();
+        gs.pending_game = Some("gathering".to_string());
+        crate::save_state::save_game_state(&gs);
+    }
 
     // Insert game resources
     let best = stats::load_best();
@@ -255,7 +256,7 @@ fn exit_gathering(
         With<WarningIndicator>, With<DamageDirectionIndicator>,
         With<DamageSmoke>, With<DamageSpark>, With<AsteroidTrailParticle>,
     )>>,
-    camera_q: Query<Entity, With<crate::mission::types::MissionCamera>>,
+    mut camera_q: Query<(Entity, &mut Camera), With<crate::mission::types::MissionCamera>>,
     // Restore ALL hidden root UI nodes
     hidden_ui_q: Query<Entity, (With<Node>, Without<bevy::prelude::ChildOf>, With<Visibility>)>,
     mut clear_color: ResMut<ClearColor>,
@@ -289,7 +290,8 @@ fn exit_gathering(
     commands.remove_resource::<anna::AnnaReactiveFlags>();
 
     // Restore Mission Control camera + UI
-    for entity in camera_q.iter() {
+    for (entity, mut cam) in camera_q.iter_mut() {
+        cam.is_active = true;
         commands.entity(entity).insert(Visibility::Visible);
     }
     for entity in hidden_ui_q.iter() {
@@ -304,5 +306,17 @@ fn exit_gathering(
     *ambient = GlobalAmbientLight {
         color: Color::srgb(0.5, 0.55, 0.7), brightness: 50.0, ..default()
     };
+}
+
+/// Handle "Mission Control" button on the game over screen.
+fn return_to_mission_click(
+    query: Query<&Interaction, (Changed<Interaction>, With<super::types::ReturnToMissionButton>)>,
+    mut next_scene: ResMut<NextState<GameScene>>,
+) {
+    for interaction in query.iter() {
+        if *interaction == Interaction::Pressed {
+            next_scene.set(GameScene::Dashboard);
+        }
+    }
 }
 

@@ -21,13 +21,9 @@ const PLACEHOLDER_BG: (f32, f32, f32, f32) = (0.04, 0.05, 0.09, 0.95);
 /// Border glow color (Anna-tinted).
 const PLACEHOLDER_GLOW_COLOR: (f32, f32, f32, f32) = (0.4, 0.7, 1.0, 0.25);
 /// Font size for the prompt description text.
-const PLACEHOLDER_PROMPT_FONT: f32 = 12.0;
-/// Font size for the label at the bottom.
-const PLACEHOLDER_LABEL_FONT: f32 = 10.0;
-/// Prompt text color (muted, italic feel via color).
-const PLACEHOLDER_PROMPT_COLOR: (f32, f32, f32, f32) = (0.5, 0.55, 0.65, 0.8);
-/// Label text color.
-const PLACEHOLDER_LABEL_COLOR: (f32, f32, f32, f32) = (0.4, 0.45, 0.55, 0.6);
+const PLACEHOLDER_PROMPT_FONT: f32 = 13.0;
+/// Prompt text color — soft blue-white, readable against dark background.
+const PLACEHOLDER_PROMPT_COLOR: (f32, f32, f32, f32) = (0.65, 0.72, 0.85, 0.9);
 
 // === Marker components ===
 
@@ -171,25 +167,34 @@ pub fn try_load_story_image(
 }
 
 /// Read the prompt text from the .prompt.txt file for a given image name.
-/// Returns a truncated version suitable for display in the placeholder.
+/// Returns only the narrative/visual description, stripping technical generation directives.
 pub fn read_prompt_text(name: &str) -> String {
     let path = format!("assets/story/{name}.prompt.txt");
     match std::fs::read_to_string(&path) {
         Ok(text) => {
             let trimmed = text.trim();
-            // Truncate to ~300 chars for display
-            if trimmed.len() > 300 {
-                format!("{}...", &trimmed[..297])
+            // Strip technical generation directives (Style:, Colors:, Mood:, Background:)
+            // which appear after the narrative description and are not user-facing
+            let narrative = if let Some(pos) = trimmed.find(" Style:") {
+                trimmed[..pos].trim()
+            } else if let Some(pos) = trimmed.find("Style:") {
+                trimmed[..pos].trim()
             } else {
-                trimmed.to_string()
+                trimmed
+            };
+            // Truncate to ~240 chars for display
+            if narrative.len() > 240 {
+                format!("{}...", &narrative[..237])
+            } else {
+                narrative.to_string()
             }
         }
-        Err(_) => format!("Image: {name}"),
+        Err(_) => String::new(),
     }
 }
 
 /// Spawn the image placeholder panel above the dialog text.
-/// Shows a dark frame with the prompt description and a label.
+/// Shows a cinematic dark frame with the visual description centered.
 pub fn spawn_image_placeholder(
     parent: &mut ChildSpawnerCommands,
     font: &Handle<Font>,
@@ -200,8 +205,9 @@ pub fn spawn_image_placeholder(
             width: Val::Percent(100.0),
             height: Val::Px(IMAGE_PANEL_HEIGHT),
             flex_direction: FlexDirection::Column,
-            justify_content: JustifyContent::SpaceBetween,
-            padding: UiRect::all(Val::Px(16.0)),
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
+            padding: UiRect::axes(Val::Px(20.0), Val::Px(14.0)),
             border: UiRect::all(Val::Px(1.0)),
             border_radius: BorderRadius::all(Val::Px(DIALOG_PANEL_CORNER)),
             overflow: Overflow::clip(),
@@ -218,41 +224,32 @@ pub fn spawn_image_placeholder(
         BoxShadow::new(
             Color::srgba(
                 DIALOG_ANNA_COLOR.0, DIALOG_ANNA_COLOR.1,
-                DIALOG_ANNA_COLOR.2, 0.12,
+                DIALOG_ANNA_COLOR.2, 0.15,
             ),
             Val::ZERO, Val::ZERO,
-            Val::Px(4.0), Val::Px(10.0),
+            Val::Px(6.0), Val::Px(14.0),
         ),
         DialogImagePanel,
     )).with_children(|panel| {
-        // Prompt description text
-        panel.spawn((
-            Text::new(prompt_text),
-            TextFont {
-                font: font.clone(),
-                font_size: PLACEHOLDER_PROMPT_FONT,
-                ..default()
-            },
-            TextColor(Color::srgba(
-                PLACEHOLDER_PROMPT_COLOR.0, PLACEHOLDER_PROMPT_COLOR.1,
-                PLACEHOLDER_PROMPT_COLOR.2, PLACEHOLDER_PROMPT_COLOR.3,
-            )),
-            DialogImagePromptText,
-        ));
-
-        // Bottom label
-        panel.spawn((
-            Text::new("[ Image placeholder \u{2014} will be replaced ]"),
-            TextFont {
-                font: font.clone(),
-                font_size: PLACEHOLDER_LABEL_FONT,
-                ..default()
-            },
-            TextColor(Color::srgba(
-                PLACEHOLDER_LABEL_COLOR.0, PLACEHOLDER_LABEL_COLOR.1,
-                PLACEHOLDER_LABEL_COLOR.2, PLACEHOLDER_LABEL_COLOR.3,
-            )),
-        ));
+        if !prompt_text.is_empty() {
+            panel.spawn((
+                Text::new(prompt_text),
+                TextFont {
+                    font: font.clone(),
+                    font_size: PLACEHOLDER_PROMPT_FONT,
+                    ..default()
+                },
+                TextColor(Color::srgba(
+                    PLACEHOLDER_PROMPT_COLOR.0, PLACEHOLDER_PROMPT_COLOR.1,
+                    PLACEHOLDER_PROMPT_COLOR.2, PLACEHOLDER_PROMPT_COLOR.3,
+                )),
+                Node {
+                    max_width: Val::Percent(100.0),
+                    ..default()
+                },
+                DialogImagePromptText,
+            ));
+        }
     });
 }
 

@@ -8,23 +8,23 @@ use super::types::*;
 
 /// Set up Anna comments for The Delivery.
 pub fn setup_delivery_anna(mut commands: Commands, font: Res<DeliveryFont>) {
-    let pool: Vec<&str> = vec![
-        "Right on target.",
-        "Stay focused.",
-        "The crew is counting on these supplies.",
-        "Smooth delivery.",
-        "Each pod is a promise to someone sleeping.",
-        "The routing gets faster with practice.",
-        "Careful with the purple ones. Cryo repairs are delicate.",
-        "You're keeping 14,892 people alive. One pod at a time.",
-        "Speed matters, but accuracy matters more.",
-        "The ship feels different when supplies flow.",
-        "I timed you. Faster than yesterday.",
-        "Some of these pods contain medicine. Handle with care.",
+    let pool: Vec<String> = vec![
+        "Right on target.".into(),
+        "Stay focused.".into(),
+        "The crew is counting on these supplies.".into(),
+        "Smooth delivery.".into(),
+        "Each pod is a promise to someone sleeping.".into(),
+        "The routing gets faster with practice.".into(),
+        "Careful with the purple ones. Cryo repairs are delicate.".into(),
+        "You're keeping 14,892 people alive. One pod at a time.".into(),
+        "Speed matters, but accuracy matters more.".into(),
+        "The ship feels different when supplies flow.".into(),
+        "I timed you. Faster than yesterday.".into(),
+        "Some of these pods contain medicine. Handle with care.".into(),
     ];
     let queue = build_queue(&pool, 5);
     commands.insert_resource(AnnaComments { queue, current: None });
-    spawn_anna_ui(&mut commands, &font.0);
+    spawn_anna_ui(&mut commands, &font.0, "ANNA");
 }
 
 /// React to streaks in The Delivery.

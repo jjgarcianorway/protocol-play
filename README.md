@@ -1,82 +1,51 @@
-# protocol: play
+# protocol play: repairing
 
 > *"The beauty isn't in perfection. It's in continuing after the mistake."*
 
-A narrative puzzle game about an AI named Anna, an ark carrying 14,892 sleeping humans, and the choices that define what it means to be human. Built with [Bevy 0.18](https://bevyengine.org/) (Rust).
+A tile-based puzzle game where you guide colored bots from source to goal by placing turns, arrows, teleports, bouncers, painters, switches, and doors. Built with [Bevy 0.18](https://bevyengine.org/) (Rust).
 
-Inspired by **Baldur's Gate 3**, **Detroit: Become Human**, **Telltale Games**, **Life is Strange**, **Battlestar Galactica**, and **The Expanse**.
+## What is it?
 
-## What is this?
-
-Earth has fallen. An ark ship carries the last of humanity through interstellar space. You are the one person awake, maintaining the ship through puzzles while an AI named Anna tells you the stories of the 14,892 people sleeping in cryogenic pods.
-
-Every decision matters. Every character has a history. Every playthrough reveals something new.
-
-**251 dialog scenes. 26 named characters. 7 collapse archetypes. No magic, no aliens — just hard science and hard choices.**
+149 hand-tuned procedural puzzles across 13 chapters. Each chapter introduces a new mechanic. An AI narrator named Anna keeps you company with facts, tips, and commentary as you play.
 
 ## Status
 
-**v0.56.0** — ~58,000 lines of code across 211 source files
+**v0.57.0** — Beta
 
-| Game | Description | Status |
-|------|-------------|--------|
-| The Repairing | 149 tile puzzles across 13 chapters | **Beta** |
-| The Gathering | Asteroid dodge, crystal collection | Pre-alpha |
-| The Converter | Chain reaction crystal processing | Pre-alpha |
-| The Delivery | Resource routing under pressure | Pre-alpha |
-| Orben | Card game (Ronda-based) for staying human | Pre-alpha |
-| Mission Control | Hub — story, decisions, crew management | Pre-alpha |
-
-**Story:** 251 dialog scenes, extensive but largely untested. 26 named characters with multi-episode arcs (Lost-style). 7 Earth collapse archetypes with severity system. All grounded in real science.
-
-## Features
-
-### Narrative
-- **251 dialog scenes** with branching choices across 70+ files
-- **26 named characters** — each with backstory, moral dilemma, and multi-scene arc
-- **"Anna will remember that"** — Telltale-style choice notifications
-- **7 collapse archetypes** — Climate, Resource Wars, Pandemic, Nuclear, AI, Political, Economic
-- **Severity system** (1-5) — same collapse type, different intensity, different story
-- **World seed** — every playthrough generates a unique world (shareable between friends)
-- **NG+ exclusive content** — replay reveals new scenes, Anna acknowledges the loop
-- **Character codex** — Crew Manifest with 26 unlockable entries
-- **Decision tree** — Journey Map visualizing your choices with parallax
-- **6 endings** shaped by your decisions throughout the game
-
-### Systems
-- **Procedural sound** — 22 Mini Metro-style synthesized sounds (no external audio files)
-- **Anna's mood glow** — 12 color states, narrator-driven, smooth transitions
-- **Profile system** — 5 player slots for family members
-- **i18n** — English (US) + Español (España), 633 translated strings
-- **Cinematic main menu** — parallax starfield, staggered animations
-- **Loading screen** — "Seeding the universe..." world generation
-- **Settings** — language, display, audio, custom seed input
-- **Stats screen** — Detroit-style decision summary
-- **Credits** — Kojima-style scrolling with character epitaphs
-
-### The Repairing (Bot Game) — Beta
-- **149 campaign levels** across 13 chapters
-- 14 tile types with progressive difficulty
+- 149 campaign levels across 13 chapters
+- 14 tile types (turns, arrows, teleports, bouncers, painters, color switches, doors)
+- Up to 8 simultaneous bots per puzzle
+- Confusion tiles (decoy inventory items)
+- In-game speed control (1x / 2x / 4x)
+- 9 distinct bot colors
+- Path sharing between bots
+- Anna AI companion with 32 gamification facts
+- i18n: English + Spanish
+- Procedural sound (22 synthesized effects, no audio files)
+- Auto-save, stats tracking, chapter backgrounds
 - 3D rendered inventory icons
-- Auto-save, stats tracking, chapter transitions
-- Each tile type has a distinct procedural sound
 
-### Download & Play
+## Download & Play
 
-Pre-built binaries for **Windows**, **macOS**, and **Linux**:
+Pre-built binaries for **Linux** (and eventually Windows/macOS):
+
 [**Download latest release**](https://github.com/jjgarcianorway/protocol-play/releases/latest)
 
-#### Windows
-Extract the zip, double-click `protocol-play-player.exe`.
-
-#### macOS
+### Linux
 ```sh
-cd ~/Downloads/protocol-play-player-macos && xattr -cr . && chmod +x protocol-play-player && ./protocol-play-player
+tar xzf protocol-play-player-linux.tar.gz
+cd protocol-play-player-linux
+./protocol-play-player
 ```
 
-#### Linux
+### Windows
+Extract the zip, double-click `protocol-play-player.exe`.
+
+### macOS
 ```sh
-tar xzf protocol-play-player-linux.tar.gz && cd protocol-play-player-linux && ./protocol-play-player
+cd ~/Downloads/protocol-play-player-macos
+xattr -cr . && chmod +x protocol-play-player
+./protocol-play-player
 ```
 
 ## Building from Source
@@ -84,26 +53,28 @@ tar xzf protocol-play-player-linux.tar.gz && cd protocol-play-player-linux && ./
 Requires [Rust](https://www.rust-lang.org/tools/install).
 
 ```sh
-./build-all.sh          # Build all 7 binaries
+./build-all.sh
+cd target/release
+./protocol-play-player
 ```
 
-## The Characters
+## The 13 Chapters
 
-| Character | Role | Dilemma |
-|-----------|------|---------|
-| Anna | Ship AI | Can a machine learn to dream? |
-| Dr. Amira Hassan | Hydrologist | Built a system nobody would use |
-| Viktor Petrov | Nuclear engineer | Wakes at 4:17 AM every night |
-| Mei-Lin Chen | Schoolteacher | Smuggled seeds in her coat |
-| Kwame & Kofi Asante | Bridge engineers | One stayed so a stranger could go |
-| Dr. Elena Vasquez | Surgeon | 847 judgment calls in 3 days |
-| Carlos Mendoza | Electrician | Stole a dying man's boarding pass |
-| Sister Magdalena Santos | Nun/astrophysicist | Burned a lab to save souls |
-| General Fatou Diallo | Commander | Closed the gates on 8,200 people |
-| Priya Nair | Software engineer | Found the bug. Didn't fix it. |
-| Youssef Karam | Intelligence officer | Planted spy among refugees |
-
-*...and 15 more, each with their own story.*
+| Ch | Mechanic | Levels |
+|----|----------|--------|
+| 1 | Turns | 11 |
+| 2 | Turn tiles (place from inventory) | 11 |
+| 3 | Arrows | 11 |
+| 4 | Arrow tiles (place from inventory) | 11 |
+| 5 | Teleports | 11 |
+| 6 | Teleport tiles (place from inventory) | 11 |
+| 7 | Bouncers | 11 |
+| 8 | Bouncer tiles (place from inventory) | 11 |
+| 9 | Painters (color change) | 11 |
+| 10 | Doors & switches | 11 |
+| 11 | Color gates | 11 |
+| 12 | Gate tiles (place from inventory) | 11 |
+| 13 | All mechanics combined + boss levels | 17 |
 
 ## License
 

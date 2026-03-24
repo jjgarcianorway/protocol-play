@@ -68,8 +68,36 @@ pub fn spawn_dashboard(parent: &mut ChildSpawnerCommands, font: &Handle<Font>) {
                     JourneyText,
                 ));
             });
+
+        // Settings / Main Menu buttons at the bottom
+        dash.spawn(Node {
+            flex_direction: FlexDirection::Row,
+            column_gap: Val::Px(8.0),
+            margin: UiRect::top(Val::Px(16.0)),
+            ..default()
+        }).with_children(|row| {
+            row.spawn((
+                Button,
+                DashboardSettingsBtn,
+                Node {
+                    padding: UiRect::axes(Val::Px(10.0), Val::Px(6.0)),
+                    border: UiRect::all(Val::Px(1.0)),
+                    border_radius: BorderRadius::all(Val::Px(6.0)),
+                    ..default()
+                },
+                BackgroundColor(Color::srgba(0.1, 0.1, 0.15, 0.7)),
+                BorderColor::all(Color::srgba(0.3, 0.35, 0.45, 0.5)),
+            )).with_child((
+                Text::new("Settings"),
+                TextFont { font: font.clone(), font_size: 12.0, ..default() },
+                TextColor(Color::srgba(0.6, 0.65, 0.75, 0.9)),
+            ));
+        });
     });
 }
+
+#[derive(Component)]
+pub struct DashboardSettingsBtn;
 
 fn spawn_section_header(parent: &mut ChildSpawnerCommands, label: &str, font: &Handle<Font>) {
     parent.spawn(Node {

@@ -49,7 +49,7 @@ pub fn register_integrated_systems(app: &mut App) {
     ).run_if(orben_playing))
     .add_systems(OnEnter(OrbenPhase::Results), results::spawn_results_screen)
     .add_systems(Update, (
-        results::play_again_interaction,
+        results::return_button_interaction,
     ).run_if(orben_results));
 }
 
@@ -59,10 +59,11 @@ fn enter_orben(
     mut fonts: ResMut<Assets<Font>>,
     mut images: ResMut<Assets<Image>>,
     mut clear_color: ResMut<ClearColor>,
-    camera_q: Query<Entity, With<crate::mission::types::MissionCamera>>,
+    mut camera_q: Query<(Entity, &mut Camera), With<crate::mission::types::MissionCamera>>,
     root_ui_q: Query<Entity, (With<Node>, Without<bevy::prelude::ChildOf>)>,
 ) {
-    for entity in camera_q.iter() {
+    for (entity, mut cam) in camera_q.iter_mut() {
+        cam.is_active = false;
         commands.entity(entity).insert(Visibility::Hidden);
     }
     for entity in root_ui_q.iter() { commands.entity(entity).insert(Visibility::Hidden); }
@@ -70,6 +71,13 @@ fn enter_orben(
     *clear_color = ClearColor(Color::srgb(
         CLEAR_COLOR_O.0, CLEAR_COLOR_O.1, CLEAR_COLOR_O.2,
     ));
+
+    // Mark game as in-progress
+    {
+        let mut gs = crate::save_state::load_game_state();
+        gs.pending_game = Some("orben".to_string());
+        crate::save_state::save_game_state(&gs);
+    }
 
     // Initialize game state
     let mut state = OrbGameState::default();
@@ -132,7 +140,7 @@ fn exit_orben(
         With<StarDot>, With<MesaLimpiaFlash>, With<SeCayoTimer>,
         With<RondaGlow>,
     )>>,
-    camera_q: Query<Entity, With<crate::mission::types::MissionCamera>>,
+    mut camera_q: Query<(Entity, &mut Camera), With<crate::mission::types::MissionCamera>>,
     root_ui_q: Query<Entity, (With<Node>, Without<bevy::prelude::ChildOf>)>,
     mut clear_color: ResMut<ClearColor>,
 ) {
@@ -143,7 +151,8 @@ fn exit_orben(
     commands.remove_resource::<OrbGameState>();
     commands.remove_resource::<OrbenFont>();
 
-    for entity in camera_q.iter() {
+    for (entity, mut cam) in camera_q.iter_mut() {
+        cam.is_active = true;
         commands.entity(entity).insert(Visibility::Visible);
     }
     for entity in root_ui_q.iter() {

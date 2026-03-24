@@ -94,6 +94,7 @@ pub struct Star {
 #[derive(Component)] pub struct TimeText;
 #[derive(Component)] pub struct GameOverScreen;
 #[derive(Component)] pub struct TryAgainButton;
+#[derive(Component)] pub struct ReturnToMissionButton;
 #[derive(Component)] pub struct CrystalText;
 #[derive(Component)] pub struct PauseScreen;
 #[derive(Component)] pub struct ShieldBubble;

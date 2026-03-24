@@ -5,27 +5,32 @@
 use bevy::prelude::*;
 use super::constants::*;
 use super::settings::*;
-use super::types::MissionFont;
+use super::types::{MissionFont, GameScene};
+use super::dashboard::DashboardSettingsBtn;
 use crate::i18n::AVAILABLE_LANGUAGES;
 use crate::save_state::{save_game_state, GameState};
 
 // ── Core systems ───────────────────────────────────────────────────────
 
-/// Toggle settings on ESC; despawn when fade completes.
+/// Toggle settings on ESC (Dashboard only); despawn when fade completes.
 pub fn toggle_settings(
     keys: Res<ButtonInput<KeyCode>>,
     mut settings: ResMut<SettingsOpen>,
     overlay_q: Query<Entity, With<SettingsOverlay>>,
     confirm_q: Query<Entity, With<ConfirmDialog>>,
     mut commands: Commands,
+    scene: Option<Res<State<GameScene>>>,
 ) {
-    if keys.just_pressed(KeyCode::Escape) {
+    let on_dashboard = scene.map_or(true, |s| *s.get() == GameScene::Dashboard);
+    if keys.just_pressed(KeyCode::Escape) && on_dashboard {
         if !confirm_q.is_empty() {
             for e in confirm_q.iter() { commands.entity(e).despawn(); }
             return;
         }
         if settings.open {
             settings.open = false;
+        } else {
+            settings.open = true;
         }
     }
     if !settings.open && settings.fade <= 0.0 {
@@ -186,6 +191,37 @@ pub fn lang_btn_hover(
     }
 }
 
+/// Dashboard Settings button click — opens settings overlay.
+pub fn dashboard_settings_btn_click(
+    query: Query<&Interaction, (Changed<Interaction>, With<DashboardSettingsBtn>)>,
+    mut settings: ResMut<SettingsOpen>,
+) {
+    for interaction in query.iter() {
+        if *interaction == Interaction::Pressed {
+            settings.open = true;
+        }
+    }
+}
+
+// ── Navigation systems ─────────────────────────────────────────────────
+
+/// Back to Main Menu button — return to main menu without resetting progress.
+pub fn main_menu_btn_click(
+    query: Query<&Interaction, (Changed<Interaction>, With<SettingsMainMenuBtn>)>,
+    mut settings: ResMut<SettingsOpen>,
+    mut next_phase: ResMut<NextState<super::types::AppPhase>>,
+    overlay_q: Query<Entity, With<SettingsOverlay>>,
+    mut commands: Commands,
+) {
+    for interaction in query.iter() {
+        if *interaction == Interaction::Pressed {
+            settings.open = false;
+            for e in overlay_q.iter() { commands.entity(e).despawn(); }
+            next_phase.set(super::types::AppPhase::MainMenu);
+        }
+    }
+}
+
 // ── Reset systems ──────────────────────────────────────────────────────
 
 /// Reset button click — spawn confirmation dialog.
@@ -211,6 +247,10 @@ pub fn confirm_reset_click(
     mut commands: Commands,
     mut gs: ResMut<GameState>,
     mut settings: ResMut<SettingsOpen>,
+    mut ship: ResMut<super::types::ShipStatus>,
+    mut qs: ResMut<super::questions::QuestionState>,
+    mut ds: ResMut<super::dialog_types::DialogState>,
+    mut next_phase: ResMut<NextState<super::types::AppPhase>>,
 ) {
     for interaction in cancel_q.iter() {
         if *interaction == Interaction::Pressed {
@@ -221,8 +261,24 @@ pub fn confirm_reset_click(
         if *interaction == Interaction::Pressed {
             crate::save_state::reset_for_new_game(&mut gs);
             save_game_state(&gs);
+            // Reload ShipStatus so dashboard reflects fresh state immediately
+            ship.power = gs.power;
+            ship.life_support = gs.life_support;
+            ship.cryo = gs.cryo;
+            ship.shields = gs.shields;
+            ship.repair = gs.repair;
+            ship.crystals = gs.total_crystals();
+            ship.crew_count = gs.crew_count;
+            ship.day = gs.day;
+            ship.distance_au = gs.distance_au;
+            ship.bot_level = gs.bot_level;
+            // Reset dialog/question checks so intro fires fresh
+            super::questions::reset_question_check(&mut qs);
+            super::dialog_system::reset_dialog_check(&mut ds);
             settings.open = false;
             for e in dialog_q.iter() { commands.entity(e).despawn(); }
+            // Return to main menu so player starts clean
+            next_phase.set(super::types::AppPhase::MainMenu);
         }
     }
 }

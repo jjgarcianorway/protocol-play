@@ -81,6 +81,13 @@ pub fn check_story(gs: &GameState) -> Option<AnnaMessage> {
 
 /// Check situational messages based on game state.
 pub fn check_situational(ship: &ShipStatus, gs: &GameState) -> Option<AnnaMessage> {
+    // First priority: encourage repair if not started yet
+    if gs.bot_level == 0 {
+        return Some(AnnaMessage::situational(
+            "The repair systems need attention. Start there.",
+        ));
+    }
+    // After first repair: encourage gathering if never done
     if gs.gathering_runs == 0 {
         return Some(AnnaMessage::situational(
             "We need resources. Take the shuttle out.",

@@ -1,42 +1,59 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Shared Anna in-game comment system. Brief, rare, contextual comments
-//! from Anna that appear as subtle text in the bottom-left corner.
+//! Anna's in-game message display.
+//! A full-width bottom card with left accent stripe — same visual language
+//! as chapter titles, adapted for non-intrusive in-game presence.
 
 use bevy::prelude::*;
 
-// === Constants ===
-pub const ANNA_FONT_SIZE: f32 = 13.0;
-pub const ANNA_COLOR: (f32, f32, f32) = (0.45, 0.65, 0.85); // warm blue
-pub const ANNA_MAX_ALPHA: f32 = 0.6;
-pub const ANNA_DISPLAY_TIME: f32 = 3.5;
-pub const ANNA_FADE_TIME: f32 = 0.3;
+// ─── Display constants ────────────────────────────────────────────────────────
 
-/// Resource that drives Anna's comment queue and current display.
-#[derive(Resource)]
+pub const ANNA_FADE_IN:     f32 = 0.55;
+pub const ANNA_FADE_OUT:    f32 = 0.80;
+pub const ANNA_WORDS_PER_S: f32 = 2.5;   // comfortable reading pace
+pub const ANNA_MIN_HOLD:    f32 = 5.0;
+pub const ANNA_MAX_HOLD:    f32 = 18.0;
+
+// Colors
+const ANNA_BG:      (f32,f32,f32,f32) = (0.04, 0.07, 0.12, 0.92);
+const ANNA_ACCENT:  (f32,f32,f32)     = (0.45, 0.65, 0.85);
+const ANNA_LABEL:   (f32,f32,f32)     = (0.45, 0.65, 0.85);
+const ANNA_TEXT:    (f32,f32,f32)     = (0.88, 0.90, 0.95);
+
+const ANNA_LABEL_SIZE: f32 = 10.0;
+const ANNA_TEXT_SIZE:  f32 = 15.0;
+const ANNA_ACCENT_PX:  f32 = 4.0;
+
+// ─── Resource ─────────────────────────────────────────────────────────────────
+
+/// Drives Anna's comment queue and current display.
+#[derive(Resource, Default)]
 pub struct AnnaComments {
     /// Queued comments: (seconds_until_show, text).
     pub queue: Vec<(f32, String)>,
-    /// Currently displayed comment: (text, remaining_display_time).
-    pub current: Option<(String, f32)>,
+    /// (text, elapsed, total_duration)
+    pub current: Option<(String, f32, f32)>,
 }
 
-impl Default for AnnaComments {
-    fn default() -> Self {
-        Self { queue: Vec::new(), current: None }
-    }
+// ─── Components ───────────────────────────────────────────────────────────────
+
+#[derive(Component)] pub struct AnnaPanel;
+#[derive(Component)] pub struct AnnaLabelText;
+#[derive(Component)] pub struct AnnaCommentText;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/// Hold duration proportional to word count.
+pub fn hold_time(text: &str) -> f32 {
+    let words = text.split_whitespace().count() as f32;
+    (words / ANNA_WORDS_PER_S).clamp(ANNA_MIN_HOLD, ANNA_MAX_HOLD)
 }
 
-/// Component marker for Anna's text UI node.
-#[derive(Component)]
-pub struct AnnaCommentText;
-
-/// Pick `count` random comments from `pool`, spaced 40-80s apart (first at 20-40s).
-pub fn build_queue(pool: &[&str], count: usize) -> Vec<(f32, String)> {
+/// Pick `count` random comments from `pool`, spaced 40–80 s apart (first at 20–40 s).
+pub fn build_queue(pool: &[String], count: usize) -> Vec<(f32, String)> {
     use rand::Rng;
     let mut rng = rand::thread_rng();
     let n = count.min(pool.len());
-    // Shuffle indices
     let mut indices: Vec<usize> = (0..pool.len()).collect();
     for i in (1..indices.len()).rev() {
         let j = rng.gen_range(0..=i);
@@ -45,81 +62,110 @@ pub fn build_queue(pool: &[&str], count: usize) -> Vec<(f32, String)> {
     let mut queue = Vec::new();
     let mut t = rng.gen_range(20.0..40.0f32);
     for &idx in indices.iter().take(n) {
-        queue.push((t, pool[idx].to_string()));
+        queue.push((t, pool[idx].clone()));
         t += rng.gen_range(40.0..80.0f32);
     }
     queue
 }
 
-/// Spawn the Anna comment text node (call once in setup).
-pub fn spawn_anna_ui(commands: &mut Commands, font: &Handle<Font>) {
+// ─── Spawn ────────────────────────────────────────────────────────────────────
+
+/// Spawn the Anna card panel. Call once in setup; it stays hidden (alpha=0) until
+/// a message is ready to show. `name_label` is the sender name shown above the
+/// message — typically "ANNA" or "ANNA" in all languages (it's a name).
+pub fn spawn_anna_ui(commands: &mut Commands, font: &Handle<Font>, name_label: &str) {
+    let label_font = TextFont { font: font.clone(), font_size: ANNA_LABEL_SIZE, ..default() };
+    let msg_font   = TextFont { font: font.clone(), font_size: ANNA_TEXT_SIZE,  ..default() };
+
     commands.spawn((
+        AnnaPanel,
         Node {
             position_type: PositionType::Absolute,
-            left: Val::Px(14.0),
-            bottom: Val::Px(24.0),
-            max_width: Val::Px(360.0),
+            left: Val::Px(0.0),
+            right: Val::Px(0.0),
+            bottom: Val::Px(0.0),
+            flex_direction: FlexDirection::Column,
+            padding: UiRect {
+                left: Val::Px(24.0), right: Val::Px(24.0),
+                top: Val::Px(14.0),  bottom: Val::Px(14.0),
+            },
+            border: UiRect { left: Val::Px(ANNA_ACCENT_PX), ..default() },
+            row_gap: Val::Px(5.0),
             ..default()
         },
-        GlobalZIndex(50),
-    )).with_child((
-        Text::new(""),
-        TextFont { font: font.clone(), font_size: ANNA_FONT_SIZE, ..default() },
-        TextColor(Color::srgba(ANNA_COLOR.0, ANNA_COLOR.1, ANNA_COLOR.2, 0.0)),
-        AnnaCommentText,
-    ));
+        BackgroundColor(Color::srgba(ANNA_BG.0, ANNA_BG.1, ANNA_BG.2, 0.0)),
+        BorderColor::all(Color::srgba(ANNA_ACCENT.0, ANNA_ACCENT.1, ANNA_ACCENT.2, 0.0)),
+        GlobalZIndex(70),
+    )).with_children(|p| {
+        p.spawn((
+            Text::new(name_label.to_string()),
+            label_font,
+            TextColor(Color::srgba(ANNA_LABEL.0, ANNA_LABEL.1, ANNA_LABEL.2, 0.0)),
+            AnnaLabelText,
+        ));
+        p.spawn((
+            Text::new(""),
+            msg_font,
+            TextColor(Color::srgba(ANNA_TEXT.0, ANNA_TEXT.1, ANNA_TEXT.2, 0.0)),
+            AnnaCommentText,
+        ));
+    });
 }
 
-/// Tick the comment system: decrement queue timers, manage display and fading.
+// ─── Tick ─────────────────────────────────────────────────────────────────────
+
+/// Drive the comment queue and animate the card panel.
 pub fn tick_anna_comments(
-    time: Res<Time>,
-    mut anna: ResMut<AnnaComments>,
-    mut text_q: Query<(&mut Text, &mut TextColor), With<AnnaCommentText>>,
+    time:      Res<Time>,
+    mut anna:  ResMut<AnnaComments>,
+    mut panel: Query<(&mut BackgroundColor, &mut BorderColor), With<AnnaPanel>>,
+    mut label: Query<&mut TextColor, (With<AnnaLabelText>, Without<AnnaCommentText>)>,
+    mut msg:   Query<(&mut Text, &mut TextColor), With<AnnaCommentText>>,
 ) {
     let dt = time.delta_secs();
 
     // Tick queue timers
-    for (t, _) in anna.queue.iter_mut() {
-        *t -= dt;
-    }
+    for (t, _) in anna.queue.iter_mut() { *t -= dt; }
 
-    // Check if a queued comment is ready and no current comment is showing
+    // Promote next queued comment when idle
     if anna.current.is_none() {
         if let Some(idx) = anna.queue.iter().position(|(t, _)| *t <= 0.0) {
             let (_, text) = anna.queue.remove(idx);
-            anna.current = Some((text, ANNA_DISPLAY_TIME + ANNA_FADE_TIME * 2.0));
+            let hold = hold_time(&text);
+            let total = ANNA_FADE_IN + hold + ANNA_FADE_OUT;
+            anna.current = Some((text, 0.0, total));
         }
     }
 
-    // Update display
-    if let Some((ref text, ref mut timer)) = anna.current {
-        let total = ANNA_DISPLAY_TIME + ANNA_FADE_TIME * 2.0;
-        let elapsed = total - *timer;
-        let alpha = if elapsed < ANNA_FADE_TIME {
-            // Fade in
-            (elapsed / ANNA_FADE_TIME) * ANNA_MAX_ALPHA
-        } else if *timer < ANNA_FADE_TIME {
-            // Fade out
-            (*timer / ANNA_FADE_TIME) * ANNA_MAX_ALPHA
+    let alpha = if let Some((ref text, ref mut elapsed, total)) = anna.current {
+        *elapsed += dt;
+        let a = if *elapsed < ANNA_FADE_IN {
+            *elapsed / ANNA_FADE_IN
+        } else if *elapsed > total - ANNA_FADE_OUT {
+            ((total - *elapsed) / ANNA_FADE_OUT).max(0.0)
         } else {
-            ANNA_MAX_ALPHA
+            1.0
         };
+        // Update message text
+        for (mut t, _) in msg.iter_mut() { **t = text.clone(); }
+        if *elapsed >= total { anna.current = None; }
+        a
+    } else {
+        // Clear text when nothing showing
+        for (mut t, _) in msg.iter_mut() { if !(**t).is_empty() { **t = String::new(); } }
+        0.0
+    };
 
-        for (mut t, mut color) in text_q.iter_mut() {
-            **t = text.clone();
-            *color = TextColor(Color::srgba(
-                ANNA_COLOR.0, ANNA_COLOR.1, ANNA_COLOR.2, alpha,
-            ));
-        }
-
-        *timer -= dt;
-        if *timer <= 0.0 {
-            // Done — clear
-            anna.current = None;
-            for (mut t, mut color) in text_q.iter_mut() {
-                **t = String::new();
-                *color = TextColor(Color::srgba(ANNA_COLOR.0, ANNA_COLOR.1, ANNA_COLOR.2, 0.0));
-            }
-        }
+    // Apply alpha to panel background, accent border, label, and message
+    for (mut bg, mut border) in panel.iter_mut() {
+        bg.0 = Color::srgba(ANNA_BG.0, ANNA_BG.1, ANNA_BG.2, ANNA_BG.3 * alpha);
+        *border = BorderColor::all(
+            Color::srgba(ANNA_ACCENT.0, ANNA_ACCENT.1, ANNA_ACCENT.2, alpha));
+    }
+    for mut tc in label.iter_mut() {
+        tc.0 = Color::srgba(ANNA_LABEL.0, ANNA_LABEL.1, ANNA_LABEL.2, alpha * 0.75);
+    }
+    for (_, mut tc) in msg.iter_mut() {
+        tc.0 = Color::srgba(ANNA_TEXT.0, ANNA_TEXT.1, ANNA_TEXT.2, alpha);
     }
 }

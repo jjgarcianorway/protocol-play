@@ -233,7 +233,7 @@ pub fn generate_world(seed: u64) -> WorldState {
     let earth_collapse = gen_earth_collapse(&mut rng);
     let arks = gen_arks(&mut rng);
     let player_background = gen_player_background(&mut rng);
-    let aurora_crew = rng.gen_range(11_000..=16_000);
+    let aurora_crew = 14_892; // canonical Aurora crew — matches story text
     let aurora_children = rng.gen_range(80..=250);
     let aurora_languages = rng.gen_range(25..=55);
     let aurora_launch_year = rng.gen_range(2095..=2135);

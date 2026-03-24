@@ -234,6 +234,27 @@ pub fn spawn_new_game_submenu(commands: &mut Commands, font: &Handle<Font>) {
                 panel, font, "New World", "New world seed, everything resets",
                 MenuButton::NewWorld,
             );
+            // Cancel button
+            panel.spawn((
+                Button,
+                MenuButton::CancelNewGame,
+                Node {
+                    width: Val::Px(300.0),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    padding: UiRect::axes(Val::Px(20.0), Val::Px(10.0)),
+                    border: UiRect::all(Val::Px(MENU_BUTTON_BORDER)),
+                    border_radius: BorderRadius::all(Val::Px(MENU_BUTTON_CORNER)),
+                    margin: UiRect::top(Val::Px(4.0)),
+                    ..default()
+                },
+                BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.0)),
+                BorderColor::all(Color::srgba(0.4, 0.4, 0.4, 0.4)),
+            )).with_child((
+                Text::new("Cancel"),
+                TextFont { font: font.clone(), font_size: MENU_BUTTON_FONT, ..default() },
+                TextColor(Color::srgba(0.6, 0.6, 0.65, 0.8)),
+            ));
         });
     });
 }

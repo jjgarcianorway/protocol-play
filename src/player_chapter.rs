@@ -4,6 +4,14 @@
 use bevy::prelude::*;
 use crate::constants::*;
 use crate::ui_helpers::gf;
+use crate::i18n::Translations;
+
+const CHAPTER_KEYS: &[&str] = &[
+    "ch_turns", "ch_turn_tiles", "ch_arrows", "ch_arrow_tiles",
+    "ch_teleports", "ch_teleport_tiles", "ch_bounce", "ch_bounce_tiles",
+    "ch_painters", "ch_doors_switches", "ch_color_switches", "ch_color_switch_tiles",
+    "ch_grand_mastery",
+];
 
 /// Combined resource: background fade target + current chapter index.
 #[derive(Resource)]
@@ -19,21 +27,25 @@ pub struct ChapterTitleOverlay {
 }
 
 pub fn chapter_index(level_idx: usize) -> usize {
+    // Chapters 0-11: 11 levels each (introduces one new tile type per chapter).
+    // Chapter 12: remaining 17 levels — "Grand Mastery", all tile types, longest chapter.
     if level_idx < 132 { level_idx / 11 } else { 12 }
 }
 
 /// Set the background color target and spawn a chapter title if the chapter changed.
 pub fn set_chapter(idx: usize, commands: &mut Commands, font: &Handle<Font>,
-    state: &mut ChapterState,
+    state: &mut ChapterState, t: &Translations,
 ) {
     let ci = chapter_index(idx);
     let c = CHAPTER_COLORS[ci.min(12)];
     state.bg_target = Color::srgb(c.0, c.1, c.2);
-    if ci != state.current { state.current = ci; spawn_chapter_title(commands, ci, font); }
+    if ci != state.current { state.current = ci; spawn_chapter_title(commands, ci, font, t); }
 }
 
-fn spawn_chapter_title(commands: &mut Commands, ch: usize, font: &Handle<Font>) {
-    let name = CHAPTER_NAMES[ch.min(12)];
+fn spawn_chapter_title(commands: &mut Commands, ch: usize, font: &Handle<Font>, t: &Translations) {
+    let ci = ch.min(12);
+    let prefix = t.ui_or("chapter_prefix", "Chapter");
+    let name = t.ui_or(CHAPTER_KEYS[ci], CHAPTER_NAMES[ci]);
     commands.spawn((
         Node { position_type: PositionType::Absolute, width: Val::Percent(100.0),
             height: Val::Percent(100.0), justify_content: JustifyContent::Center,
@@ -42,9 +54,9 @@ fn spawn_chapter_title(commands: &mut Commands, ch: usize, font: &Handle<Font>) 
         BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.0)), GlobalZIndex(200),
         ChapterTitleOverlay { timer: 0.0, phase: 0 },
     )).with_children(|p| {
-        p.spawn((Text::new(format!("Chapter {}", ch + 1)), gf(CHAPTER_NUM_FONT, font),
+        p.spawn((Text::new(format!("{} {}", prefix, ch + 1)), gf(CHAPTER_NUM_FONT, font),
             TextColor(Color::srgba(1.0, 1.0, 1.0, 0.0))));
-        p.spawn((Text::new(name), gf(CHAPTER_NAME_FONT, font),
+        p.spawn((Text::new(name.to_string()), gf(CHAPTER_NAME_FONT, font),
             TextColor(Color::srgba(1.0, 1.0, 1.0, 0.0))));
     });
 }
@@ -54,10 +66,8 @@ pub fn animate_bg_color(mut cc: ResMut<ClearColor>, state: Res<ChapterState>, ti
     let c = cc.0.to_srgba();
     let t = state.bg_target.to_srgba();
     let s = (BG_FADE_SPEED * time.delta_secs()).clamp(0.0, 1.0);
-    let nr = c.red + (t.red - c.red) * s;
-    let ng = c.green + (t.green - c.green) * s;
-    let nb = c.blue + (t.blue - c.blue) * s;
-    cc.0 = Color::srgb(nr, ng, nb);
+    cc.0 = Color::srgb(c.red + (t.red - c.red) * s, c.green + (t.green - c.green) * s,
+        c.blue + (t.blue - c.blue) * s);
 }
 
 /// Animate chapter title overlay: fade in, hold, fade out, despawn.

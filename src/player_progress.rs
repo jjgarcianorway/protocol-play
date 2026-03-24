@@ -12,9 +12,21 @@ use std::io::Write;
 pub struct LevelProgress {
     pub completed: bool,
     #[serde(default)] pub creative_solution: bool,
+    /// 1-3 stars awarded on completion. 0 = not yet computed.
+    #[serde(default)] pub stars: u8,
     pub stats: ProgressStats,
     pub board_state: Option<Vec<(u32, u32, TileKind)>>,
     pub inventory_state: Option<Vec<(TileKind, u8)>>,
+}
+
+/// Compute star rating from completion stats.
+/// 3★: first try, no resets.
+/// 2★: solved in 1-3 attempts.
+/// 1★: solved eventually.
+pub fn compute_stars(play_count: u32, reset_count: u32) -> u8 {
+    if play_count == 1 && reset_count == 0 { 3 }
+    else if play_count <= 3 { 2 }
+    else { 1 }
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]

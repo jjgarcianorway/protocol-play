@@ -14,6 +14,7 @@ pub mod sound;
 mod systems;
 mod simulation;
 mod messages;
+#[cfg(feature = "player")] mod i18n;
 mod bot_formation;
 mod mat_helpers;
 mod test_mode;

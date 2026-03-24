@@ -14,6 +14,7 @@ pub mod sound;
 mod systems;
 mod simulation;
 mod messages;
+#[cfg(feature = "player")] mod i18n;
 mod bot_formation;
 mod mat_helpers;
 mod test_mode;
@@ -54,6 +55,7 @@ fn main() {
                     let data = LevelData {
                         name: level.name.clone(), board_size: level.config.board_size,
                         tiles, solution, seed: Some(seed), difficulty: Some(rating),
+                        solution_count: None,
                     };
                     let json = serde_json::to_string_pretty(&data).unwrap();
                     std::fs::write(&path, json).unwrap();
@@ -117,6 +119,7 @@ fn cfg(board: u32, bots: u32, diff: u32, weights: [u32; GEN_NUM_WEIGHTS]) -> Gen
         hole_percent: 20, hole_placement: HolePlacement::Both,
         unique_solution: false, inventory_target: 0, // set per-level in make_level
         door_chains: 0, path_sharing: false, confusion_tiles: false,
+        chapter_idx: 0, // set in make_level
         required_tile: None,
     }
 }
@@ -146,11 +149,14 @@ fn ch_w(ch: usize, pos: usize) -> [u32; GEN_NUM_WEIGHTS] {
 fn make_level(ch: usize, pos: usize, name: &str, board: u32, bots: u32, diff: u32) -> Level {
     let mut c = cfg(board, bots, diff, ch_w(ch, pos));
     if ch >= 2 { c.path_sharing = true; }
-    // Confusion tiles: intro levels (0-1) never, mid-levels sometimes, late always
-    c.confusion_tiles = if pos <= 1 { false } else if pos <= 4 { ch >= 3 } else { true };
+    // Confusion tiles: never on the very first level of a chapter, otherwise always on —
+    // decoy tiles in inventory make paths far less obvious (addresses Paula's #1 feedback).
+    c.confusion_tiles = pos >= 1;
     if ch >= 10 { c.door_chains = match pos { 0..=2=>1, 3..=5=>2, 6..=8=>3, _=>4 }.max(1); }
-    // Holes: gentle start, ramp up
-    let hole_base = if ch <= 2 { 5 } else if ch <= 6 { 12 } else { 18 };
+    // Holes: substantially more than before — boards felt too sparse and paths too obvious.
+    let hole_base = if ch <= 2 { 14 } else if ch <= 6 { 18 } else { 22 };
+    // Tag chapter index so the generator can bias bot colors per chapter.
+    c.chapter_idx = ch.saturating_sub(1); // 0-based
     let pct = hole_base + pos as u32 * 2;
     match pos % 3 {
         0 => { c.hole_placement = HolePlacement::Edges; c.hole_percent = pct; }
