@@ -311,87 +311,111 @@ pub fn update_inventory_visuals(
 }
 
 // === Status bar descriptions ===
-fn tile_desc(idx: usize) -> &'static str {
-    const D: &[&str] = &[
-        "Floor \u{2013} A simple tile for bots to walk on",
-        "Source \u{2013} Launches a colored bot in the arrow direction",
-        "Goal \u{2013} The destination! Guide the matching bot here to win",
-        "Turn \u{2013} Redirects bots along the L-path (grey = all bots)",
-        "Turn But \u{2013} Redirects all bots EXCEPT this color",
-        "Teleport \u{2013} Teleports matching color bots to the paired portal (grey = all bots)",
-        "Teleport But \u{2013} Teleports all bots EXCEPT this color",
-        "Bounce \u{2013} Sends bots back the way they came (grey = all bots)",
-        "Bounce But \u{2013} Bounces all bots EXCEPT this color",
-        "Door \u{2013} Blocks the path until a switch opens it",
-        "Switch \u{2013} Toggles all doors (grey = all bots)",
-        "Switch But \u{2013} All bots EXCEPT this color toggle doors",
-        "Painter \u{2013} Changes the bot's color as it walks over",
-        "Arrow \u{2013} Redirects bots in the arrow direction (grey = all bots)",
-        "Arrow But \u{2013} Redirects all bots EXCEPT this color",
-        "Eraser \u{2013} Removes a tile from the board", "Empty",
-    ]; D[idx]
-}
-fn slot_description(slot: &InventorySlot) -> &'static str {
-    match slot {
-        InventorySlot::Floor => tile_desc(0),
-        InventorySlot::Source | InventorySlot::SourceDir(_) | InventorySlot::SourceColor(_) => tile_desc(1),
-        InventorySlot::Goal | InventorySlot::GoalColor(_) => tile_desc(2),
-        InventorySlot::Turn | InventorySlot::TurnDir(_) | InventorySlot::TurnColor(_) => tile_desc(3),
-        InventorySlot::TurnBut | InventorySlot::TurnButDir(_) | InventorySlot::TurnButColor(_) => tile_desc(4),
-        InventorySlot::Teleport | InventorySlot::TeleportColor(_) => tile_desc(5),
-        InventorySlot::TeleportBut | InventorySlot::TeleportButColor(_) => tile_desc(6),
-        InventorySlot::Bounce | InventorySlot::BounceColor(_) => tile_desc(7),
-        InventorySlot::BounceBut | InventorySlot::BounceButColor(_) => tile_desc(8),
-        InventorySlot::Door | InventorySlot::DoorState(_) => tile_desc(9),
-        InventorySlot::Switch | InventorySlot::SwitchColor(_) => tile_desc(10),
-        InventorySlot::SwitchBut | InventorySlot::SwitchButColor(_) => tile_desc(11),
-        InventorySlot::Painter | InventorySlot::PainterColor(_) => tile_desc(12),
-        InventorySlot::Arrow | InventorySlot::ArrowDir(_) | InventorySlot::ArrowColor(_) => tile_desc(13),
-        InventorySlot::ArrowBut | InventorySlot::ArrowButDir(_) | InventorySlot::ArrowButColor(_) => tile_desc(14),
-        InventorySlot::Delete => tile_desc(15),
-    }
+use crate::i18n::Translations;
+
+const TILE_KEYS: &[&str] = &[
+    "tile.floor", "tile.source", "tile.goal", "tile.turn", "tile.turn_but",
+    "tile.teleport", "tile.teleport_but", "tile.bounce", "tile.bounce_but",
+    "tile.door", "tile.switch", "tile.switch_but", "tile.painter",
+    "tile.arrow", "tile.arrow_but", "tile.eraser", "tile.empty",
+];
+const TILE_EN: &[&str] = &[
+    "Floor \u{2013} A simple tile for bots to walk on",
+    "Source \u{2013} Launches a colored bot in the arrow direction",
+    "Goal \u{2013} The destination! Guide the matching bot here to win",
+    "Turn \u{2013} Redirects bots along the L-path (grey = all bots)",
+    "Turn But \u{2013} Redirects all bots EXCEPT this color",
+    "Teleport \u{2013} Teleports matching color bots to the paired portal (grey = all bots)",
+    "Teleport But \u{2013} Teleports all bots EXCEPT this color",
+    "Bounce \u{2013} Sends bots back the way they came (grey = all bots)",
+    "Bounce But \u{2013} Bounces all bots EXCEPT this color",
+    "Door \u{2013} Blocks the path until a switch opens it",
+    "Switch \u{2013} Toggles all doors (grey = all bots)",
+    "Switch But \u{2013} All bots EXCEPT this color toggle doors",
+    "Painter \u{2013} Changes the bot's color as it walks over",
+    "Arrow \u{2013} Redirects bots in the arrow direction (grey = all bots)",
+    "Arrow But \u{2013} Redirects all bots EXCEPT this color",
+    "Eraser \u{2013} Removes a tile from the board",
+    "Empty",
+];
+
+fn tile_desc(idx: usize, t: Option<&Translations>) -> String {
+    if let Some(t) = t { t.get_or(TILE_KEYS[idx], TILE_EN[idx]).to_string() }
+    else { TILE_EN[idx].to_string() }
 }
 
-fn tilekind_description(kind: &TileKind) -> &'static str {
-    match kind {
-        TileKind::Empty => tile_desc(16),
-        TileKind::Floor => tile_desc(0),
-        TileKind::Source(_, _) => tile_desc(1),  TileKind::Goal(_) => tile_desc(2),
-        TileKind::Turn(_, _) => tile_desc(3),    TileKind::TurnBut(_, _) => tile_desc(4),
-        TileKind::Teleport(_, _) => tile_desc(5), TileKind::TeleportBut(_, _) => tile_desc(6),
-        TileKind::Bounce(_) => tile_desc(7),
-        TileKind::BounceBut(_) => tile_desc(8),  TileKind::Door(_) => tile_desc(9),
-        TileKind::Switch | TileKind::ColorSwitch(_) => tile_desc(10),
-        TileKind::ColorSwitchBut(_) => tile_desc(11), TileKind::Painter(_) => tile_desc(12),
-        TileKind::Arrow(_, _) => tile_desc(13),  TileKind::ArrowBut(_, _) => tile_desc(14),
-    }
-}
+const COLOR_KEYS: &[&str] = &[
+    "color.red", "color.green", "color.yellow", "color.blue",
+    "color.orange", "color.purple", "color.cyan", "color.pink", "color.lime",
+];
 
-fn color_label(ci: usize) -> &'static str {
+pub fn color_label(ci: usize, t: Option<&Translations>) -> String {
     use crate::constants::{COLOR_NAMES, NUM_COLORS};
-    if ci == NUM_COLORS { "Grey (all)" } else if ci < COLOR_NAMES.len() { COLOR_NAMES[ci] } else { "?" }
+    if ci == NUM_COLORS {
+        if let Some(t) = t { t.get_or("color.grey", "Grey (all)").to_string() }
+        else { "Grey (all)".to_string() }
+    } else if ci < COLOR_NAMES.len() {
+        if let Some(t) = t { t.get_or(COLOR_KEYS[ci], COLOR_NAMES[ci]).to_string() }
+        else { COLOR_NAMES[ci].to_string() }
+    } else { "?".to_string() }
+}
+
+fn slot_description(slot: &InventorySlot, t: Option<&Translations>) -> String {
+    match slot {
+        InventorySlot::Floor => tile_desc(0, t),
+        InventorySlot::Source | InventorySlot::SourceDir(_) | InventorySlot::SourceColor(_) => tile_desc(1, t),
+        InventorySlot::Goal | InventorySlot::GoalColor(_) => tile_desc(2, t),
+        InventorySlot::Turn | InventorySlot::TurnDir(_) | InventorySlot::TurnColor(_) => tile_desc(3, t),
+        InventorySlot::TurnBut | InventorySlot::TurnButDir(_) | InventorySlot::TurnButColor(_) => tile_desc(4, t),
+        InventorySlot::Teleport | InventorySlot::TeleportColor(_) => tile_desc(5, t),
+        InventorySlot::TeleportBut | InventorySlot::TeleportButColor(_) => tile_desc(6, t),
+        InventorySlot::Bounce | InventorySlot::BounceColor(_) => tile_desc(7, t),
+        InventorySlot::BounceBut | InventorySlot::BounceButColor(_) => tile_desc(8, t),
+        InventorySlot::Door | InventorySlot::DoorState(_) => tile_desc(9, t),
+        InventorySlot::Switch | InventorySlot::SwitchColor(_) => tile_desc(10, t),
+        InventorySlot::SwitchBut | InventorySlot::SwitchButColor(_) => tile_desc(11, t),
+        InventorySlot::Painter | InventorySlot::PainterColor(_) => tile_desc(12, t),
+        InventorySlot::Arrow | InventorySlot::ArrowDir(_) | InventorySlot::ArrowColor(_) => tile_desc(13, t),
+        InventorySlot::ArrowBut | InventorySlot::ArrowButDir(_) | InventorySlot::ArrowButColor(_) => tile_desc(14, t),
+        InventorySlot::Delete => tile_desc(15, t),
+    }
+}
+
+fn tilekind_description(kind: &TileKind, t: Option<&Translations>) -> String {
+    match kind {
+        TileKind::Empty => tile_desc(16, t),
+        TileKind::Floor => tile_desc(0, t),
+        TileKind::Source(_, _) => tile_desc(1, t),  TileKind::Goal(_) => tile_desc(2, t),
+        TileKind::Turn(_, _) => tile_desc(3, t),    TileKind::TurnBut(_, _) => tile_desc(4, t),
+        TileKind::Teleport(_, _) => tile_desc(5, t), TileKind::TeleportBut(_, _) => tile_desc(6, t),
+        TileKind::Bounce(_) => tile_desc(7, t),
+        TileKind::BounceBut(_) => tile_desc(8, t),  TileKind::Door(_) => tile_desc(9, t),
+        TileKind::Switch | TileKind::ColorSwitch(_) => tile_desc(10, t),
+        TileKind::ColorSwitchBut(_) => tile_desc(11, t), TileKind::Painter(_) => tile_desc(12, t),
+        TileKind::Arrow(_, _) => tile_desc(13, t),  TileKind::ArrowBut(_, _) => tile_desc(14, t),
+    }
 }
 
 /// Description with color name for accessibility.
-fn tilekind_desc_colored(kind: &TileKind) -> String {
+pub fn tilekind_desc_colored(kind: &TileKind, t: Option<&Translations>) -> String {
     use crate::constants::NUM_COLORS;
     match kind {
         TileKind::Turn(ci, _) => format!("Turn ({}) \u{2013} Redirects {} bots along the L-path",
-            color_label(*ci), if *ci == NUM_COLORS { "all" } else { "matching" }),
+            color_label(*ci, t), if *ci == NUM_COLORS { "all" } else { "matching" }),
         TileKind::TurnBut(ci, _) => format!("Turn But ({}) \u{2013} Redirects all bots EXCEPT {}",
-            color_label(*ci), color_label(*ci)),
+            color_label(*ci, t), color_label(*ci, t)),
         TileKind::Arrow(ci, _) => format!("Arrow ({}) \u{2013} Redirects {} bots in the arrow direction",
-            color_label(*ci), if *ci == NUM_COLORS { "all" } else { "matching" }),
+            color_label(*ci, t), if *ci == NUM_COLORS { "all" } else { "matching" }),
         TileKind::ArrowBut(ci, _) => format!("Arrow But ({}) \u{2013} Redirects all bots EXCEPT {}",
-            color_label(*ci), color_label(*ci)),
+            color_label(*ci, t), color_label(*ci, t)),
         TileKind::Bounce(ci) => format!("Bounce ({}) \u{2013} Sends {} bots back",
-            color_label(*ci), if *ci == NUM_COLORS { "all" } else { "matching" }),
+            color_label(*ci, t), if *ci == NUM_COLORS { "all" } else { "matching" }),
         TileKind::BounceBut(ci) => format!("Bounce But ({}) \u{2013} Bounces all bots EXCEPT {}",
-            color_label(*ci), color_label(*ci)),
-        TileKind::Source(ci, _) => format!("Source ({}) \u{2013} Launches a {} bot", color_label(*ci), color_label(*ci)),
-        TileKind::Goal(ci) => format!("Goal ({}) \u{2013} Destination for {} bot", color_label(*ci), color_label(*ci)),
-        TileKind::Painter(ci) => format!("Painter ({}) \u{2013} Changes bot to {}", color_label(*ci), color_label(*ci)),
-        _ => tilekind_description(kind).to_string(),
+            color_label(*ci, t), color_label(*ci, t)),
+        TileKind::Source(ci, _) => format!("Source ({}) \u{2013} Launches a {} bot", color_label(*ci, t), color_label(*ci, t)),
+        TileKind::Goal(ci) => format!("Goal ({}) \u{2013} Destination for {} bot", color_label(*ci, t), color_label(*ci, t)),
+        TileKind::Painter(ci) => format!("Painter ({}) \u{2013} Changes bot to {}", color_label(*ci, t), color_label(*ci, t)),
+        _ => tilekind_description(kind, t),
     }
 }
 
@@ -401,16 +425,22 @@ pub fn update_status_bar(
     test_inv: Res<TestInventory>,
     mut text_q: Query<(&mut Text, &mut TextColor), With<StatusBarText>>,
     time: Res<Time>,
+    translations: Option<Res<Translations>>,
 ) {
     let Ok((mut text, mut color)) = text_q.single_mut() else { return };
+    let t = translations.as_deref();
     let desc: Option<String> = slots.iter()
         .find(|(i, _)| matches!(i, Interaction::Hovered | Interaction::Pressed))
-        .map(|(_, s)| slot_description(s).to_string())
+        .map(|(_, s)| slot_description(s, t))
         .or_else(|| test_slots.iter()
             .find(|(i, _)| matches!(i, Interaction::Hovered | Interaction::Pressed))
             .and_then(|(_, s)| {
-                if s.0 == usize::MAX { Some("Remove \u{2013} Pick up a placed tile".to_string()) }
-                else { test_inv.items.get(s.0).map(|(k, _)| tilekind_desc_colored(k)) }
+                if s.0 == usize::MAX {
+                    let tr = if let Some(t) = t { t.get_or("ui.remove_tile", "Remove \u{2013} Pick up a placed tile").to_string() }
+                        else { "Remove \u{2013} Pick up a placed tile".to_string() };
+                    Some(tr)
+                }
+                else { test_inv.items.get(s.0).map(|(k, _)| tilekind_desc_colored(k, t)) }
             }));
     let target = if desc.is_some() { 0.85 } else { 0.0 };
     if let Some(ref d) = desc { if **text != *d { **text = d.clone() } }

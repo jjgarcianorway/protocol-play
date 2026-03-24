@@ -333,6 +333,7 @@ pub fn spawn_simulation_overlay(
     play_mode: Res<PlayMode>, test_inv: Res<TestInventory>,
     bots: Query<&Bot>,
     palette: Option<Res<SoundPalette>>, snd_settings: Res<SoundSettings>,
+    translations: Option<Res<crate::i18n::Translations>>,
 ) {
     if sim_result.result.is_none() || sim_result.overlay_spawned || !existing.is_empty() { return; }
     sim_result.overlay_spawned = true;
@@ -340,12 +341,16 @@ pub fn spawn_simulation_overlay(
         let snd = if matches!(sim_result.result, Some(SimResult::Success)) { SoundType::LevelComplete } else { SoundType::LevelFail };
         play_sound(&mut commands, pal, snd, &snd_settings);
     }
+    let t = translations.as_deref();
     let in_test = matches!(*play_mode, PlayMode::TestPlaying);
     let pieces_left = test_inv.items.iter().map(|(_, c)| *c as usize).sum::<usize>();
     let bot_count = bots.iter().count();
-    let (msg, color, btn_text): (String, Color, &str) = match &sim_result.result {
-        Some(SimResult::Error(s)) => (s.to_string(), rgb(SIM_ERROR_COLOR), "Stop"),
-        Some(SimResult::Success) => (pick_success_msg(bot_count, pieces_left, in_test), rgb(SIM_SUCCESS_COLOR), "Continue"),
+    let stop_label = if let Some(t) = t { t.get_or("ui.stop", "Stop").to_string() } else { "Stop".to_string() };
+    let continue_label = if let Some(t) = t { t.get_or("ui.continue_game", "Continue").to_string() } else { "Continue".to_string() };
+    let retry_label = if let Some(t) = t { t.get_or("ui.retry", "  Click to retry").to_string() } else { "  Click to retry".to_string() };
+    let (msg, color, btn_text): (String, Color, String) = match &sim_result.result {
+        Some(SimResult::Error(s)) => (s.to_string(), rgb(SIM_ERROR_COLOR), stop_label),
+        Some(SimResult::Success) => (pick_success_msg(bot_count, pieces_left, in_test), rgb(SIM_SUCCESS_COLOR), continue_label),
         None => return,
     };
     let stats = sim_result.stats_lines.clone();
@@ -365,7 +370,7 @@ pub fn spawn_simulation_overlay(
                 BackgroundColor(Color::srgba(0.12, 0.08, 0.08, 0.92)),
             )).with_children(|banner| {
                 banner.spawn((Text::new(&msg), gf(SIM_MSG_FONT, &font.0), TextColor(color)));
-                banner.spawn((Text::new("  Click to retry"), gf(SIM_BTN_FONT, &font.0),
+                banner.spawn((Text::new(&retry_label), gf(SIM_BTN_FONT, &font.0),
                     TextColor(Color::srgba(0.7, 0.7, 0.7, 0.7))));
             });
         });
@@ -390,7 +395,7 @@ pub fn spawn_simulation_overlay(
                     Button, SimOverlayButton,
                     Node { padding: UiRect::axes(Val::Px(SIM_BTN_PAD.0), Val::Px(SIM_BTN_PAD.1)), ..default() },
                     BackgroundColor(rgb(SIM_BTN_BG)),
-                )).with_child((Text::new(btn_text), gf(SIM_BTN_FONT, &font.0), TextColor(Color::WHITE)));
+                )).with_child((Text::new(&btn_text), gf(SIM_BTN_FONT, &font.0), TextColor(Color::WHITE)));
             });
         });
     }

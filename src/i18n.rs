@@ -61,6 +61,17 @@ impl Translations {
     pub fn ui_or<'a>(&'a self, label: &str, fallback: &'a str) -> &'a str {
         self.ui(label).unwrap_or(fallback)
     }
+
+    /// Look up any translation key directly (no prefix added).
+    pub fn get(&self, key: &str) -> Option<&str> {
+        if self.language == "en" { return None; }
+        self.translations.get(key).map(|s| s.as_str())
+    }
+
+    /// Look up any key with English fallback.
+    pub fn get_or<'a>(&'a self, key: &str, fallback: &'a str) -> &'a str {
+        self.get(key).unwrap_or(fallback)
+    }
 }
 
 /// Load translations for the given language code.
@@ -251,6 +262,39 @@ fn embedded_es_player(m: &mut HashMap<String, String>) {
     m.insert("anna.fact.29".into(), "La economía de la atención mercantiliza el foco humano. Cada notificación, cada «me gusta» y cada racha está diseñada para ser más difícil de ignorar que lo que estabas haciendo antes.".into());
     m.insert("anna.fact.30".into(), "No existe consenso científico sobre si la gamificación mejora los resultados a largo plazo, o si principalmente moldea y mide el comportamiento durante el período de uso activo.".into());
     m.insert("anna.fact.31".into(), "Algunos investigadores distinguen entre «gamificación» (añadir elementos de juego a contextos no lúdicos) y «aprendizaje basado en juegos» (usar juegos reales). La literatura sobre resultados los trata de forma diferente.".into());
+    // Tile descriptions
+    m.insert("tile.floor".into(), "Suelo \u{2013} Baldosa simple para que caminen los bots".into());
+    m.insert("tile.source".into(), "Fuente \u{2013} Lanza un bot del color indicado".into());
+    m.insert("tile.goal".into(), "Meta \u{2013} \u{00A1}Gu\u{00ED}a al bot del color correspondiente aqu\u{00ED}!".into());
+    m.insert("tile.turn".into(), "Giro \u{2013} Redirige bots por la ruta en L (gris = todos)".into());
+    m.insert("tile.turn_but".into(), "Giro Exc \u{2013} Redirige todos EXCEPTO este color".into());
+    m.insert("tile.teleport".into(), "Teletransporte \u{2013} Transporta bots al portal emparejado (gris = todos)".into());
+    m.insert("tile.teleport_but".into(), "Teletransporte Exc \u{2013} Transporta todos EXCEPTO este color".into());
+    m.insert("tile.bounce".into(), "Rebote \u{2013} Devuelve bots por donde vinieron (gris = todos)".into());
+    m.insert("tile.bounce_but".into(), "Rebote Exc \u{2013} Rebota todos EXCEPTO este color".into());
+    m.insert("tile.door".into(), "Puerta \u{2013} Bloquea el paso hasta que un interruptor la abra".into());
+    m.insert("tile.switch".into(), "Interruptor \u{2013} Alterna todas las puertas (gris = todos)".into());
+    m.insert("tile.switch_but".into(), "Interruptor Exc \u{2013} Todos EXCEPTO este color alternan puertas".into());
+    m.insert("tile.painter".into(), "Pintor \u{2013} Cambia el color del bot al pasar".into());
+    m.insert("tile.arrow".into(), "Flecha \u{2013} Redirige bots en la direcci\u{00F3}n indicada (gris = todos)".into());
+    m.insert("tile.arrow_but".into(), "Flecha Exc \u{2013} Redirige todos EXCEPTO este color".into());
+    m.insert("tile.eraser".into(), "Borrador \u{2013} Elimina una baldosa del tablero".into());
+    m.insert("tile.empty".into(), "Vac\u{00ED}o".into());
+    // Game UI
+    m.insert("ui.stop".into(), "Parar".into());
+    m.insert("ui.continue_game".into(), "Continuar".into());
+    m.insert("ui.remove_tile".into(), "Borrar \u{2013} Recoge una baldosa colocada".into());
+    // Color names
+    m.insert("color.red".into(), "Rojo".into());
+    m.insert("color.green".into(), "Verde".into());
+    m.insert("color.yellow".into(), "Amarillo".into());
+    m.insert("color.blue".into(), "Azul".into());
+    m.insert("color.orange".into(), "Naranja".into());
+    m.insert("color.purple".into(), "Morado".into());
+    m.insert("color.cyan".into(), "Cian".into());
+    m.insert("color.pink".into(), "Rosa".into());
+    m.insert("color.lime".into(), "Lima".into());
+    m.insert("color.grey".into(), "Gris (todos)".into());
     // Anna progress and meta
     m.insert("anna.prog.0".into(), "Se te está dando muy bien.".into());
     m.insert("anna.prog.1".into(), "Otro sistema vuelve a funcionar.".into());

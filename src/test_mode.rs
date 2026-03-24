@@ -135,6 +135,7 @@ pub fn test_button_interaction(
     icons: Res<InventoryIcons>,
     font: Res<GameFont>,
     inv_container: Query<Entity, With<InventoryContainer>>,
+    translations: Option<Res<crate::i18n::Translations>>,
 ) {
     for interaction in &interaction_query {
         if *interaction != Interaction::Pressed { continue; }
@@ -155,20 +156,25 @@ pub fn test_button_interaction(
             spawn_tile(&mut commands, col, row, board_size.0, kind, &assets);
         }
         spawn_test_inventory(&mut commands, &test_inv, &icons, true, &font.0);
-        spawn_test_banner(&mut commands, &font.0);
-        spawn_test_buttons(&mut commands, &font.0);
+        let t = translations.as_deref();
+        spawn_test_banner(&mut commands, &font.0, t);
+        spawn_test_buttons(&mut commands, &font.0, t);
         if let Ok(c) = inv_container.single() { commands.entity(c).insert(UiBottomAnim { target: INV_SLIDE_HIDE, despawn_at_target: false }); }
         *play_mode = PlayMode::TestEditing;
     }
 }
-fn spawn_test_banner(commands: &mut Commands, f: &Handle<Font>) {
+fn spawn_test_banner(commands: &mut Commands, f: &Handle<Font>, t: Option<&crate::i18n::Translations>) {
+    let label = if let Some(t) = t { t.get_or("ui.test_mode", "TEST MODE").to_string() } else { "TEST MODE".to_string() };
     commands.spawn((Node { position_type: PositionType::Absolute, top: Val::Px(BANNER_SLIDE_HIDE), width: Val::Percent(100.0),
         height: Val::Px(BANNER_HEIGHT), justify_content: JustifyContent::Center, align_items: AlignItems::Center, ..default() },
         BackgroundColor(rgba(TEST_BANNER_BG)), TestModeBanner,
         UiTopAnim { target: TOP_SLIDE_SHOW + PLAY_BTN_SIZE + 6.0, despawn_at_target: false },
-    )).with_child((Text::new("TEST MODE"), gf(DIALOG_TITLE_FONT, f), TextColor(rgb(TEST_BANNER_TEXT))));
+    )).with_child((Text::new(&label), gf(DIALOG_TITLE_FONT, f), TextColor(rgb(TEST_BANNER_TEXT))));
 }
-fn spawn_test_buttons(commands: &mut Commands, f: &Handle<Font>) {
+fn spawn_test_buttons(commands: &mut Commands, f: &Handle<Font>, t: Option<&crate::i18n::Translations>) {
+    let reset_label = if let Some(t) = t { t.get_or("ui.reset", "Reset").to_string() } else { "Reset".to_string() };
+    let save_label = if let Some(t) = t { t.get_or("ui.save", "Save").to_string() } else { "Save".to_string() };
+    let stop_label = if let Some(t) = t { t.get_or("ui.stop_test", "Stop Test").to_string() } else { "Stop Test".to_string() };
     let (tf, tc) = (gf(LABEL_FONT, f), TextColor(Color::WHITE));
     let mut btn = text_btn_node(); btn.border_radius = BorderRadius::all(Val::Px(UI_CORNER_RADIUS));
     let mut rb = btn.clone(); rb.margin = UiRect::right(Val::Px(BTN_SIDE_MARGIN));
@@ -176,9 +182,9 @@ fn spawn_test_buttons(commands: &mut Commands, f: &Handle<Font>) {
         flex_direction: FlexDirection::Row, column_gap: Val::Px(4.0), ..default() },
         UiTopAnim { target: TOP_SLIDE_SHOW, despawn_at_target: false }, TestTopButtons,
     )).with_children(|p| {
-        p.spawn((Button, ResetTestButton, rb, BackgroundColor(btn_bg()))).with_child((Text::new("Reset"), tf.clone(), tc));
-        p.spawn((Button, SaveButton, btn.clone(), BackgroundColor(btn_bg()))).with_child((Text::new("Save"), tf.clone(), tc));
-        p.spawn((Button, StopTestButton, btn, BackgroundColor(rgb(STOP_TEST_BTN_BG)))).with_child((Text::new("Stop Test"), tf, tc));
+        p.spawn((Button, ResetTestButton, rb, BackgroundColor(btn_bg()))).with_child((Text::new(&reset_label), tf.clone(), tc));
+        p.spawn((Button, SaveButton, btn.clone(), BackgroundColor(btn_bg()))).with_child((Text::new(&save_label), tf.clone(), tc));
+        p.spawn((Button, StopTestButton, btn, BackgroundColor(rgb(STOP_TEST_BTN_BG)))).with_child((Text::new(&stop_label), tf, tc));
     });
 }
 pub fn spawn_test_inventory(commands: &mut Commands, test_inv: &TestInventory, icons: &InventoryIcons, animate: bool, f: &Handle<Font>) {
