@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Main menu for the standalone bot puzzle game (player mode).
-//! Polished layout with a semi-transparent overlay over the 3D board background.
+//! Main menu — clean, modern puzzle game aesthetic.
 
 use bevy::prelude::*;
 use bevy::app::AppExit;
@@ -21,190 +20,132 @@ pub enum PlayerPhase {
 
 // ─── Components ──────────────────────────────────────────────────────────────
 
-#[derive(Component)]
-pub struct MenuRoot;
+#[derive(Component)] pub struct MenuRoot;
+#[derive(Component)] pub struct MenuContinueBtn;
+#[derive(Component)] pub struct MenuNewGameBtn;
+#[derive(Component)] pub struct MenuQuitBtn;
+#[derive(Component)] pub struct MenuSettingsBtn;
 
 #[derive(Component)]
-pub struct MenuContinueBtn;
+pub struct MenuHoverable { pub normal: Color, pub hovered: Color }
 
-#[derive(Component)]
-pub struct MenuNewGameBtn;
+// ─── Colors ──────────────────────────────────────────────────────────────────
 
-#[derive(Component)]
-pub struct MenuQuitBtn;
-
-#[derive(Component)]
-pub struct MenuSettingsBtn;
-
-/// Marker for buttons that should get hover effects.
-#[derive(Component)]
-pub struct MenuHoverable {
-    pub normal: Color,
-    pub hovered: Color,
-}
+fn btn_primary() -> Color { Color::srgba(MENU_BTN_PRIMARY.0, MENU_BTN_PRIMARY.1, MENU_BTN_PRIMARY.2, MENU_BTN_PRIMARY.3) }
+fn btn_secondary() -> Color { Color::srgba(MENU_BTN_SECONDARY.0, MENU_BTN_SECONDARY.1, MENU_BTN_SECONDARY.2, MENU_BTN_SECONDARY.3) }
+fn btn_hover() -> Color { Color::srgba(MENU_BTN_HOVER.0, MENU_BTN_HOVER.1, MENU_BTN_HOVER.2, MENU_BTN_HOVER.3) }
+fn btn_hover_dim() -> Color { Color::srgba(MENU_BTN_HOVER.0, MENU_BTN_HOVER.1, MENU_BTN_HOVER.2, MENU_BTN_HOVER.3 * 0.6) }
+fn text_link() -> Color { Color::srgba(0.65, 0.72, 0.80, 0.90) }
+fn text_link_dim() -> Color { Color::srgba(0.50, 0.55, 0.62, 0.70) }
+fn link_hover() -> Color { Color::srgba(1.0, 1.0, 1.0, 0.06) }
 
 // ─── Setup ───────────────────────────────────────────────────────────────────
 
-/// Startup: spawn the menu UI.
-pub fn enter_menu(
-    mut commands: Commands,
-    font: Res<GameFont>,
-    t: Res<Translations>,
-) {
+pub fn enter_menu(mut commands: Commands, font: Res<GameFont>, t: Res<Translations>) {
     let f = &font.0;
-    let has_progress = check_has_progress();
+    let has_save = check_has_progress();
 
-    // Root: full-screen semi-transparent overlay (the 3D board IS the background)
-    commands.spawn((
-        MenuRoot,
-        Node {
-            width: Val::Percent(100.0),
-            height: Val::Percent(100.0),
-            flex_direction: FlexDirection::Column,
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
-            ..default()
-        },
-        BackgroundColor(Color::srgba(MENU_BG.0, MENU_BG.1, MENU_BG.2, MENU_OVERLAY_ALPHA)),
+    // Full-screen overlay — semi-transparent so 3D board shows through
+    commands.spawn((MenuRoot, Node {
+        width: Val::Percent(100.0), height: Val::Percent(100.0),
+        flex_direction: FlexDirection::Column, align_items: AlignItems::Center,
+        padding: UiRect::vertical(Val::Vh(8.0)),
+        ..default()
+    }, BackgroundColor(Color::srgba(MENU_BG.0, MENU_BG.1, MENU_BG.2, MENU_OVERLAY_ALPHA)),
     )).with_children(|root| {
-        // Title
+        // ── Top spacer (pushes content toward center) ──
+        root.spawn(Node { flex_grow: 1.0, ..default() });
+
+        // ── Title block ──
         root.spawn((
             Text::new("protocol play"),
             TextFont { font: f.clone(), font_size: MENU_TITLE_SIZE, ..default() },
-            TextColor(Color::srgba(0.92, 0.93, 0.96, 1.0)),
+            TextColor(Color::WHITE),
         ));
-
-        // Subtitle: "puzzle"
         root.spawn((
             Text::new("puzzle"),
             TextFont { font: f.clone(), font_size: MENU_SUBTITLE_SIZE, ..default() },
-            TextColor(Color::srgba(0.45, 0.50, 0.62, 1.0)),
-            Node { margin: UiRect::top(Val::Px(4.0)), ..default() },
+            TextColor(Color::srgba(0.55, 0.75, 0.70, 0.90)),
+            Node { margin: UiRect::top(Val::Px(2.0)), ..default() },
         ));
-
-        // Tagline
         root.spawn((
             Text::new(t.ui_or("tagline", "every connection matters")),
             TextFont { font: f.clone(), font_size: MENU_TAGLINE_SIZE, ..default() },
-            TextColor(Color::srgba(0.35, 0.38, 0.48, 0.80)),
-            Node { margin: UiRect::top(Val::Px(16.0)), ..default() },
+            TextColor(Color::srgba(0.50, 0.58, 0.65, 0.70)),
+            Node { margin: UiRect::top(Val::Px(14.0)), ..default() },
         ));
 
-        // Spacer
-        root.spawn(Node { height: Val::Px(44.0), ..default() });
+        // ── Button area ──
+        root.spawn(Node { height: Val::Px(50.0), ..default() });
 
-        // Continue button (only if there's saved progress)
-        if has_progress {
-            let normal = Color::srgba(MENU_BTN_PRIMARY.0, MENU_BTN_PRIMARY.1, MENU_BTN_PRIMARY.2, MENU_BTN_PRIMARY.3);
-            let hovered = Color::srgba(MENU_BTN_HOVER.0, MENU_BTN_HOVER.1, MENU_BTN_HOVER.2, MENU_BTN_HOVER.3);
-            root.spawn((
-                Button, MenuContinueBtn,
-                MenuHoverable { normal, hovered },
-                Node {
-                    padding: UiRect::axes(Val::Px(56.0), Val::Px(14.0)),
-                    border_radius: BorderRadius::all(Val::Px(UI_CORNER_RADIUS)),
-                    margin: UiRect::bottom(Val::Px(12.0)),
-                    ..default()
-                },
-                BackgroundColor(normal),
-            )).with_child((
-                Text::new(t.ui_or("continue", "Continue")),
-                TextFont { font: f.clone(), font_size: MENU_BTN_FONT, ..default() },
-                TextColor(Color::WHITE),
-            ));
+        if has_save {
+            spawn_btn(root, f, MenuContinueBtn, &t.ui_or("continue", "Continue"),
+                MENU_BTN_FONT, btn_primary(), btn_hover(),
+                UiRect::axes(Val::Px(64.0), Val::Px(16.0)), Val::Px(10.0));
+            spawn_btn(root, f, MenuNewGameBtn, &t.ui_or("new_game", "New Game"),
+                MENU_BTN_SMALL_FONT, btn_secondary(), btn_hover_dim(),
+                UiRect::axes(Val::Px(48.0), Val::Px(12.0)), Val::Px(6.0));
+        } else {
+            spawn_btn(root, f, MenuNewGameBtn, &t.ui_or("new_game", "New Game"),
+                MENU_BTN_FONT, btn_primary(), btn_hover(),
+                UiRect::axes(Val::Px(64.0), Val::Px(16.0)), Val::Px(0.0));
         }
 
-        // New Game button
-        let (ng_normal, ng_hovered, ng_alpha) = if has_progress {
-            (
-                Color::srgba(MENU_BTN_SECONDARY.0, MENU_BTN_SECONDARY.1, MENU_BTN_SECONDARY.2, MENU_BTN_SECONDARY.3),
-                Color::srgba(MENU_BTN_HOVER.0, MENU_BTN_HOVER.1, MENU_BTN_HOVER.2, MENU_BTN_HOVER.3 * 0.7),
-                0.70,
-            )
-        } else {
-            (
-                Color::srgba(MENU_BTN_PRIMARY.0, MENU_BTN_PRIMARY.1, MENU_BTN_PRIMARY.2, MENU_BTN_PRIMARY.3),
-                Color::srgba(MENU_BTN_HOVER.0, MENU_BTN_HOVER.1, MENU_BTN_HOVER.2, MENU_BTN_HOVER.3),
-                1.0,
-            )
-        };
-        root.spawn((
-            Button, MenuNewGameBtn,
-            MenuHoverable { normal: ng_normal, hovered: ng_hovered },
-            Node {
-                padding: UiRect::axes(Val::Px(44.0), Val::Px(11.0)),
-                border_radius: BorderRadius::all(Val::Px(UI_CORNER_RADIUS)),
-                margin: UiRect::bottom(Val::Px(8.0)),
-                ..default()
-            },
-            BackgroundColor(ng_normal),
-        )).with_child((
-            Text::new(t.ui_or("new_game", "New Game")),
-            TextFont { font: f.clone(), font_size: MENU_BTN_SMALL_FONT, ..default() },
-            TextColor(Color::srgba(1.0, 1.0, 1.0, ng_alpha)),
-        ));
+        // ── Bottom spacer ──
+        root.spawn(Node { flex_grow: 1.5, ..default() });
 
-        // Spacer before bottom area
-        root.spawn(Node { flex_grow: 1.0, ..default() });
-
-        // Bottom area: settings + quit
+        // ── Footer: Settings · Quit · Version ──
         root.spawn(Node {
-            flex_direction: FlexDirection::Column,
-            align_items: AlignItems::Center,
-            margin: UiRect::bottom(Val::Px(30.0)),
-            row_gap: Val::Px(8.0),
-            ..default()
-        }).with_children(|bottom| {
-            // Settings button (text-only, small)
-            let settings_normal = Color::NONE;
-            let settings_hover = Color::srgba(1.0, 1.0, 1.0, 0.08);
-            bottom.spawn((
-                Button, MenuSettingsBtn,
-                MenuHoverable { normal: settings_normal, hovered: settings_hover },
-                Node {
-                    padding: UiRect::axes(Val::Px(20.0), Val::Px(6.0)),
-                    border_radius: BorderRadius::all(Val::Px(UI_CORNER_RADIUS)),
-                    ..default()
-                },
-                BackgroundColor(settings_normal),
-            )).with_child((
-                Text::new(t.ui_or("settings", "Settings")),
-                TextFont { font: f.clone(), font_size: MENU_BTN_SMALL_FONT, ..default() },
-                TextColor(Color::srgba(0.6, 0.65, 0.75, 0.80)),
-            ));
-
-            // Quit button (text-only, small)
-            let quit_normal = Color::NONE;
-            let quit_hover = Color::srgba(1.0, 1.0, 1.0, 0.08);
-            bottom.spawn((
-                Button, MenuQuitBtn,
-                MenuHoverable { normal: quit_normal, hovered: quit_hover },
-                Node {
-                    padding: UiRect::axes(Val::Px(20.0), Val::Px(6.0)),
-                    border_radius: BorderRadius::all(Val::Px(UI_CORNER_RADIUS)),
-                    ..default()
-                },
-                BackgroundColor(quit_normal),
-            )).with_child((
-                Text::new(t.ui_or("quit", "Quit")),
-                TextFont { font: f.clone(), font_size: MENU_BTN_SMALL_FONT, ..default() },
-                TextColor(Color::srgba(0.5, 0.5, 0.55, 0.60)),
-            ));
-
+            flex_direction: FlexDirection::Column, align_items: AlignItems::Center,
+            row_gap: Val::Px(6.0), margin: UiRect::bottom(Val::Px(10.0)), ..default()
+        }).with_children(|footer| {
+            // Settings + Quit in a row
+            footer.spawn(Node {
+                flex_direction: FlexDirection::Row, column_gap: Val::Px(24.0), ..default()
+            }).with_children(|row| {
+                spawn_link(row, f, MenuSettingsBtn, &t.ui_or("settings", "Settings"), text_link());
+                spawn_link(row, f, MenuQuitBtn, &t.ui_or("quit", "Quit"), text_link_dim());
+            });
             // Version
-            bottom.spawn((
+            footer.spawn((
                 Text::new(format!("v{}", env!("CARGO_PKG_VERSION"))),
                 TextFont { font: f.clone(), font_size: VERSION_FONT, ..default() },
-                TextColor(Color::srgba(1.0, 1.0, 1.0, 0.25)),
-                Node { margin: UiRect::top(Val::Px(8.0)), ..default() },
+                TextColor(Color::srgba(1.0, 1.0, 1.0, 0.20)),
+                Node { margin: UiRect::top(Val::Px(6.0)), ..default() },
             ));
         });
     });
 }
 
+fn spawn_btn(parent: &mut ChildSpawnerCommands<'_>, f: &Handle<Font>, marker: impl Component,
+    label: &str, font_size: f32, normal: Color, hovered: Color, padding: UiRect, margin_bot: Val,
+) {
+    parent.spawn((
+        Button, marker, MenuHoverable { normal, hovered },
+        Node { padding, border_radius: BorderRadius::all(Val::Px(8.0)),
+            margin: UiRect::bottom(margin_bot), justify_content: JustifyContent::Center, ..default() },
+        BackgroundColor(normal),
+    )).with_child((
+        Text::new(label), TextFont { font: f.clone(), font_size, ..default() }, TextColor(Color::WHITE),
+    ));
+}
+
+fn spawn_link(parent: &mut ChildSpawnerCommands<'_>, f: &Handle<Font>, marker: impl Component,
+    label: &str, color: Color,
+) {
+    parent.spawn((
+        Button, marker,
+        MenuHoverable { normal: Color::NONE, hovered: link_hover() },
+        Node { padding: UiRect::axes(Val::Px(16.0), Val::Px(5.0)),
+            border_radius: BorderRadius::all(Val::Px(4.0)), ..default() },
+        BackgroundColor(Color::NONE),
+    )).with_child((
+        Text::new(label), TextFont { font: f.clone(), font_size: 14.0, ..default() }, TextColor(color),
+    ));
+}
+
 // ─── Update ──────────────────────────────────────────────────────────────────
 
-/// Handle menu button clicks.
 pub fn menu_interaction(
     continue_q: Query<&Interaction, (With<MenuContinueBtn>, Changed<Interaction>)>,
     new_game_q: Query<&Interaction, (With<MenuNewGameBtn>, Changed<Interaction>)>,
@@ -214,55 +155,35 @@ pub fn menu_interaction(
     mut exit: MessageWriter<AppExit>,
     mut settings_req: ResMut<crate::player_settings::SettingsOpenRequest>,
 ) {
-    if continue_q.iter().any(|i| *i == Interaction::Pressed) {
-        next.set(PlayerPhase::Playing);
-    }
-    if new_game_q.iter().any(|i| *i == Interaction::Pressed) {
-        // TODO: reset progress / new seed
-        next.set(PlayerPhase::Playing);
-    }
-    if quit_q.iter().any(|i| *i == Interaction::Pressed) {
-        exit.write(AppExit::Success);
-    }
-    if settings_q.iter().any(|i| *i == Interaction::Pressed) {
-        settings_req.0 = true;
-    }
+    if continue_q.iter().any(|i| *i == Interaction::Pressed) { next.set(PlayerPhase::Playing); }
+    if new_game_q.iter().any(|i| *i == Interaction::Pressed) { next.set(PlayerPhase::Playing); }
+    if quit_q.iter().any(|i| *i == Interaction::Pressed) { exit.write(AppExit::Success); }
+    if settings_q.iter().any(|i| *i == Interaction::Pressed) { settings_req.0 = true; }
 }
 
-/// Hover effect: change BackgroundColor on Interaction::Hovered for MenuHoverable buttons.
 pub fn menu_hover(
     mut q: Query<(&Interaction, &MenuHoverable, &mut BackgroundColor), Changed<Interaction>>,
 ) {
-    for (interaction, hoverable, mut bg) in q.iter_mut() {
+    for (interaction, h, mut bg) in q.iter_mut() {
         match interaction {
-            Interaction::Hovered => { bg.0 = hoverable.hovered; }
-            Interaction::None => { bg.0 = hoverable.normal; }
-            Interaction::Pressed => {} // keep hover color while pressing
+            Interaction::Hovered | Interaction::Pressed => { bg.0 = h.hovered; }
+            Interaction::None => { bg.0 = h.normal; }
         }
     }
 }
 
-/// OnExit(MainMenu): despawn menu UI.
-pub fn exit_menu(
-    mut commands: Commands,
-    q: Query<Entity, With<MenuRoot>>,
-) {
+pub fn exit_menu(mut commands: Commands, q: Query<Entity, With<MenuRoot>>) {
     for e in q.iter() { commands.entity(e).despawn(); }
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/// Check if there's any saved progress (at least one completed level).
 fn check_has_progress() -> bool {
     let dir = std::env::current_exe().ok()
         .and_then(|p| p.parent().map(|d| d.to_path_buf()))
         .unwrap_or_else(|| std::path::PathBuf::from("."));
     std::fs::read_dir(&dir).ok()
-        .map(|entries| entries
-            .filter_map(|e| e.ok())
-            .any(|e| {
-                let name = e.file_name().to_string_lossy().to_string();
-                name.ends_with(".progress.json")
-            }))
+        .map(|entries| entries.filter_map(|e| e.ok())
+            .any(|e| e.file_name().to_string_lossy().ends_with(".progress.json")))
         .unwrap_or(false)
 }
