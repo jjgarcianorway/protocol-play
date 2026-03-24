@@ -360,7 +360,8 @@ fn setup_scene(
         bot_mesh, eye_mesh, bot_materials, eye_material, flash_material,
     };
 
-    spawn_board(&mut commands, board_size.0, &assets);
+    // In player mode, setup_menu_background spawns the board — skip the default 3x3
+    if !cfg!(feature = "player") { spawn_board(&mut commands, board_size.0, &assets); }
     commands.insert_resource(assets);
 
     commands.spawn((
