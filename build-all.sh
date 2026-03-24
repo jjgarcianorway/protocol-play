@@ -12,7 +12,7 @@ fi
 
 echo "Building protocol play: repairing..."
 cargo build --release --features player
-cp target/release/protocol-play target/release/protocol-play-player
+cp target/release/protocol-play target/release/protocol-play-repairing
 
 echo "Copying campaign levels and assets..."
 cp campaign_levels/*.json target/release/
@@ -34,6 +34,6 @@ rm -rf "$PROGRESS_BAK"
 
 echo ""
 echo "Done! Binary:"
-echo "  target/release/protocol-play-player (+ 149 campaign levels)"
+echo "  target/release/protocol-play-repairing (+ 149 campaign levels)"
 echo ""
-echo "To run:  cd target/release && ./protocol-play-player"
+echo "To run:  cd target/release && ./protocol-play-repairing"

@@ -33,19 +33,19 @@ Pre-built binaries for **Linux** (and eventually Windows/macOS):
 
 ### Linux
 ```sh
-tar xzf protocol-play-player-linux.tar.gz
-cd protocol-play-player-linux
-./protocol-play-player
+tar xzf protocol-play-repairing-linux.tar.gz
+cd protocol-play-repairing-linux
+./protocol-play-repairing
 ```
 
 ### Windows
-Extract the zip, double-click `protocol-play-player.exe`.
+Extract the zip, double-click `protocol-play-repairing.exe`.
 
 ### macOS
 ```sh
-cd ~/Downloads/protocol-play-player-macos
-xattr -cr . && chmod +x protocol-play-player
-./protocol-play-player
+cd ~/Downloads/protocol-play-repairing-macos
+xattr -cr . && chmod +x protocol-play-repairing
+./protocol-play-repairing
 ```
 
 ## Building from Source
@@ -55,7 +55,7 @@ Requires [Rust](https://www.rust-lang.org/tools/install).
 ```sh
 ./build-all.sh
 cd target/release
-./protocol-play-player
+./protocol-play-repairing
 ```
 
 ## The 13 Chapters
