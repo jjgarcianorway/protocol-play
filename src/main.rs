@@ -2,7 +2,7 @@
 #![allow(clippy::too_many_arguments, clippy::type_complexity, clippy::collapsible_if, unused_imports, unreachable_code)]
 
 mod constants; mod types; mod textures; mod gen_textures; mod board;
-mod ui_helpers; mod slot_ui; mod inventory; mod systems; mod systems_ui; mod simulation; mod messages;
+mod ui_helpers; mod ui_theme; mod slot_ui; mod inventory; mod systems; mod systems_ui; mod simulation; mod messages;
 mod bot_formation; mod mat_helpers; mod test_mode; mod level_io; mod save_dialog;
 mod level_gen_sim; mod level_gen_tiles; mod level_gen_algo; mod level_gen_ui; mod level_gen_interact;
 mod icon_render;
@@ -143,10 +143,12 @@ fn main() {
         ));
         let main_menu = in_state(PlayerPhase::MainMenu);
         app.add_systems(Update, (
-            player_menu::menu_interaction, player_menu::menu_hover,
+            player_menu::menu_interaction,
             player_menu_bg::menu_camera,
             player_menu_bg::menu_sim_loop,
         ).run_if(main_menu.clone()));
+        // Shared hover system runs in ALL states (menu + gameplay)
+        app.add_systems(Update, ui_theme::hover_system);
         app.add_systems(OnExit(PlayerPhase::MainMenu), (
             player_menu::exit_menu,
             player_menu_bg::cleanup_menu_background,
