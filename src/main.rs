@@ -131,6 +131,8 @@ fn main() {
         app.insert_resource(tr);
         app.insert_resource(ps);
         app.insert_resource(player_settings::SettingsOpenRequest::default());
+        // Generate menu background level (before Startup so tiles can be spawned)
+        app.insert_resource(player_menu_bg::generate_menu_level());
         // Playing setup: triggered when transitioning MainMenu → Playing
         app.add_systems(OnEnter(PlayerPhase::Playing),
             player::setup_player.after(setup_scene).after(setup_ui));
@@ -144,7 +146,7 @@ fn main() {
         let main_menu = in_state(PlayerPhase::MainMenu);
         app.add_systems(Update, (
             player_menu::menu_interaction, player_menu::menu_hover,
-            player_menu_bg::animate_menu_camera,
+            player_menu_bg::menu_camera,
         ).run_if(main_menu));
         app.add_systems(OnExit(PlayerPhase::MainMenu), (
             player_menu::exit_menu,
@@ -155,12 +157,10 @@ fn main() {
             player_settings::settings_request,
             player_settings::settings_overlay_input.after(player_settings::settings_request),
         ));
-        // animate_ui_slides runs in all states (needed for fade effects in menu)
-        app.add_systems(Update, animate_ui_slides);
         // ALL gameplay systems gated to Playing state
         let playing = in_state(PlayerPhase::Playing);
         app.add_systems(Update, (
-            animate_node_width, update_hovered_cell,
+            animate_ui_slides, animate_node_width, update_hovered_cell,
             update_ghost_and_highlight.after(update_hovered_cell),
             animate_scale.after(update_ghost_and_highlight).after(move_bots).after(apply_bot_formation),
             animate_border_fade, cleanup_despawned.after(animate_scale),

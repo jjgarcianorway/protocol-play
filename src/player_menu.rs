@@ -92,25 +92,24 @@ pub fn enter_menu(mut commands: Commands, font: Res<GameFont>, t: Res<Translatio
         }
 
         // ── Bottom spacer ──
-        root.spawn(Node { flex_grow: 1.5, ..default() });
+        root.spawn(Node { flex_grow: 1.0, ..default() });
 
-        // ── Footer ──
-        // Settings · Quit in a centered row
+        // ── Footer: Settings · Quit ──
         root.spawn(Node {
-            flex_direction: FlexDirection::Row, column_gap: Val::Px(28.0),
+            flex_direction: FlexDirection::Row, column_gap: Val::Px(36.0),
             justify_content: JustifyContent::Center, align_items: AlignItems::Center,
-            width: Val::Percent(100.0), margin: UiRect::bottom(Val::Px(6.0)),
+            width: Val::Percent(100.0), margin: UiRect::bottom(Val::Px(20.0)),
             ..default()
         }).with_children(|row| {
-            spawn_link(row, f, MenuSettingsBtn, &t.ui_or("settings", "Settings"), text_link());
-            spawn_link(row, f, MenuQuitBtn, &t.ui_or("quit", "Quit"), text_link_dim());
+            spawn_link(row, f, MenuSettingsBtn, &t.ui_or("settings", "Settings"), text_link(), MENU_BTN_SMALL_FONT);
+            spawn_link(row, f, MenuQuitBtn, &t.ui_or("quit", "Quit"), text_link_dim(), MENU_BTN_SMALL_FONT);
         });
         // Version
         root.spawn((
             Text::new(format!("v{}", env!("CARGO_PKG_VERSION"))),
             TextFont { font: f.clone(), font_size: VERSION_FONT, ..default() },
             TextColor(Color::srgba(1.0, 1.0, 1.0, 0.20)),
-            Node { margin: UiRect::bottom(Val::Px(12.0)), ..default() },
+            Node { margin: UiRect::bottom(Val::Px(16.0)), ..default() },
         ));
     });
 }
@@ -129,16 +128,16 @@ fn spawn_btn(parent: &mut ChildSpawnerCommands<'_>, f: &Handle<Font>, marker: im
 }
 
 fn spawn_link(parent: &mut ChildSpawnerCommands<'_>, f: &Handle<Font>, marker: impl Component,
-    label: &str, color: Color,
+    label: &str, color: Color, font_size: f32,
 ) {
     parent.spawn((
         Button, marker,
         MenuHoverable { normal: Color::NONE, hovered: link_hover() },
-        Node { padding: UiRect::axes(Val::Px(16.0), Val::Px(5.0)),
+        Node { padding: UiRect::axes(Val::Px(20.0), Val::Px(8.0)),
             border_radius: BorderRadius::all(Val::Px(4.0)), ..default() },
         BackgroundColor(Color::NONE),
     )).with_child((
-        Text::new(label), TextFont { font: f.clone(), font_size: 14.0, ..default() }, TextColor(color),
+        Text::new(label), TextFont { font: f.clone(), font_size, ..default() }, TextColor(color),
     ));
 }
 

@@ -147,7 +147,7 @@ fn embedded_es_player(m: &mut HashMap<String, String>) {
     m.insert("ui.settings".into(), "Ajustes".into());
     m.insert("ui.done".into(), "Hecho".into());
     m.insert("ui.language".into(), "Idioma".into());
-    m.insert("ui.tagline".into(), "dirige los bots. repara la nave.".into());
+    m.insert("ui.tagline".into(), "cada conexión importa".into());
     m.insert("ui.anna_commentary".into(), "Comentarios de Anna".into());
     m.insert("ui.sim_speed".into(), "Velocidad simulación".into());
     m.insert("ui.speed_slow".into(), "Lento".into());

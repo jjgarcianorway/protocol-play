@@ -310,11 +310,11 @@ pub const MENU_BG_BOARD_SIZE: u32 = 7;
 #[cfg(feature = "player")]
 pub const MENU_CAMERA_ORBIT_SPEED: f32 = 0.06;
 #[cfg(feature = "player")]
-pub const MENU_CAMERA_DISTANCE: f32 = 12.0;
+pub const MENU_CAMERA_DISTANCE: f32 = 10.0;
 #[cfg(feature = "player")]
 pub const MENU_CAMERA_ELEVATION: f32 = 40.0;
 #[cfg(feature = "player")]
-pub const MENU_OVERLAY_ALPHA: f32 = 0.35;
+pub const MENU_OVERLAY_ALPHA: f32 = 0.0; // DEBUG: zero to test 3D visibility
 
 pub const AMBIENT_COLOR: (f32, f32, f32) = (0.75, 0.82, 0.90);
 pub const AMBIENT_BRIGHTNESS: f32 = 250.0;
