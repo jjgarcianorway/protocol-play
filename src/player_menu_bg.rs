@@ -8,7 +8,14 @@ use crate::board::{spawn_tile_at_scale, tile_world_pos};
 use crate::simulation::{BotMovement, BotPhase};
 
 #[derive(Resource)]
-pub struct MenuCamTracker { pub switch_timer: f32, pub bot_idx: usize }
+pub struct MenuCamTracker {
+    pub bot_idx: usize,
+    pub time_on_bot: f32,
+    pub last_dir: Direction,
+    pub dir_changes: u32,
+    /// Per-bot camera personality: (height_offset, distance_offset, angle_offset)
+    pub offsets: Vec<(f32, f32, f32)>,
+}
 
 /// Build the handcrafted loop board. Bots never reach goals — they loop forever.
 fn menu_board() -> (u32, Vec<(u32, u32, TileKind)>) {
@@ -132,7 +139,15 @@ pub fn setup_menu_background(
     *play_mode = PlayMode::TestPlaying;
     commands.insert_resource(crate::simulation::PlayTimer(
         Timer::from_seconds(0.3, TimerMode::Once)));
-    commands.insert_resource(MenuCamTracker { switch_timer: 0.0, bot_idx: 0 });
+    commands.insert_resource(MenuCamTracker {
+        bot_idx: 0, time_on_bot: 0.0, last_dir: Direction::East, dir_changes: 0,
+        // Each bot gets a slightly different camera angle for variety
+        offsets: vec![
+            (3.8, 2.2, 0.3),   // bot 0: higher, further back
+            (2.8, 1.6, -0.4),  // bot 1: closer, lower
+            (3.2, 1.8, 0.8),   // bot 2: medium, side angle
+        ],
+    });
 }
 
 fn spawn_bot(
@@ -170,36 +185,63 @@ fn spawn_bot(
 /// No-op — bots loop forever on the handcrafted board.
 pub fn menu_sim_loop() {}
 
-/// Camera: smooth drone view, switches between bots every ~8 seconds.
+/// Cinematic screensaver camera: smooth drone view with intelligent bot switching.
 pub fn menu_camera(
     time: Res<Time>,
     mut tracker: ResMut<MenuCamTracker>,
-    bots: Query<&Transform, (With<Bot>, Without<Camera3d>)>,
+    bots: Query<(&Transform, &BotMovement), (With<Bot>, Without<Camera3d>)>,
     mut cameras: Query<&mut Transform, (With<Camera3d>, Without<Bot>)>,
 ) {
-    let bot_count = bots.iter().count();
+    let bot_list: Vec<_> = bots.iter().collect();
+    let bot_count = bot_list.len();
     if bot_count == 0 { return; }
 
-    // Switch tracked bot periodically
-    tracker.switch_timer += time.delta_secs();
-    if tracker.switch_timer > 8.0 {
-        tracker.switch_timer = 0.0;
-        tracker.bot_idx = (tracker.bot_idx + 1) % bot_count;
+    let dt = time.delta_secs();
+    tracker.time_on_bot += dt;
+
+    // Track direction changes of current bot (more changes = more interesting)
+    if let Some((_, mov)) = bot_list.get(tracker.bot_idx) {
+        if mov.direction != tracker.last_dir {
+            tracker.dir_changes += 1;
+            tracker.last_dir = mov.direction;
+        }
     }
 
-    let target = bots.iter().nth(tracker.bot_idx)
-        .map(|t| t.translation)
-        .unwrap_or(Vec3::ZERO);
+    // Smart switching: stay longer when bot is doing interesting things
+    let min_time = 6.0;
+    let max_time = 14.0;
+    // If bot has been turning/bouncing a lot, stay longer
+    let interest = (tracker.dir_changes as f32 * 0.8).min(4.0);
+    let switch_time = min_time + interest;
+    let should_switch = tracker.time_on_bot > switch_time.min(max_time);
 
-    // Smooth close-up drone offset
-    let offset = Vec3::new(1.5, 3.2, 2.0);
-    let cam_target = target + offset;
-    let look_at = target + Vec3::new(0.0, 0.1, 0.0);
+    if should_switch && bot_count > 1 {
+        tracker.bot_idx = (tracker.bot_idx + 1) % bot_count;
+        tracker.time_on_bot = 0.0;
+        tracker.dir_changes = 0;
+    }
+
+    let idx = tracker.bot_idx.min(bot_count - 1);
+    let (bot_tf, _) = bot_list[idx];
+    let target = bot_tf.translation;
+
+    // Per-bot camera personality
+    let (h, d, angle) = tracker.offsets.get(idx).copied().unwrap_or((3.2, 1.8, 0.0));
+    let offset = Vec3::new(d * angle.cos(), h, d * angle.sin());
+    let cam_goal = target + offset;
+    let look_goal = target + Vec3::new(0.0, 0.08, 0.0);
+
+    // Very smooth interpolation — slow, deliberate, screensaver-like
+    // Slower when transitioning between bots (first 2 seconds after switch)
+    let transition_factor = (tracker.time_on_bot / 2.0).min(1.0);
+    let base_speed = 0.6 + transition_factor * 0.8; // 0.6 → 1.4
+    let lerp_speed = (base_speed * dt).min(0.15);
 
     for mut tf in cameras.iter_mut() {
-        let speed = 1.5 * time.delta_secs();
-        tf.translation = tf.translation.lerp(cam_target, speed.min(1.0));
-        *tf = Transform::from_translation(tf.translation).looking_at(look_at, Vec3::Y);
+        let new_pos = tf.translation.lerp(cam_goal, lerp_speed);
+        let current_look = tf.forward() * 5.0 + tf.translation;
+        let new_look = current_look.lerp(look_goal, lerp_speed * 1.2);
+        *tf = Transform::from_translation(new_pos).looking_at(new_look, Vec3::Y);
     }
 }
 
