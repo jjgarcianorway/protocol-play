@@ -10,6 +10,7 @@ use crate::simulation::{BotMovement, BotPhase};
 use crate::level_gen_algo::{GenConfig, HolePlacement, generate_attempt};
 
 #[derive(Resource)] pub struct MenuBotsSpawned(pub bool);
+#[derive(Component)] pub struct MenuCelebrationTimer(pub f32);
 
 #[derive(Resource)]
 pub struct MenuCamTracker {
@@ -113,6 +114,7 @@ pub fn menu_sim_loop(
     assets: Res<GameAssets>, board_size: Res<BoardSize>,
     tiles: Query<(&TileCoord, &TileKind), With<Tile>>,
     mut spawned: ResMut<MenuBotsSpawned>, mut play_mode: ResMut<PlayMode>,
+    time: Res<Time>, mut cel_q: Query<&mut MenuCelebrationTimer>,
 ) {
     if !spawned.0 {
         spawned.0 = true;
@@ -130,15 +132,25 @@ pub fn menu_sim_loop(
         return;
     }
 
-    // Respawn bots that fell off, hit empty tiles, or reached their goal (spinning)
     let sz = board_size.0 as i32;
+    let dt = time.delta_secs();
     for (entity, mov) in bots.iter() {
         let off = mov.col < 0 || mov.row < 0 || mov.col >= sz || mov.row >= sz;
         let on_empty = !off && tiles.iter()
             .find(|(c, _)| c.col == mov.col as u32 && c.row == mov.row as u32)
             .is_none_or(|(_, k)| matches!(*k, TileKind::Empty));
-        let at_goal = matches!(mov.phase, BotPhase::Spinning);
-        if off || on_empty || at_goal {
+
+        // Bot reached goal — add celebration timer (let it spin for 3 seconds)
+        if matches!(mov.phase, BotPhase::Spinning) {
+            if cel_q.get(entity).is_err() {
+                commands.entity(entity).insert(MenuCelebrationTimer(3.0));
+            }
+        }
+
+        // Check celebration timer
+        let celebration_done = cel_q.get(entity).is_ok_and(|t| t.0 <= 0.0);
+
+        if off || on_empty || celebration_done {
             commands.entity(entity).despawn();
             for (coord, kind) in tiles.iter() {
                 if let TileKind::Source(ci, dir) = *kind {
@@ -151,6 +163,8 @@ pub fn menu_sim_loop(
             }
         }
     }
+    // Tick celebration timers
+    for mut timer in cel_q.iter_mut() { timer.0 -= dt; }
 }
 
 /// Cinematic camera — offset right to match panel layout.
@@ -175,8 +189,8 @@ pub fn menu_camera(
     let idx = tracker.bot_idx.min(n - 1);
     let target = list[idx].0.translation;
     let (h, d, a) = tracker.offsets.get(idx).copied().unwrap_or((4.5, 2.5, 0.0));
-    // Offset board to the right (left panel takes 34% of screen)
-    let right_offset = Vec3::new(-2.0, 0.0, 0.0);
+    // Offset camera right (left panel takes 34% of screen)
+    let right_offset = Vec3::new(-3.0, 0.0, 0.5);
     let cam_goal = target + Vec3::new(d * a.cos(), h, d * a.sin()) + right_offset;
     let look_goal = target + Vec3::new(0.0, 0.08, 0.0) + right_offset * 0.3;
     let lerp = ((0.4 + (tracker.time_on_bot / 2.5).min(1.0) * 0.6) * dt).min(0.10);
