@@ -19,8 +19,14 @@ pub struct MenuCamTracker {
     pub offsets: Vec<(f32, f32, f32)>,
 }
 
-const MENU_BOT_SPEED: f32 = 0.5;
+const MENU_BOT_SPEED: f32 = 0.35; // very slow, meditative
 const MENU_BOARD_SIZE: u32 = 11;
+const CELEBRATION_TIME: f32 = 4.0; // seconds of spinning at goal
+const CAM_SWITCH_MIN: f32 = 10.0;  // minimum seconds before switching bot
+const CAM_SWITCH_MAX: f32 = 20.0;  // maximum seconds on one bot
+const CAM_LERP_SLOW: f32 = 0.25;   // lerp speed during transitions
+const CAM_LERP_FAST: f32 = 0.50;   // lerp speed when settled
+const CAM_SETTLE_TIME: f32 = 3.0;  // seconds to reach full speed after switch
 
 /// Generate a visually rich level using the actual game generator.
 fn generate_menu_board() -> (u32, Vec<(u32, u32, TileKind)>) {
@@ -140,18 +146,15 @@ pub fn menu_sim_loop(
             .find(|(c, _)| c.col == mov.col as u32 && c.row == mov.row as u32)
             .is_none_or(|(_, k)| matches!(*k, TileKind::Empty));
 
-        // Bot reached goal — add celebration timer (let it spin for 3 seconds)
-        if matches!(mov.phase, BotPhase::Spinning) {
-            if cel_q.get(entity).is_err() {
-                commands.entity(entity).insert(MenuCelebrationTimer(3.0));
-            }
+        // Bot reached goal — celebrate then quietly respawn
+        if matches!(mov.phase, BotPhase::Spinning) && cel_q.get(entity).is_err() {
+            commands.entity(entity).insert(MenuCelebrationTimer(CELEBRATION_TIME));
         }
-
-        // Check celebration timer
         let celebration_done = cel_q.get(entity).is_ok_and(|t| t.0 <= 0.0);
 
         if off || on_empty || celebration_done {
             commands.entity(entity).despawn();
+            // Respawn at source — bot starts small and grows via TargetScale
             for (coord, kind) in tiles.iter() {
                 if let TileKind::Source(ci, dir) = *kind {
                     if ci == mov.color_index {
@@ -163,11 +166,10 @@ pub fn menu_sim_loop(
             }
         }
     }
-    // Tick celebration timers
     for mut timer in cel_q.iter_mut() { timer.0 -= dt; }
 }
 
-/// Cinematic camera — offset right to match panel layout.
+/// Cinematic camera — very slow, smooth, meditative. Offset right for panel.
 pub fn menu_camera(
     time: Res<Time>, mut tracker: ResMut<MenuCamTracker>,
     bots: Query<(&Transform, &BotMovement), (With<Bot>, Without<Camera3d>)>,
@@ -178,25 +180,47 @@ pub fn menu_camera(
     if n == 0 { return; }
     let dt = time.delta_secs();
     tracker.time_on_bot += dt;
+
+    // Track interest level of current bot
     if let Some((_, mov)) = list.get(tracker.bot_idx) {
-        if mov.direction != tracker.last_dir { tracker.dir_changes += 1; tracker.last_dir = mov.direction; }
+        if mov.direction != tracker.last_dir {
+            tracker.dir_changes += 1;
+            tracker.last_dir = mov.direction;
+        }
     }
-    let interest = (tracker.dir_changes as f32 * 0.8).min(4.0);
-    if tracker.time_on_bot > (8.0 + interest).min(16.0) && n > 1 {
+
+    // Smart switching: stay longer when bot is interesting
+    let interest = (tracker.dir_changes as f32 * 1.0).min(6.0);
+    let switch_time = (CAM_SWITCH_MIN + interest).min(CAM_SWITCH_MAX);
+    if tracker.time_on_bot > switch_time && n > 1 {
         tracker.bot_idx = (tracker.bot_idx + 1) % n;
-        tracker.time_on_bot = 0.0; tracker.dir_changes = 0;
+        tracker.time_on_bot = 0.0;
+        tracker.dir_changes = 0;
     }
+
     let idx = tracker.bot_idx.min(n - 1);
     let target = list[idx].0.translation;
     let (h, d, a) = tracker.offsets.get(idx).copied().unwrap_or((4.5, 2.5, 0.0));
-    // Offset camera right (left panel takes 34% of screen)
+
+    // Camera positioned to see bot's face (slightly in front)
+    let bot_dir = list[idx].1.direction;
+    let (fwd_x, fwd_z) = bot_dir.grid_delta();
+    let face_offset = Vec3::new(fwd_x as f32 * 0.8, 0.0, fwd_z as f32 * 0.8);
+
+    // Offset right so board fills the right 66% of screen
     let right_offset = Vec3::new(-3.0, 0.0, 0.5);
-    let cam_goal = target + Vec3::new(d * a.cos(), h, d * a.sin()) + right_offset;
-    let look_goal = target + Vec3::new(0.0, 0.08, 0.0) + right_offset * 0.3;
-    let lerp = ((0.4 + (tracker.time_on_bot / 2.5).min(1.0) * 0.6) * dt).min(0.10);
+    let cam_goal = target + Vec3::new(d * a.cos(), h, d * a.sin()) + right_offset + face_offset;
+    let look_goal = target + Vec3::new(0.0, 0.1, 0.0) + right_offset * 0.3;
+
+    // Very smooth interpolation — slower during transitions, buttery when settled
+    let settle = (tracker.time_on_bot / CAM_SETTLE_TIME).min(1.0);
+    let base_speed = CAM_LERP_SLOW + settle * (CAM_LERP_FAST - CAM_LERP_SLOW);
+    let lerp = (base_speed * dt).min(0.06); // hard cap for smoothness
+
     for mut tf in cameras.iter_mut() {
         let pos = tf.translation.lerp(cam_goal, lerp);
-        let look = (tf.forward() * 5.0 + tf.translation).lerp(look_goal, lerp * 1.2);
+        let cur_look = tf.forward() * 5.0 + tf.translation;
+        let look = cur_look.lerp(look_goal, lerp * 1.1);
         *tf = Transform::from_translation(pos).looking_at(look, Vec3::Y);
     }
 }
