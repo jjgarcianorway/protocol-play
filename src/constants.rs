@@ -314,7 +314,7 @@ pub const MENU_CAMERA_DISTANCE: f32 = 12.0;
 #[cfg(feature = "player")]
 pub const MENU_CAMERA_ELEVATION: f32 = 40.0;
 #[cfg(feature = "player")]
-pub const MENU_OVERLAY_ALPHA: f32 = 0.42;
+pub const MENU_OVERLAY_ALPHA: f32 = 0.35;
 
 pub const AMBIENT_COLOR: (f32, f32, f32) = (0.75, 0.82, 0.90);
 pub const AMBIENT_BRIGHTNESS: f32 = 250.0;

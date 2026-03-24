@@ -94,26 +94,24 @@ pub fn enter_menu(mut commands: Commands, font: Res<GameFont>, t: Res<Translatio
         // ── Bottom spacer ──
         root.spawn(Node { flex_grow: 1.5, ..default() });
 
-        // ── Footer: Settings · Quit · Version ──
+        // ── Footer ──
+        // Settings · Quit in a centered row
         root.spawn(Node {
-            flex_direction: FlexDirection::Column, align_items: AlignItems::Center,
-            row_gap: Val::Px(6.0), margin: UiRect::bottom(Val::Px(10.0)), ..default()
-        }).with_children(|footer| {
-            // Settings + Quit in a row
-            footer.spawn(Node {
-                flex_direction: FlexDirection::Row, column_gap: Val::Px(24.0), ..default()
-            }).with_children(|row| {
-                spawn_link(row, f, MenuSettingsBtn, &t.ui_or("settings", "Settings"), text_link());
-                spawn_link(row, f, MenuQuitBtn, &t.ui_or("quit", "Quit"), text_link_dim());
-            });
-            // Version
-            footer.spawn((
-                Text::new(format!("v{}", env!("CARGO_PKG_VERSION"))),
-                TextFont { font: f.clone(), font_size: VERSION_FONT, ..default() },
-                TextColor(Color::srgba(1.0, 1.0, 1.0, 0.20)),
-                Node { margin: UiRect::top(Val::Px(6.0)), ..default() },
-            ));
+            flex_direction: FlexDirection::Row, column_gap: Val::Px(28.0),
+            justify_content: JustifyContent::Center, align_items: AlignItems::Center,
+            width: Val::Percent(100.0), margin: UiRect::bottom(Val::Px(6.0)),
+            ..default()
+        }).with_children(|row| {
+            spawn_link(row, f, MenuSettingsBtn, &t.ui_or("settings", "Settings"), text_link());
+            spawn_link(row, f, MenuQuitBtn, &t.ui_or("quit", "Quit"), text_link_dim());
         });
+        // Version
+        root.spawn((
+            Text::new(format!("v{}", env!("CARGO_PKG_VERSION"))),
+            TextFont { font: f.clone(), font_size: VERSION_FONT, ..default() },
+            TextColor(Color::srgba(1.0, 1.0, 1.0, 0.20)),
+            Node { margin: UiRect::bottom(Val::Px(12.0)), ..default() },
+        ));
     });
 }
 
