@@ -48,10 +48,10 @@ pub fn setup_player(
     if let Ok(entries) = std::fs::read_dir(&search_dir) {
         let mut json_files: Vec<_> = entries.flatten()
             .filter(|e| {
-                let p = e.path();
-                p.extension().is_some_and(|ext| ext == "json")
-                    && !p.file_name().unwrap_or_default().to_string_lossy().ends_with(".progress.json")
-                    && p.file_name().unwrap_or_default() != "stats.json"
+                let name = e.path().file_name().unwrap_or_default().to_string_lossy().to_string();
+                // Campaign levels match pattern: NN_NN_name.json (e.g. "01_03_the_zigzag.json")
+                name.ends_with(".json") && name.len() > 6
+                    && name.as_bytes()[2] == b'_' && name.as_bytes()[0].is_ascii_digit()
             }).collect();
         json_files.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
         for entry in json_files {
@@ -448,7 +448,7 @@ pub fn spawn_speed_hud(commands: &mut Commands, f: &Handle<Font>, settings: &Pla
         SpeedHudContainer,
         Node {
             position_type: PositionType::Absolute,
-            right: Val::Px(10.0), top: Val::Px(10.0),
+            right: Val::Px(60.0), top: Val::Px(10.0),
             flex_direction: FlexDirection::Row,
             column_gap: Val::Px(4.0),
             align_items: AlignItems::Center,
