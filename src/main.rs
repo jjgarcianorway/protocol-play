@@ -131,6 +131,7 @@ fn main() {
         app.insert_resource(tr);
         app.insert_resource(ps);
         app.insert_resource(player_settings::SettingsOpenRequest::default());
+        app.insert_resource(player_settings::SettingsReopenTimer::default());
         // Playing setup: triggered when transitioning MainMenu → Playing
         app.add_systems(OnEnter(PlayerPhase::Playing),
             player::setup_player.after(setup_scene).after(setup_ui));
@@ -158,7 +159,8 @@ fn main() {
         ));
         // Settings overlay — runs in all states
         app.add_systems(Update, (
-            player_settings::settings_request,
+            player_settings::settings_reopen_tick,
+            player_settings::settings_request.after(player_settings::settings_reopen_tick),
             player_settings::settings_overlay_input.after(player_settings::settings_request),
         ));
         // Systems needed in ALL states (menu + gameplay)

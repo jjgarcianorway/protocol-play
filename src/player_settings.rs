@@ -4,7 +4,7 @@
 use bevy::prelude::*;
 use serde::{Serialize, Deserialize};
 use crate::ui_theme::palette;
-use crate::types::GameFont;
+use crate::types::{GameFont, UiBgFade};
 use crate::save_state::exe_dir;
 use crate::i18n::{Translations, load_translations};
 
@@ -55,6 +55,24 @@ pub fn save_player_settings(s: &PlayerSettings) {
 /// Set to true to open the settings overlay from any screen.
 #[derive(Resource, Default)] pub struct SettingsOpenRequest(pub bool);
 
+/// Timer that delays settings reopen after a language switch (lets the fade-out finish).
+#[derive(Resource, Default)] pub struct SettingsReopenTimer(pub Option<f32>);
+
+/// Tick the reopen timer; when it expires, request the overlay to reopen.
+pub fn settings_reopen_tick(
+    time: Res<Time>,
+    mut timer: ResMut<SettingsReopenTimer>,
+    mut req: ResMut<SettingsOpenRequest>,
+) {
+    if let Some(ref mut t) = timer.0 {
+        *t -= time.delta_secs();
+        if *t <= 0.0 {
+            timer.0 = None;
+            req.0 = true;
+        }
+    }
+}
+
 // ─── Overlay spawn ────────────────────────────────────────────────────────────
 
 pub fn spawn_settings_overlay(
@@ -72,6 +90,7 @@ pub fn spawn_settings_overlay(
     let lang_active_bg   = Color::srgba(0.25, 0.45, 0.70, 0.90);
     let lang_inactive_bg = Color::srgba(0.18, 0.20, 0.26, 0.70);
 
+    let scrim_alpha = palette::SETTINGS_SCRIM.to_srgba().alpha;
     commands.spawn((
         SettingsOverlay,
         Node {
@@ -80,7 +99,8 @@ pub fn spawn_settings_overlay(
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center, ..default()
         },
-        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.72)),
+        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.0)),
+        UiBgFade { target: scrim_alpha, despawn_at_zero: false },
         GlobalZIndex(300),
     )).with_children(|root| {
         root.spawn((
@@ -90,6 +110,7 @@ pub fn spawn_settings_overlay(
                 padding: UiRect::all(Val::Px(40.0)),
                 row_gap: Val::Px(20.0),
                 border_radius: BorderRadius::all(Val::Px(10.0)),
+                min_width: Val::Px(380.0),
                 ..default()
             },
             BackgroundColor(Color::srgba(0.07, 0.08, 0.12, 0.98)),
@@ -210,15 +231,21 @@ pub fn settings_overlay_input(
     anna_q:   Query<(Entity, &Interaction, &Children), (With<AnnaToggleBtn>, Changed<Interaction>)>,
     lang_q:   Query<(&LangBtn, &Interaction), Changed<Interaction>>,
     mut speed_q: Query<(Entity, &SimSpeedBtn, &Interaction, &mut BackgroundColor)>,
-    overlay_q: Query<Entity, With<SettingsOverlay>>,
+    overlay_q: Query<(Entity, Option<&UiBgFade>), With<SettingsOverlay>>,
     mut text_q: Query<&mut Text>,
     mut bg_q:   Query<&mut BackgroundColor, Without<SimSpeedBtn>>,
     mut settings: ResMut<PlayerSettings>,
     mut translations: ResMut<Translations>,
-    mut req: ResMut<SettingsOpenRequest>,
+    _req: ResMut<SettingsOpenRequest>,
+    mut reopen_timer: ResMut<SettingsReopenTimer>,
     keys: Res<ButtonInput<KeyCode>>,
 ) {
     if overlay_q.is_empty() { return; }
+    // Don't process input while fading out (despawn_at_zero means closing)
+    let is_fading_out = overlay_q.iter().any(|(_, fade)| {
+        fade.is_some_and(|f| f.despawn_at_zero && f.target < 0.01)
+    });
+    if is_fading_out { return; }
 
     // Anna toggle — update in place
     for (btn_ent, interaction, children) in anna_q.iter() {
@@ -251,22 +278,26 @@ pub fn settings_overlay_input(
         }
     }
 
-    // Language toggle — close + reopen with new language
+    // Language toggle — fade out, change language, fade back in after delay
     for (lang_btn, interaction) in lang_q.iter() {
         if *interaction != Interaction::Pressed { continue; }
         if settings.language == lang_btn.0 { continue; }
         settings.language = lang_btn.0.clone();
         save_player_settings(&settings);
         *translations = load_translations(&settings.language);
-        for e in overlay_q.iter() { commands.entity(e).despawn(); }
-        req.0 = true;
+        for (e, _) in overlay_q.iter() {
+            commands.entity(e).insert(UiBgFade { target: 0.0, despawn_at_zero: true });
+        }
+        reopen_timer.0 = Some(0.3);
         return;
     }
 
-    // Close
+    // Close — fade out, then auto-despawn when alpha reaches 0
     let close = close_q.iter().any(|i| *i == Interaction::Pressed)
         || keys.just_pressed(KeyCode::Escape);
     if close {
-        for e in overlay_q.iter() { commands.entity(e).despawn(); }
+        for (e, _) in overlay_q.iter() {
+            commands.entity(e).insert(UiBgFade { target: 0.0, despawn_at_zero: true });
+        }
     }
 }

@@ -8,6 +8,7 @@ use bevy::ecs::message::MessageWriter;
 use crate::types::GameFont;
 use crate::i18n::Translations;
 use crate::ui_theme::{self, palette, typo, spacing};
+use crate::save_state::{exe_dir, load_game_state, save_game_state};
 
 // ─── State ───────────────────────────────────────────────────────────────────
 
@@ -121,9 +122,10 @@ pub fn menu_interaction(
     existing_fade: Query<Entity, With<MenuFadeOverlay>>,
 ) {
     if !existing_fade.is_empty() { return; }
-    let wants_play = continue_q.iter().any(|i| *i == Interaction::Pressed)
-        || new_game_q.iter().any(|i| *i == Interaction::Pressed);
-    if wants_play { spawn_fade(&mut commands); }
+    let wants_continue = continue_q.iter().any(|i| *i == Interaction::Pressed);
+    let wants_new_game = new_game_q.iter().any(|i| *i == Interaction::Pressed);
+    if wants_new_game { reset_progress(); }
+    if wants_continue || wants_new_game { spawn_fade(&mut commands); }
     if quit_q.iter().any(|i| *i == Interaction::Pressed) { exit.write(AppExit::Success); }
     if settings_q.iter().any(|i| *i == Interaction::Pressed) { settings_req.0 = true; }
 }
@@ -172,6 +174,23 @@ fn spawn_fade(commands: &mut Commands) {
         GlobalZIndex(500),
         crate::types::UiBgFade { target: 1.0, despawn_at_zero: false },
     ));
+}
+
+/// Reset all progress: delete .progress.json files and set bot_level to 0.
+fn reset_progress() {
+    let dir = exe_dir();
+    // Delete all progress files
+    if let Ok(entries) = std::fs::read_dir(&dir) {
+        for entry in entries.filter_map(|e| e.ok()) {
+            if entry.file_name().to_string_lossy().ends_with(".progress.json") {
+                let _ = std::fs::remove_file(entry.path());
+            }
+        }
+    }
+    // Reset bot_level in game state
+    let mut state = load_game_state();
+    state.bot_level = 0;
+    save_game_state(&state);
 }
 
 fn check_has_progress() -> bool {
