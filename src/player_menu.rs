@@ -49,10 +49,18 @@ pub fn enter_menu(mut commands: Commands, font: Res<GameFont>, t: Res<Translatio
             // "protocol play" + "puzzle" as a tight unit
             ui_theme::spawn_heading(panel, f, "protocol play", typo::H1, palette::TEXT_MAIN);
             ui_theme::spawn_label(panel, f, "puzzle", typo::H2, palette::TEXT_SUB, 4.0);
-            // Tagline: legible but understated
-            ui_theme::spawn_label(panel, f,
-                &t.ui_or("tagline", "every connection matters"),
-                typo::CAPTION, palette::TEXT_WHISPER, 16.0);
+            // Tagline: readable against moving background
+            panel.spawn((
+                Node { margin: UiRect::top(Val::Px(16.0)),
+                    padding: UiRect::axes(Val::Px(12.0), Val::Px(6.0)),
+                    border_radius: BorderRadius::all(Val::Px(spacing::RADIUS_SM)),
+                    ..default() },
+                BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.25)),
+            )).with_child((
+                Text::new(t.ui_or("tagline", "every connection matters")),
+                TextFont { font: f.clone(), font_size: typo::CAPTION, ..default() },
+                TextColor(palette::TEXT_WHISPER),
+            ));
 
             // ── Buttons ──
             panel.spawn(Node { height: Val::Px(48.0), ..default() });

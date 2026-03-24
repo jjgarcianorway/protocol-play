@@ -15,7 +15,7 @@ pub mod palette {
 
     // ── Backgrounds ──
     pub const PANEL:       Color = Color::srgba(0.06, 0.07, 0.11, 0.85);
-    pub const PANEL_MENU:  Color = Color::srgba(0.04, 0.05, 0.08, 0.84);
+    pub const PANEL_MENU:  Color = Color::srgba(0.03, 0.04, 0.07, 0.88);
     pub const PANEL_LIGHT: Color = Color::srgba(0.10, 0.12, 0.16, 0.80);
     pub const OVERLAY:     Color = Color::srgba(0.02, 0.03, 0.06, 0.50);
     pub const SCRIM:       Color = Color::srgba(0.00, 0.00, 0.00, 0.65);
@@ -94,7 +94,7 @@ pub mod typo {
     pub const H3: f32 = 18.0;      // section heading
     pub const BODY: f32 = 16.0;    // buttons, labels
     pub const SMALL: f32 = 14.0;   // links, secondary actions
-    pub const CAPTION: f32 = 15.0; // taglines, hints
+    pub const CAPTION: f32 = 16.0; // taglines, hints
     pub const MICRO: f32 = 11.0;   // version, fine print
 }
 
