@@ -3,6 +3,7 @@
 
 use bevy::prelude::*;
 use serde::{Serialize, Deserialize};
+use crate::ui_theme::palette;
 use crate::types::GameFont;
 use crate::save_state::exe_dir;
 use crate::i18n::{Translations, load_translations};
@@ -108,11 +109,11 @@ pub fn spawn_settings_overlay(
                 )).with_child((Text::new(anna_label), tf(13.0), TextColor(Color::WHITE)));
             });
 
-            // Anna description
+            // Anna description — no spoilers!
             p.spawn((
                 Text::new(t.ui_or("anna_desc",
-                    "Gamification history, psychology, and real-world use.\nTurn off for pure puzzle mode.")),
-                tf(11.5), TextColor(Color::srgba(0.45, 0.48, 0.56, 1.0)),
+                    "Tips, facts, and encouragement as you play.\nTurn off for a quiet experience.")),
+                tf(11.5), TextColor(palette::SETTINGS_LABEL),
                 Node { max_width: Val::Px(310.0), ..default() },
             ));
 

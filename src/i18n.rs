@@ -155,7 +155,7 @@ fn embedded_es_player(m: &mut HashMap<String, String>) {
     m.insert("ui.speed_fast".into(), "Rápido".into());
     m.insert("ui.anna_on".into(), "SÍ".into());
     m.insert("ui.anna_off".into(), "NO".into());
-    m.insert("ui.anna_desc".into(), "Historia, psicología y aplicaciones reales de la gamificación.\nDesactívalo para el modo puzle puro.".into());
+    m.insert("ui.anna_desc".into(), "Consejos, datos y ánimos mientras juegas.\nDesactívalo para una experiencia tranquila.".into());
     m.insert("ui.reset".into(), "Reiniciar".into());
     m.insert("ui.no_levels".into(), "No se encontraron archivos de nivel".into());
     m.insert("ui.place_json".into(), "Coloca los archivos .json de nivel junto al ejecutable.".into());
