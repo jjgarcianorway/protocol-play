@@ -19,16 +19,19 @@ pub mod palette {
     pub const PANEL_LIGHT: Color = Color::srgba(0.10, 0.12, 0.16, 0.80);
     pub const OVERLAY:     Color = Color::srgba(0.02, 0.03, 0.06, 0.50);
     pub const SCRIM:       Color = Color::srgba(0.00, 0.00, 0.00, 0.65);
+    pub const FADE_BLACK:  Color = Color::srgba(0.00, 0.00, 0.00, 0.00);
 
     // ── Primary (teal — the game's signature, used sparingly) ──
     pub const PRIMARY:       Color = Color::srgba(0.18, 0.54, 0.48, 0.92);
     pub const PRIMARY_HOVER: Color = Color::srgba(0.24, 0.64, 0.56, 0.95);
     pub const PRIMARY_TEXT:  Color = Color::WHITE;
-    pub const PRIMARY_GLOW:  Color = Color::srgba(0.18, 0.54, 0.48, 0.20);
+    pub const PRIMARY_GLOW:    Color = Color::srgba(0.18, 0.54, 0.48, 0.20);
+    pub const PRIMARY_PRESSED: Color = Color::srgba(0.14, 0.44, 0.38, 0.95);
 
     // ── Secondary / outline buttons ──
     pub const OUTLINE_BG:       Color = Color::srgba(1.0, 1.0, 1.0, 0.04);
     pub const OUTLINE_HOVER:    Color = Color::srgba(1.0, 1.0, 1.0, 0.10);
+    pub const OUTLINE_PRESSED:  Color = Color::srgba(1.0, 1.0, 1.0, 0.14);
     pub const OUTLINE_BORDER:   Color = Color::srgba(1.0, 1.0, 1.0, 0.15);
     pub const OUTLINE_TEXT:     Color = Color::srgba(1.0, 1.0, 1.0, 0.70);
 
@@ -67,7 +70,7 @@ pub mod typo {
     pub const H3: f32 = 18.0;      // section heading
     pub const BODY: f32 = 16.0;    // buttons, labels
     pub const SMALL: f32 = 14.0;   // links, secondary actions
-    pub const CAPTION: f32 = 14.0; // taglines, hints (was 13 — now legible)
+    pub const CAPTION: f32 = 13.0; // taglines, hints (visibility via alpha, not size)
     pub const MICRO: f32 = 11.0;   // version, fine print
 }
 
@@ -92,20 +95,29 @@ pub mod spacing {
 // COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/// Attach to any Button for automatic hover color transitions.
+/// Attach to any Button for automatic hover/pressed color transitions.
 #[derive(Component)]
 pub struct Hoverable {
     pub normal: Color,
     pub hovered: Color,
+    pub pressed: Color,
 }
 
-/// System: drives hover effects for all Hoverable buttons.
+impl Hoverable {
+    /// Convenience: pressed defaults to hovered (for links where pressed isn't meaningful).
+    pub fn simple(normal: Color, hovered: Color) -> Self {
+        Self { normal, hovered, pressed: hovered }
+    }
+}
+
+/// System: drives hover/pressed effects for all Hoverable buttons.
 pub fn hover_system(
     mut q: Query<(&Interaction, &Hoverable, &mut BackgroundColor), Changed<Interaction>>,
 ) {
     for (interaction, h, mut bg) in q.iter_mut() {
         bg.0 = match interaction {
-            Interaction::Hovered | Interaction::Pressed => h.hovered,
+            Interaction::Pressed => h.pressed,
+            Interaction::Hovered => h.hovered,
             Interaction::None => h.normal,
         };
     }
@@ -122,7 +134,7 @@ pub fn spawn_button(
 ) {
     parent.spawn((
         Button, marker,
-        Hoverable { normal: palette::PRIMARY, hovered: palette::PRIMARY_HOVER },
+        Hoverable { normal: palette::PRIMARY, hovered: palette::PRIMARY_HOVER, pressed: palette::PRIMARY_PRESSED },
         Node {
             padding: spacing::btn_pad(),
             border_radius: BorderRadius::all(Val::Px(spacing::RADIUS)),
@@ -147,7 +159,7 @@ pub fn spawn_button_outline(
 ) {
     parent.spawn((
         Button, marker,
-        Hoverable { normal: palette::OUTLINE_BG, hovered: palette::OUTLINE_HOVER },
+        Hoverable { normal: palette::OUTLINE_BG, hovered: palette::OUTLINE_HOVER, pressed: palette::OUTLINE_PRESSED },
         Node {
             padding: spacing::btn_pad_sm(),
             border_radius: BorderRadius::all(Val::Px(spacing::RADIUS)),
@@ -172,7 +184,7 @@ pub fn spawn_link(
 ) {
     parent.spawn((
         Button, marker,
-        Hoverable { normal: palette::LINK_BG, hovered: palette::LINK_HOVER_BG },
+        Hoverable::simple(palette::LINK_BG, palette::LINK_HOVER_BG),
         Node { padding: spacing::link_pad(),
             border_radius: BorderRadius::all(Val::Px(spacing::RADIUS_SM)), ..default() },
         BackgroundColor(palette::LINK_BG),
@@ -222,7 +234,7 @@ pub fn spawn_styled_button(
     };
     if margin_bottom > 0.0 { node.margin.bottom = Val::Px(margin_bottom); }
     parent.spawn((
-        Button, marker, Hoverable { normal, hovered }, node, BackgroundColor(normal),
+        Button, marker, Hoverable::simple(normal, hovered), node, BackgroundColor(normal),
     )).with_child((
         Text::new(label),
         TextFont { font: font.clone(), font_size, ..default() },

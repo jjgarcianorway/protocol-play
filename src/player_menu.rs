@@ -73,7 +73,7 @@ pub fn enter_menu(mut commands: Commands, font: Res<GameFont>, t: Res<Translatio
 
             // ── Footer: Settings · Quit ──
             panel.spawn(Node {
-                flex_direction: FlexDirection::Row, column_gap: Val::Px(6.0),
+                flex_direction: FlexDirection::Row, column_gap: Val::Px(4.0),
                 align_items: AlignItems::Center,
                 margin: UiRect::bottom(Val::Px(10.0)), ..default()
             }).with_children(|row| {
@@ -160,7 +160,7 @@ fn spawn_fade(commands: &mut Commands) {
         MenuFadeOverlay,
         Node { position_type: PositionType::Absolute,
             width: Val::Percent(100.0), height: Val::Percent(100.0), ..default() },
-        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.0)),
+        BackgroundColor(palette::FADE_BLACK),
         GlobalZIndex(500),
         crate::types::UiBgFade { target: 1.0, despawn_at_zero: false },
     ));
