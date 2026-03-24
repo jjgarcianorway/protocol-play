@@ -442,8 +442,19 @@ pub fn populate_stats(
 }
 
 /// OnEnter(Playing): slide the Play/Stop button into view (hidden during menu).
-pub fn show_play_button(mut q: Query<&mut UiTopAnim>) {
-    for mut anim in q.iter_mut() { anim.target = TOP_SLIDE_SHOW; }
+/// Must INSERT the component because animate_ui_slides removes it when target is reached.
+pub fn show_play_button(
+    mut commands: Commands,
+    q: Query<Entity, With<PlayStopButton>>,
+    parent_q: Query<&ChildOf>,
+) {
+    // The PlayStopButton is a child — we need the parent (the positioned node)
+    for btn_entity in q.iter() {
+        if let Ok(child_of) = parent_q.get(btn_entity) {
+            commands.entity(child_of.parent()).insert(
+                UiTopAnim { target: TOP_SLIDE_SHOW, despawn_at_target: false });
+        }
+    }
 }
 
 /// Spawn the persistent 1×/2×/4× speed HUD in the top-right corner.

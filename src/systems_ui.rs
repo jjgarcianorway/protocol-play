@@ -3,6 +3,7 @@
 
 use bevy::prelude::*;
 use crate::constants::*;
+use crate::ui_theme::palette;
 use crate::types::*;
 use crate::ui_helpers::{gf, rgb, btn_bg, dialog_panel_node, dialog_btn_node};
 use crate::simulation::SimulationOverlay;
@@ -52,20 +53,24 @@ pub fn escape_to_quit(
         With<OverwriteDialog>, With<DeleteLevelDialog>, With<SimulationOverlay>,
     )>>,
     font: Res<GameFont>,
+    t: Option<Res<crate::i18n::Translations>>,
 ) {
     if !keys.just_pressed(KeyCode::Escape) { return; }
     if !existing.is_empty() || !other_dialogs.is_empty() { return; }
     let tf = gf(DIALOG_TITLE_FONT, &font.0);
-    let tc = TextColor(Color::WHITE);
+    let tc = TextColor(palette::TEXT_BRIGHT);
+    let tr = |key: &str, fallback: &str| -> String {
+        t.as_ref().map(|t| t.ui_or(key, fallback).to_string()).unwrap_or_else(|| fallback.to_string())
+    };
     crate::ui_helpers::spawn_dialog(&mut commands, QuitDialog, dialog_panel_node(DIALOG_ROW_GAP), |panel| {
-        panel.spawn((Text::new("Quit game?"), tf.clone(), tc));
+        panel.spawn((Text::new(tr("quit_confirm", "Quit game?")), tf.clone(), tc));
         panel.spawn(Node { flex_direction: FlexDirection::Row, column_gap: Val::Px(DIALOG_BTN_GAP), ..default() })
             .with_children(|row| {
                 row.spawn((Button, QuitConfirm, dialog_btn_node(),
                     BackgroundColor(rgb(STOP_TEST_BTN_BG))))
-                    .with_child((Text::new("Quit"), tf.clone(), tc));
+                    .with_child((Text::new(tr("quit", "Quit")), tf.clone(), tc));
                 row.spawn((Button, QuitCancel, dialog_btn_node(), BackgroundColor(btn_bg())))
-                    .with_child((Text::new("Cancel"), tf, tc));
+                    .with_child((Text::new(tr("cancel", "Cancel")), tf, tc));
             });
     });
 }

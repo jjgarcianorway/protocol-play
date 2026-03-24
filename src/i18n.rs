@@ -144,6 +144,12 @@ fn embedded_es_player(m: &mut HashMap<String, String>) {
     // UI labels
     m.insert("ui.play".into(), "Jugar".into());
     m.insert("ui.quit".into(), "Salir".into());
+    m.insert("ui.quit_confirm".into(), "¿Salir del juego?".into());
+    m.insert("ui.cancel".into(), "Cancelar".into());
+    m.insert("ui.retry".into(), "  Clic para reintentar".into());
+    m.insert("ui.test_mode".into(), "MODO TEST".into());
+    m.insert("ui.stop_test".into(), "Parar Test".into());
+    m.insert("ui.save".into(), "Guardar".into());
     m.insert("ui.settings".into(), "Ajustes".into());
     m.insert("ui.done".into(), "Hecho".into());
     m.insert("ui.language".into(), "Idioma".into());
