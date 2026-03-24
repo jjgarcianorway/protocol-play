@@ -448,9 +448,9 @@ pub fn spawn_speed_hud(commands: &mut Commands, f: &Handle<Font>, settings: &Pla
         SpeedHudContainer,
         Node {
             position_type: PositionType::Absolute,
-            right: Val::Px(60.0), top: Val::Px(10.0),
+            right: Val::Px(70.0), top: Val::Px(10.0),
             flex_direction: FlexDirection::Row,
-            column_gap: Val::Px(4.0),
+            column_gap: Val::Px(6.0),
             align_items: AlignItems::Center,
             ..default()
         },
@@ -460,11 +460,16 @@ pub fn spawn_speed_hud(commands: &mut Commands, f: &Handle<Font>, settings: &Pla
             let active = (settings.sim_speed - val).abs() < 0.05;
             p.spawn((
                 Button, SpeedHudBtn(*val),
-                Node { padding: UiRect::axes(Val::Px(9.0), Val::Px(4.0)),
-                    border_radius: BorderRadius::all(Val::Px(4.0)), ..default() },
+                Node {
+                    width: Val::Px(38.0), height: Val::Px(38.0),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    border_radius: BorderRadius::all(Val::Px(6.0)),
+                    ..default()
+                },
                 BackgroundColor(if active { active_bg } else { inactive_bg }),
             )).with_child((Text::new(*label),
-                gf(12.0, f), TextColor(Color::srgba(1.0, 1.0, 1.0, 0.85))));
+                gf(16.0, f), TextColor(Color::srgba(1.0, 1.0, 1.0, 0.90))));
         }
     });
 }
