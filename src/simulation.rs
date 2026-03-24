@@ -2,6 +2,7 @@
 
 use bevy::prelude::*;
 use crate::{constants::*, types::*, ui_helpers::*};
+use crate::ui_theme::palette;
 use crate::board::tile_world_pos;
 use crate::messages::{pick_error_msg, pick_success_msg};
 use crate::sound::{SoundPalette, SoundSettings, play_sound, SoundType};
@@ -362,11 +363,11 @@ pub fn spawn_simulation_overlay(
                 Node { flex_direction: FlexDirection::Row, padding: UiRect::axes(Val::Px(24.0), Val::Px(12.0)),
                     column_gap: Val::Px(16.0), align_items: AlignItems::Center,
                     border_radius: BorderRadius::all(Val::Px(8.0)), ..default() },
-                BackgroundColor(Color::srgba(0.12, 0.08, 0.08, 0.92)),
+                BackgroundColor(palette::SIM_ERROR_BG),
             )).with_children(|banner| {
                 banner.spawn((Text::new(&msg), gf(SIM_MSG_FONT, &font.0), TextColor(color)));
                 banner.spawn((Text::new("  Click to retry"), gf(SIM_BTN_FONT, &font.0),
-                    TextColor(Color::srgba(0.7, 0.7, 0.7, 0.7))));
+                    TextColor(palette::SIM_TEXT_DIM)));
             });
         });
     } else {
@@ -374,7 +375,7 @@ pub fn spawn_simulation_overlay(
         commands.spawn((
             Node { position_type: PositionType::Absolute, width: Val::Percent(100.0), height: Val::Percent(100.0),
                 justify_content: JustifyContent::Center, align_items: AlignItems::Center, ..default() },
-            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.0)), GlobalZIndex(100), SimulationOverlay, Interaction::default(),
+            BackgroundColor(palette::FADE_BLACK), GlobalZIndex(100), SimulationOverlay, Interaction::default(),
             SimOverlayFade(0.0),
         )).with_children(|parent| {
             parent.spawn((
@@ -384,13 +385,13 @@ pub fn spawn_simulation_overlay(
             )).with_children(|card| {
                 card.spawn((Text::new(&msg), gf(SIM_MSG_FONT, &font.0), TextColor(color)));
                 for line in &stats {
-                    card.spawn((Text::new(line), gf(DIALOG_BODY_FONT, &font.0), TextColor(Color::WHITE)));
+                    card.spawn((Text::new(line), gf(DIALOG_BODY_FONT, &font.0), TextColor(palette::TEXT_BRIGHT)));
                 }
                 card.spawn((
                     Button, SimOverlayButton,
                     Node { padding: UiRect::axes(Val::Px(SIM_BTN_PAD.0), Val::Px(SIM_BTN_PAD.1)), ..default() },
                     BackgroundColor(rgb(SIM_BTN_BG)),
-                )).with_child((Text::new(btn_text), gf(SIM_BTN_FONT, &font.0), TextColor(Color::WHITE)));
+                )).with_child((Text::new(btn_text), gf(SIM_BTN_FONT, &font.0), TextColor(palette::TEXT_BRIGHT)));
             });
         });
     }

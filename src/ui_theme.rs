@@ -58,6 +58,30 @@ pub mod palette {
     // ── Active/selected states ──
     pub const ACTIVE:   Color = Color::srgba(0.25, 0.48, 0.75, 0.90);
     pub const INACTIVE: Color = Color::srgba(0.10, 0.12, 0.18, 0.70);
+
+    // ── Toggle states (settings ON/OFF) ──
+    pub const TOGGLE_ON:  Color = Color::srgba(0.25, 0.68, 0.42, 1.0);
+    pub const TOGGLE_OFF: Color = Color::srgba(0.40, 0.40, 0.45, 1.0);
+
+    // ── Accent colors ──
+    pub const STAR_GOLD:  Color = Color::srgb(1.0, 0.85, 0.2);
+    pub const ANNA_BG:    Color = Color::srgba(0.04, 0.07, 0.12, 0.92);
+    pub const ANNA_ACCENT: Color = Color::srgba(0.45, 0.65, 0.85, 1.0);
+    pub const ANNA_TEXT:  Color = Color::srgba(0.88, 0.90, 0.95, 1.0);
+
+    // ── Simulation overlays ──
+    pub const SIM_ERROR_BG: Color = Color::srgba(0.12, 0.08, 0.08, 0.92);
+    pub const SIM_TEXT_DIM: Color = Color::srgba(0.7, 0.7, 0.7, 0.7);
+
+    // ── Settings panel ──
+    pub const SETTINGS_BG:    Color = Color::srgba(0.07, 0.08, 0.12, 0.98);
+    pub const SETTINGS_SCRIM: Color = Color::srgba(0.0, 0.0, 0.0, 0.72);
+    pub const SETTINGS_LABEL: Color = Color::srgba(0.45, 0.48, 0.56, 1.0);
+    pub const SETTINGS_TEXT:  Color = Color::srgba(0.72, 0.75, 0.82, 1.0);
+    pub const SETTINGS_BTN:   Color = Color::srgba(0.22, 0.40, 0.65, 0.90);
+
+    // ── Count badge ──
+    pub const COUNT_BG: Color = Color::srgba(0.0, 0.0, 0.0, 0.6);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

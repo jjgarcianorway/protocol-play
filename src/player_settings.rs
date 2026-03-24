@@ -6,6 +6,7 @@ use serde::{Serialize, Deserialize};
 use crate::types::GameFont;
 use crate::save_state::exe_dir;
 use crate::i18n::{Translations, load_translations};
+use crate::ui_theme::{palette, typo};
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -64,12 +65,12 @@ pub fn spawn_settings_overlay(
 ) {
     let tf = |sz: f32| TextFont { font: font.clone(), font_size: sz, ..default() };
     let (anna_label, anna_bg) = if s.anna_enabled {
-        (t.ui_or("anna_on", "ON"),  Color::srgba(0.25, 0.68, 0.42, 1.0))
+        (t.ui_or("anna_on", "ON"),  palette::TOGGLE_ON)
     } else {
-        (t.ui_or("anna_off", "OFF"), Color::srgba(0.40, 0.40, 0.45, 1.0))
+        (t.ui_or("anna_off", "OFF"), palette::TOGGLE_OFF)
     };
-    let lang_active_bg   = Color::srgba(0.25, 0.45, 0.70, 0.90);
-    let lang_inactive_bg = Color::srgba(0.18, 0.20, 0.26, 0.70);
+    let lang_active_bg   = palette::ACTIVE;
+    let lang_inactive_bg = palette::INACTIVE;
 
     commands.spawn((
         SettingsOverlay,
@@ -79,7 +80,7 @@ pub fn spawn_settings_overlay(
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center, ..default()
         },
-        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.72)),
+        BackgroundColor(palette::SETTINGS_SCRIM),
         GlobalZIndex(300),
     )).with_children(|root| {
         root.spawn((
@@ -91,12 +92,12 @@ pub fn spawn_settings_overlay(
                 border_radius: BorderRadius::all(Val::Px(10.0)),
                 ..default()
             },
-            BackgroundColor(Color::srgba(0.07, 0.08, 0.12, 0.98)),
+            BackgroundColor(palette::SETTINGS_BG),
         )).with_children(|p| {
 
             // ── Title ──
             p.spawn((Text::new(t.ui_or("settings", "Settings")),
-                tf(21.0), TextColor(Color::WHITE)));
+                tf(typo::H2), TextColor(palette::TEXT_BRIGHT)));
 
             // ── Anna row ──
             setting_row(p, &tf, t.ui_or("anna_commentary", "Anna's commentary"), |row| {
@@ -105,20 +106,20 @@ pub fn spawn_settings_overlay(
                     Node { padding: UiRect::axes(Val::Px(18.0), Val::Px(7.0)),
                         border_radius: BorderRadius::all(Val::Px(4.0)), ..default() },
                     BackgroundColor(anna_bg),
-                )).with_child((Text::new(anna_label), tf(13.0), TextColor(Color::WHITE)));
+                )).with_child((Text::new(anna_label), tf(typo::CAPTION), TextColor(palette::TEXT_BRIGHT)));
             });
 
             // Anna description
             p.spawn((
                 Text::new(t.ui_or("anna_desc",
                     "Gamification history, psychology, and real-world use.\nTurn off for pure puzzle mode.")),
-                tf(11.5), TextColor(Color::srgba(0.45, 0.48, 0.56, 1.0)),
+                tf(11.5), TextColor(palette::SETTINGS_LABEL),
                 Node { max_width: Val::Px(310.0), ..default() },
             ));
 
             // ── Simulation speed row ──
-            let speed_active_bg   = Color::srgba(0.25, 0.45, 0.70, 0.90);
-            let speed_inactive_bg = Color::srgba(0.18, 0.20, 0.26, 0.70);
+            let speed_active_bg   = palette::ACTIVE;
+            let speed_inactive_bg = palette::INACTIVE;
             setting_row(p, &tf, t.ui_or("sim_speed", "Simulation Speed"), |row| {
                 for (val, _key, fallback) in &[
                     (1.0_f32, "speed_1x", "1×"),
@@ -131,7 +132,7 @@ pub fn spawn_settings_overlay(
                         Node { padding: UiRect::axes(Val::Px(12.0), Val::Px(7.0)),
                             border_radius: BorderRadius::all(Val::Px(4.0)), ..default() },
                         BackgroundColor(if active { speed_active_bg } else { speed_inactive_bg }),
-                    )).with_child((Text::new(*fallback), tf(13.0), TextColor(Color::WHITE)));
+                    )).with_child((Text::new(*fallback), tf(typo::CAPTION), TextColor(palette::TEXT_BRIGHT)));
                 }
             });
 
@@ -144,7 +145,7 @@ pub fn spawn_settings_overlay(
                         Node { padding: UiRect::axes(Val::Px(14.0), Val::Px(7.0)),
                             border_radius: BorderRadius::all(Val::Px(4.0)), ..default() },
                         BackgroundColor(if active { lang_active_bg } else { lang_inactive_bg }),
-                    )).with_child((Text::new(*label), tf(13.0), TextColor(Color::WHITE)));
+                    )).with_child((Text::new(*label), tf(typo::CAPTION), TextColor(palette::TEXT_BRIGHT)));
                 }
             });
 
@@ -154,9 +155,9 @@ pub fn spawn_settings_overlay(
                 Node { padding: UiRect::axes(Val::Px(44.0), Val::Px(10.0)),
                     border_radius: BorderRadius::all(Val::Px(4.0)),
                     margin: UiRect::top(Val::Px(8.0)), ..default() },
-                BackgroundColor(Color::srgba(0.22, 0.40, 0.65, 0.9)),
+                BackgroundColor(palette::SETTINGS_BTN),
             )).with_child((Text::new(t.ui_or("done", "Done")),
-                tf(14.0), TextColor(Color::WHITE)));
+                tf(typo::SMALL), TextColor(palette::TEXT_BRIGHT)));
         });
     });
 }
@@ -173,8 +174,8 @@ fn setting_row(
         justify_content: JustifyContent::SpaceBetween,
         width: Val::Px(310.0), column_gap: Val::Px(16.0), ..default()
     }).with_children(|row| {
-        row.spawn((Text::new(label), tf(14.0),
-            TextColor(Color::srgba(0.72, 0.75, 0.82, 1.0))));
+        row.spawn((Text::new(label), tf(typo::SMALL),
+            TextColor(palette::SETTINGS_TEXT)));
         row.spawn(Node {
             flex_direction: FlexDirection::Row, column_gap: Val::Px(6.0), ..default()
         }).with_children(|btns| {
@@ -225,9 +226,9 @@ pub fn settings_overlay_input(
         settings.anna_enabled = !settings.anna_enabled;
         save_player_settings(&settings);
         let (label, color) = if settings.anna_enabled {
-            (translations.ui_or("anna_on", "ON"),  Color::srgba(0.25, 0.68, 0.42, 1.0))
+            (translations.ui_or("anna_on", "ON"),  palette::TOGGLE_ON)
         } else {
-            (translations.ui_or("anna_off", "OFF"), Color::srgba(0.40, 0.40, 0.45, 1.0))
+            (translations.ui_or("anna_off", "OFF"), palette::TOGGLE_OFF)
         };
         for child in children.iter() {
             if let Ok(mut t) = text_q.get_mut(child) { **t = label.to_string(); }
@@ -236,8 +237,8 @@ pub fn settings_overlay_input(
     }
 
     // Simulation speed toggle
-    let speed_active   = Color::srgba(0.25, 0.45, 0.70, 0.90);
-    let speed_inactive = Color::srgba(0.18, 0.20, 0.26, 0.70);
+    let speed_active   = palette::ACTIVE;
+    let speed_inactive = palette::INACTIVE;
     let pressed_speed = speed_q.iter().find_map(|(_, sb, i, _)| {
         if *i == Interaction::Pressed && (settings.sim_speed - sb.0).abs() > 0.05 { Some(sb.0) } else { None }
     });

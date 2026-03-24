@@ -5,6 +5,7 @@ use bevy::prelude::*;
 use crate::constants::*;
 use crate::ui_helpers::gf;
 use crate::i18n::Translations;
+use crate::ui_theme::palette;
 
 const CHAPTER_KEYS: &[&str] = &[
     "ch_turns", "ch_turn_tiles", "ch_arrows", "ch_arrow_tiles",
@@ -51,13 +52,13 @@ fn spawn_chapter_title(commands: &mut Commands, ch: usize, font: &Handle<Font>, 
             height: Val::Percent(100.0), justify_content: JustifyContent::Center,
             align_items: AlignItems::Center, flex_direction: FlexDirection::Column,
             row_gap: Val::Px(8.0), ..default() },
-        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.0)), GlobalZIndex(200),
+        BackgroundColor(palette::FADE_BLACK), GlobalZIndex(200),
         ChapterTitleOverlay { timer: 0.0, phase: 0 },
     )).with_children(|p| {
         p.spawn((Text::new(format!("{} {}", prefix, ch + 1)), gf(CHAPTER_NUM_FONT, font),
-            TextColor(Color::srgba(1.0, 1.0, 1.0, 0.0))));
+            TextColor(palette::TEXT_BRIGHT.with_alpha(0.0))));
         p.spawn((Text::new(name.to_string()), gf(CHAPTER_NAME_FONT, font),
-            TextColor(Color::srgba(1.0, 1.0, 1.0, 0.0))));
+            TextColor(palette::TEXT_BRIGHT.with_alpha(0.0))));
     });
 }
 
@@ -94,9 +95,9 @@ pub fn animate_chapter_title(
                 a
             }
         };
-        bg.0 = Color::srgba(0.0, 0.0, 0.0, alpha * CHAPTER_TITLE_BG_ALPHA);
+        bg.0 = palette::FADE_BLACK.with_alpha(alpha * CHAPTER_TITLE_BG_ALPHA);
         for child in children.iter() {
-            if let Ok(mut c) = tc.get_mut(child) { c.0 = Color::srgba(1.0, 1.0, 1.0, alpha); }
+            if let Ok(mut c) = tc.get_mut(child) { c.0 = palette::TEXT_BRIGHT.with_alpha(alpha); }
         }
     }
 }
