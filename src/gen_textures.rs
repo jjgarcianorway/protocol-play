@@ -82,24 +82,45 @@ fn in_ring(x: f32, y: f32, e: f32) -> bool {
     d >= 0.22 - e && d <= 0.44 + e
 }
 
-const SEG: [u8; 10] = [0x7E, 0x30, 0x6D, 0x79, 0x33, 0x5B, 0x5F, 0x70, 0x7F, 0x7B];
-
-fn in_7seg(x: f32, y: f32, d: u8, cx: f32) -> bool {
-    let y = -y;
-    let (rx, hw, hh, t) = (x - cx, 0.08, 0.14, 0.035);
-    let s = SEG[d as usize];
-    (s & 0x40 != 0 && rx.abs() < hw && (y - hh).abs() < t)
-    || (s & 0x20 != 0 && (rx - hw).abs() < t && y > t / 2.0 && y < hh)
-    || (s & 0x10 != 0 && (rx - hw).abs() < t && y > -hh && y < -t / 2.0)
-    || (s & 0x08 != 0 && rx.abs() < hw && (y + hh).abs() < t)
-    || (s & 0x04 != 0 && (rx + hw).abs() < t && y > -hh && y < -t / 2.0)
-    || (s & 0x02 != 0 && (rx + hw).abs() < t && y > t / 2.0 && y < hh)
-    || (s & 0x01 != 0 && rx.abs() < hw && y.abs() < t)
+/// Clean digit rendering for teleport pair numbers.
+/// Draws filled shapes at (cx, cy) with given scale.
+fn in_digit(x: f32, y: f32, d: usize, cx: f32, cy: f32, s: f32) -> bool {
+    let dx = (x - cx) / s;
+    let dy = -(y - cy) / s;
+    let t = 0.032; // stroke thickness
+    let hw = 0.065; // half width
+    let hh = 0.11;  // half height
+    match d {
+        0 => dx.abs() < hw+t && dy.abs() < hh+t && !(dx.abs() < hw-t && dy.abs() < hh-t), // rect outline
+        1 => dx.abs() < t && dy.abs() < hh, // vertical bar
+        2 => (dy > hh-t && dy < hh+t && dx.abs() < hw) // top
+            || (dx > hw-t && dx < hw+t && dy > 0.0 && dy < hh) // right-top
+            || (dy.abs() < t && dx.abs() < hw) // middle
+            || (dx > -(hw+t) && dx < -(hw-t) && dy > -hh && dy < 0.0) // left-bottom
+            || (dy > -(hh+t) && dy < -(hh-t) && dx.abs() < hw), // bottom
+        3 => (dy > hh-t && dy < hh+t && dx.abs() < hw) // top
+            || (dx > hw-t && dx < hw+t && dy.abs() < hh) // right
+            || (dy.abs() < t && dx.abs() < hw) // middle
+            || (dy > -(hh+t) && dy < -(hh-t) && dx.abs() < hw), // bottom
+        4 => (dx > -(hw+t) && dx < -(hw-t) && dy > 0.0 && dy < hh) // left-top
+            || (dy.abs() < t && dx.abs() < hw) // middle
+            || (dx > hw-t && dx < hw+t && dy.abs() < hh), // right full
+        5 => (dy > hh-t && dy < hh+t && dx.abs() < hw) // top
+            || (dx > -(hw+t) && dx < -(hw-t) && dy > 0.0 && dy < hh) // left-top
+            || (dy.abs() < t && dx.abs() < hw) // middle
+            || (dx > hw-t && dx < hw+t && dy > -hh && dy < 0.0) // right-bot
+            || (dy > -(hh+t) && dy < -(hh-t) && dx.abs() < hw), // bottom
+        _ => in_digit(x, y, d % 10, cx, cy, s), // wrap
+    }
 }
 
+/// Teleport pair number: small clean digit below the ring.
 fn in_tp_num(x: f32, y: f32, num: usize) -> bool {
     let n = num + 1;
-    if n < 10 { in_7seg(x, y, n as u8, 0.0) } else { in_7seg(x, y, 1, -0.10) || in_7seg(x, y, 0, 0.10) }
+    let cy = 0.66; // well below ring (ring ends at 0.44)
+    let s = 0.9;   // small and clean
+    if n < 10 { in_digit(x, y, n, 0.0, cy, s) }
+    else { in_digit(x, y, n / 10, -0.08, cy, s) || in_digit(x, y, n % 10, 0.08, cy, s) }
 }
 
 fn in_teleport_shape(x: f32, y: f32, e: f32, num: usize) -> bool {
