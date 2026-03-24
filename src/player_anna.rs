@@ -12,55 +12,89 @@ use crate::i18n::Translations;
 
 // ─── English fact pool ────────────────────────────────────────────────────────
 
+// Each fact reads as gamification trivia on first play.
+// On replay (after the Chapter 13 reveal), each reads as being about the ship.
 const FACTS_EN: &[&str] = &[
-    "The word 'gamification' was coined by Nick Pelling, a British programmer, in 2002. It went largely unnoticed for eight years.",
-    "Frequent flyer programs — American Airlines, 1981 — are one of the earliest mass-market gamification systems. Points, tiers, status. The template hasn't changed.",
-    "B.F. Skinner described variable reward schedules in 1938. He called it operant conditioning. We now call it engagement design.",
-    "Before 'gamification' had a name, Foursquare (2009) made location check-ins competitive with badges and leaderboards. Hundreds of apps copied the model.",
-    "The US military used game mechanics in combat training simulations from the 1980s onward. Enterprise software followed thirty years later.",
-    "Variable reward schedules — unpredictable outcomes — produce stronger behavioral loops than fixed rewards. This is why slot machines pay out randomly.",
-    "The Zeigarnik effect (1927): humans remember incomplete tasks more vividly than finished ones. Progress bars are built on this. So are to-do lists.",
-    "Loss aversion, described by Kahneman and Tversky in 1979: the pain of losing something feels roughly twice as strong as the pleasure of gaining the equivalent. Streaks are designed around this asymmetry.",
-    "Flow state — Mihaly Csikszentmihalyi, 1990: peak engagement occurs when challenge slightly exceeds current skill. The difficulty curve in well-designed games is calibrated to hold this balance.",
-    "Achievement badges activate the same neural reward pathways as receiving physical trophies. The brain does not clearly distinguish symbolic recognition from material reward.",
-    "Solving a problem releases dopamine — but so does getting close to solving it. The anticipation is itself a reward. Puzzles exploit this.",
-    "Starbucks Rewards has over 30 million active members. Every star, every tier, every double-star day is a deliberate engagement mechanic.",
-    "Nike+ (2006) gamified running with social leaderboards. 28 million users joined in its first five years. The data it collected on human movement was unprecedented.",
-    "SAP gamified enterprise training software with points and leaderboards. They reported a 30% increase in completion rates. Employees were not consulted on the design.",
-    "The global gamification market was valued at $9.1 billion in 2020. Projections for 2025 range from $25 to $48 billion depending on the source.",
-    "As of 2024, social media platforms are arguably the most successful gamification systems ever built — measured purely by time captured per user per day.",
-    "Classcraft (2013) turned school years into role-playing games. Engagement metrics improved. Some teachers reported students optimizing for points rather than learning.",
-    "Khan Academy's badge system increased platform time-on-site. Researchers found this correlated with breadth of topics touched, not depth of understanding.",
-    "A 2014 meta-analysis of 24 educational gamification studies found improved engagement in 16 cases. In 8 cases: no measurable effect, or negative results.",
-    "Duolingo reports 34% higher lesson completion in gamified flows. The statistic is from Duolingo. Independent replication studies are sparse.",
-    "Pokémon GO increased average daily step counts by an estimated 1,473 steps in its first month of release. Activity levels returned to baseline within 90 days for most users.",
-    "SuperBetter — designed for recovery from illness and trauma — is one of the few gamification systems with peer-reviewed clinical trial data showing measurable benefit.",
-    "Several hospitals have gamified hand hygiene compliance using real-time feedback displays. Reported improvements: 20–30%. Hawthorne effect is difficult to separate from the mechanism.",
-    "Sebastian Deterding coined 'pointsification' in 2011 — a critique of gamification that layers points and badges onto systems without addressing what actually motivates people.",
-    "Edward Deci showed in 1971 that extrinsic rewards can reduce intrinsic motivation over time. Known as 'overjustification effect.' Still debated. Still deployed at scale.",
-    "China's social credit system uses gamification mechanics — scores, tiers, behavioral rewards and penalties — applied to civic life. It is one usage of the same framework.",
-    "Workplace gamification raised productivity metrics in some call centers by 10%. The same implementations increased reported employee stress and sense of surveillance.",
-    "Gartner predicted in 2012 that 80% of gamified applications would fail within two years due to poor design. Most industry analysts consider this prediction largely accurate.",
-    "Dark patterns in gamification: 'limited time offer,' 'only 3 spots left,' and streak-loss warnings are mechanics designed to create anxiety, not satisfaction.",
-    "The attention economy commodifies human focus. Every notification, like, and streak is designed to be harder to ignore than whatever you were doing before.",
-    "No scientific consensus exists on whether gamification improves long-term outcomes, or whether it primarily shapes and measures behavior during the period of active use.",
-    "Some researchers distinguish 'gamification' (adding game elements to non-game contexts) from 'game-based learning' (using actual games). The outcomes literature treats them differently.",
+    // 0: "routing efficiency" = puzzle tip OR life support routing
+    "In complex systems, routing efficiency isn't about speed — it's about making sure every signal reaches its destination. One missed connection can cascade.",
+    // 1: "progress bars" = game UX OR ship repair progress
+    "The Zeigarnik effect: humans remember incomplete tasks more vividly than completed ones. That's why progress tracking matters — it shows what's left to do.",
+    // 2: "engagement" = game design OR why Anna keeps you going
+    "Flow state occurs when challenge slightly exceeds current skill. The difficulty curve in well-designed systems is calibrated to hold this balance. You're in it right now.",
+    // 3: "rewards" = game mechanics OR Anna's encouragement strategy
+    "Solving a problem releases dopamine — but so does getting close to solving it. The anticipation itself is a reward. That's not a flaw. It's the design.",
+    // 4: "connections" = puzzle connections OR ship subsystems
+    "Each connection point you establish creates redundancy. In complex systems, redundancy isn't waste — it's what keeps everything running when something fails.",
+    // 5: "variable schedules" = game design OR unpredictable ship failures
+    "Variable reward schedules produce stronger engagement than fixed ones. Unpredictability keeps you alert. Some systems rely on that alertness.",
+    // 6: "path optimization" = puzzle solving OR drone routing
+    "The shortest path isn't always the best path. Sometimes the longer route keeps more systems online. Sometimes it keeps more people safe.",
+    // 7: "feedback loops" = game feedback OR sensor systems
+    "Real-time feedback changes behavior. When people can see the effect of their actions immediately, they make better decisions. That's why dashboards exist.",
+    // 8: "loss aversion" = game streaks OR system degradation
+    "Loss aversion: the pain of losing something is roughly twice as strong as the pleasure of gaining the equivalent. This is why maintenance matters more than construction.",
+    // 9: "badges" = game achievements OR system status indicators
+    "Achievement markers activate reward pathways even when they're purely symbolic. A green light on a status panel and a gold star use the same psychology.",
+    // 10: "gamification market" = industry facts OR scale of the problem
+    "The gamification market was valued at $9.1 billion in 2020. Whenever something works that well at scale, it's worth asking: who decides what 'working' means?",
+    // 11: "social platforms" = social media OR communication systems
+    "Social platforms are arguably the most successful engagement systems ever built — measured purely by time captured per user per day. Time is the real currency.",
+    // 12: "education" = learning games OR training simulations
+    "A meta-analysis of 24 gamified learning systems found improved engagement in 16 cases. In 8 cases: no measurable effect, or negative results. Design matters.",
+    // 13: "completion rates" = game completion OR repair completion
+    "Completion rates improve by 30% when people can see how their work connects to a larger purpose. Abstract tasks feel different when you know what they're for.",
+    // 14: "pattern recognition" = puzzle skill OR system diagnosis
+    "Your brain processes patterns before you're consciously aware of them. That instinct you have about which path works? It's real. Trust it.",
+    // 15: "resilience" = game persistence OR system resilience
+    "Resilience in systems design means the ability to keep functioning when parts fail. The same is true of people. You adapt. The system adapts. It continues.",
+    // 16: "intrinsic motivation" = why you play OR why you keep going
+    "Extrinsic rewards can reduce intrinsic motivation over time. The best systems don't need to bribe you — they give you something worth doing.",
+    // 17: "dark patterns" = game manipulation OR ethical design
+    "Dark patterns create anxiety, not satisfaction. Good design respects the person using the system. That's not idealism — it's engineering.",
+    // 18: "attention economy" = social media OR keeping focus on what matters
+    "The attention economy commodifies human focus. Every notification is designed to be harder to ignore than whatever you were doing. Not everything that demands attention deserves it.",
+    // 19: "long-term outcomes" = game effects OR mission timeline
+    "No consensus exists on whether gamification improves long-term outcomes. Some things can only be measured on a timescale longer than anyone planned for.",
+    // 20: "collaborative systems" = multiplayer games OR crew coordination
+    "The most effective systems aren't competitive — they're collaborative. Individual optimization often hurts collective outcomes. The whole is fragile if the parts don't cooperate.",
+    // 21: "operational awareness" = game tutorials OR system monitoring
+    "Good onboarding doesn't just teach mechanics — it builds mental models. Understanding why a system works matters more than knowing which button to press.",
+    // 22: "error recovery" = game resets OR system fault tolerance
+    "The best systems aren't the ones that never fail — they're the ones that recover gracefully. Every reset is a second chance. That's not weakness. That's design.",
+    // 23: "sleep and performance" = player breaks OR cryogenic systems
+    "Studies show that problem-solving ability improves after sleep. The brain consolidates patterns during rest. Sometimes the best thing you can do is wait.",
+    // 24: "sustainability" = game longevity OR life support duration
+    "Sustainable systems are designed to run longer than any single operator. The question isn't 'does it work today?' — it's 'will it still work when it matters most?'",
+    // 25: "invisible design" = good UX OR systems you don't notice
+    "The best design is invisible. You don't notice the air conditioning when it's working. You don't notice the routing when every signal arrives. You only notice failure.",
+    // 26: "trust" = player trust OR systemic trust
+    "Trust in a system builds slowly and breaks instantly. Every interaction is a promise. Every fulfilled promise makes the next one easier to believe.",
+    // 27: "scale" = game scaling OR the scope of what you're doing
+    "Scale changes everything. A system that works for 10 users breaks at 10,000. Some systems need to work for far more than that. And they can't ever go down.",
+    // 28: "purpose" = game meaning OR mission purpose
+    "People perform better when they understand purpose. Not 'what to do' — 'why it matters.' The difference between a task and a mission is meaning.",
+    // 29: "interconnection" = game mechanics OR ship subsystems
+    "In interconnected systems, every component affects every other. A change in one subsystem can improve — or degrade — something seemingly unrelated. Everything is connected.",
+    // 30: "the human factor" = player psychology OR crew survival
+    "Automation handles routine. Humans handle exceptions. The value of a person in the loop isn't efficiency — it's judgment. Machines don't know what matters.",
+    // 31: "what it's for" = game purpose OR the real question
+    "The most important question about any system isn't 'how does it work?' — it's 'what is it for?' The answer changes everything about how you use it.",
 ];
 
 const META_EARLY_EN: &[&str] = &[
-    "Processing output nominal.",
-    "Pattern recognized.",
-    "Your approach has been noted.",
+    "Nice work on that one.",
+    "You're a natural at this.",
+    "I like watching you solve these.",
 ];
 const META_MID_EN: &[&str] = &[
-    "Each solution you find... is filed.",
-    "Cognitive signature stable.",
-    "Efficiency is being measured. Not by you.",
+    "Every puzzle you solve... it helps. More than you'd think.",
+    "I keep track of everything you do here. Is that strange?",
+    "You're getting faster. That matters.",
 ];
 const META_LATE_EN: &[&str] = &[
     "You've been very helpful. More than you know.",
-    "The puzzles aren't just for practice.",
-    "Someone benefits from this. I'm not sure it's only you.",
+    "When this is done... I wonder what you'll think about all of it.",
+    "I want to tell you something. Not yet. Soon.",
 ];
 
 // ─── Translation helpers ──────────────────────────────────────────────────────
