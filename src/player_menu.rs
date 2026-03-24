@@ -14,8 +14,8 @@ use crate::i18n::Translations;
 
 #[derive(States, Default, Clone, Eq, PartialEq, Debug, Hash)]
 pub enum PlayerPhase {
-    #[default]
     MainMenu,
+    #[default]
     Playing,
 }
 
@@ -203,20 +203,23 @@ fn spawn_menu_stars(commands: &mut Commands) {
 
 /// Spawn the title screen UI: overlay + title + subtitle + buttons.
 fn spawn_menu_ui(commands: &mut Commands, font: &Handle<Font>, t: &Translations) {
-    // Full-screen dim overlay
+    // DEBUG: bare minimum — does ANY UI render?
     commands.spawn((
         MenuUi,
         Node {
             position_type: PositionType::Absolute,
-            width: Val::Percent(100.0),
-            height: Val::Percent(100.0),
+            left: Val::Px(100.0), top: Val::Px(100.0),
+            width: Val::Px(300.0), height: Val::Px(60.0),
             ..default()
         },
-        BackgroundColor(Color::srgba(0.04, 0.04, 0.08, 0.0)), // fades in
-        GlobalZIndex(10),
+        BackgroundColor(Color::srgb(1.0, 0.0, 0.0)), // bright red box
+    )).with_child((
+        Text::new("HELLO MENU"),
+        TextFont { font: font.clone(), font_size: 30.0, ..default() },
+        TextColor(Color::WHITE),
     ));
 
-    // Content panel — centered column
+    // Full menu below
     commands.spawn((
         MenuUi,
         Node {
@@ -226,23 +229,22 @@ fn spawn_menu_ui(commands: &mut Commands, font: &Handle<Font>, t: &Translations)
             flex_direction: FlexDirection::Column,
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
-            row_gap: Val::Px(0.0),
             ..default()
         },
-        GlobalZIndex(20),
+        BackgroundColor(Color::srgba(0.04, 0.04, 0.08, 0.62)),
     )).with_children(|root| {
         // Main title
         root.spawn((
             Text::new("protocol play: repairing"),
             TextFont { font: font.clone(), font_size: 48.0, ..default() },
-            TextColor(Color::srgba(0.96, 0.96, 0.99, 0.0)), // fades in
+            TextColor(Color::srgba(0.96, 0.96, 0.99, 1.0)),
         ));
 
         // Tagline
         root.spawn((
             Text::new(t.ui_or("tagline", "route the bots. repair the ship.").to_string()),
             TextFont { font: font.clone(), font_size: 15.0, ..default() },
-            TextColor(Color::srgba(0.60, 0.65, 0.75, 0.0)),
+            TextColor(Color::srgba(0.60, 0.65, 0.75, 1.0)),
             Node { margin: UiRect::top(Val::Px(8.0)), ..default() },
         ));
 
@@ -258,11 +260,11 @@ fn spawn_menu_ui(commands: &mut Commands, font: &Handle<Font>, t: &Translations)
                 margin: UiRect::bottom(Val::Px(12.0)),
                 ..default()
             },
-            BackgroundColor(Color::srgba(0.25, 0.45, 0.70, 0.0)),
+            BackgroundColor(Color::srgba(0.25, 0.45, 0.70, 0.85)),
         )).with_child((
             Text::new(t.ui_or("play", "Play").to_string()),
             TextFont { font: font.clone(), font_size: 20.0, ..default() },
-            TextColor(Color::srgba(1.0, 1.0, 1.0, 0.0)),
+            TextColor(Color::WHITE),
         ));
 
         // Quit button
@@ -277,7 +279,7 @@ fn spawn_menu_ui(commands: &mut Commands, font: &Handle<Font>, t: &Translations)
         )).with_child((
             Text::new(t.ui_or("quit", "Quit").to_string()),
             TextFont { font: font.clone(), font_size: 15.0, ..default() },
-            TextColor(Color::srgba(0.55, 0.58, 0.65, 0.0)),
+            TextColor(Color::srgba(0.55, 0.58, 0.65, 1.0)),
         ));
 
         // Settings link
@@ -289,7 +291,7 @@ fn spawn_menu_ui(commands: &mut Commands, font: &Handle<Font>, t: &Translations)
         )).with_child((
             Text::new(t.ui_or("settings", "Settings").to_string()),
             TextFont { font: font.clone(), font_size: 12.0, ..default() },
-            TextColor(Color::srgba(0.38, 0.42, 0.50, 0.0)),
+            TextColor(Color::srgba(0.38, 0.42, 0.50, 1.0)),
         ));
     });
 }

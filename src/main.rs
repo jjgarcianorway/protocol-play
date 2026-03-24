@@ -13,6 +13,7 @@ pub mod anna_comments;
 #[cfg(feature = "player")] mod player;
 #[cfg(feature = "player")] mod player_anna;
 #[cfg(feature = "player")] mod player_menu;
+#[cfg(feature = "player")] mod player_progress;
 #[cfg(feature = "player")] mod player_settings;
 #[cfg(feature = "gathering")] mod gathering;
 #[cfg(feature = "converter")] mod converter;
@@ -102,7 +103,7 @@ fn main() {
     gen_textures::ensure_textures();
     let title = if cfg!(feature = "player") { "protocol play: repairing" } else { "protocol: play" };
     let mut app = App::new();
-    app.set_error_handler(bevy::ecs::error::ignore);
+    app.set_error_handler(bevy::ecs::error::warn);
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window { title: title.into(), ..default() }), ..default() }))
         .add_plugins(sound::SoundPlugin)
@@ -122,20 +123,43 @@ fn main() {
         .add_systems(Startup, (setup_scene, setup_ui));
     #[cfg(feature = "player")]
     {
+        use player_menu::PlayerPhase;
+        app.init_state::<PlayerPhase>();
         let ps = player_settings::load_player_settings();
         let tr = crate::i18n::load_translations(&ps.language);
         app.insert_resource(tr);
         app.insert_resource(ps);
         app.insert_resource(player_settings::SettingsOpenRequest::default());
-        // Go straight to playing (no menu for now)
+        // Setup at Startup (resources must exist before any Update systems)
         app.add_systems(Startup, player::setup_player.after(setup_scene).after(setup_ui));
         app.add_systems(Startup, player_anna::setup_bot_anna.after(player::setup_player));
-        // Settings overlay
+        // Settings overlay — runs in all states
         app.add_systems(Update, (
             player_settings::settings_request,
             player_settings::settings_overlay_input.after(player_settings::settings_request),
         ));
+        // ALL gameplay systems gated to Playing state
+        let playing = in_state(PlayerPhase::Playing);
+        app.add_systems(Update, (
+            animate_node_width, update_hovered_cell,
+            update_ghost_and_highlight.after(update_hovered_cell),
+            animate_scale.after(update_ghost_and_highlight).after(move_bots).after(apply_bot_formation),
+            animate_ui_slides, animate_border_fade, cleanup_despawned.after(animate_scale),
+        ).run_if(playing.clone()));
+        app.add_systems(Update, (escape_to_quit, quit_dialog_buttons, simulation::animate_sim_overlay_fade)
+            .run_if(playing.clone()));
+        app.add_systems(Update, (
+            overlay_button_interaction, play_stop_interaction.after(overlay_button_interaction),
+            move_bots.after(play_stop_interaction), update_bot_formation.after(move_bots),
+            apply_bot_formation.after(update_bot_formation), animate_merge_flashes,
+            paint_bots.after(move_bots), toggle_doors.after(move_bots),
+            check_simulation_result.after(move_bots),
+            spawn_simulation_overlay.after(check_simulation_result),
+            adapt_camera, sync_ui_play_mode,
+        ).run_if(playing.clone()));
     }
+    #[cfg(not(feature = "player"))]
+    {
     app.add_systems(Update, (
             animate_node_width, update_hovered_cell,
             update_ghost_and_highlight.after(update_hovered_cell),
@@ -151,7 +175,9 @@ fn main() {
             check_simulation_result.after(move_bots),
             spawn_simulation_overlay.after(check_simulation_result),
             adapt_camera, sync_ui_play_mode,
-        )); #[cfg(not(feature = "player"))]
+        ));
+    }
+    #[cfg(not(feature = "player"))]
     app.add_systems(Update, (
             button_interaction, inventory_interaction,
             update_inventory_visuals.after(inventory_interaction),
@@ -181,23 +207,26 @@ fn main() {
         ));
     #[cfg(feature = "player")]
     {
+        use player_menu::PlayerPhase;
+        let playing = in_state(PlayerPhase::Playing);
         app.insert_resource(player::ChapterState {
             bg_target: Color::srgb(CLEAR_COLOR.0, CLEAR_COLOR.1, CLEAR_COLOR.2), current: usize::MAX });
         app.add_systems(Update, (handle_test_tile_click.after(update_hovered_cell),
             test_inventory_interaction, reset_test_interaction, update_status_bar,
             test_mode::test_tile_sound.after(handle_test_tile_click),
-        ));
+        ).run_if(playing.clone()));
         app.add_systems(Update, (player::player_nav_interaction, player::update_player_stats,
             player::auto_save_progress, player::handle_level_complete,
-        ));
+        ).run_if(playing.clone()));
         app.add_systems(Update, player::populate_stats
-            .before(spawn_simulation_overlay));
+            .before(spawn_simulation_overlay)
+            .run_if(playing.clone()));
         app.add_systems(Update, (
             player::cleanup_stale_inventory, player::animate_bg_color,
             player::animate_chapter_title, player::update_version_label,
             anna_comments::tick_anna_comments, player::apply_sim_speed,
             player::speed_hud_interaction,
-        ));
+        ).run_if(playing));
     }
     app.run();
 }
