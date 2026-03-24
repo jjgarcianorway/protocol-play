@@ -176,8 +176,36 @@ fn spawn_bot(
     });
 }
 
-/// No-op — bots loop forever on the handcrafted board.
-pub fn menu_sim_loop() {}
+/// Safety: respawn any bot that falls off the board.
+pub fn menu_sim_loop(
+    mut commands: Commands,
+    bots: Query<(Entity, &BotMovement), With<Bot>>,
+    assets: Res<GameAssets>,
+    board_size: Res<BoardSize>,
+    tiles: Query<(&crate::types::TileCoord, &crate::types::TileKind), With<crate::types::Tile>>,
+) {
+    let size = board_size.0 as i32;
+    for (entity, mov) in bots.iter() {
+        let off_board = mov.col < 0 || mov.row < 0 || mov.col >= size || mov.row >= size;
+        let on_empty = !off_board && tiles.iter()
+            .find(|(c, _)| c.col == mov.col as u32 && c.row == mov.row as u32)
+            .is_none_or(|(_, k)| matches!(*k, TileKind::Empty));
+        if off_board || on_empty {
+            // Despawn fallen bot and respawn at its source
+            commands.entity(entity).despawn();
+            // Find the source tile for this bot's color
+            for (coord, kind) in tiles.iter() {
+                if let TileKind::Source(ci, dir) = *kind {
+                    if ci == mov.color_index {
+                        spawn_bot(&mut commands, &assets, coord.col, coord.row,
+                            board_size.0, ci, dir, mov.spawn_index);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
 
 /// Cinematic screensaver camera: smooth drone view with intelligent bot switching.
 pub fn menu_camera(
