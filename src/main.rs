@@ -149,12 +149,18 @@ fn main() {
             player_settings::settings_overlay_input.after(player_settings::settings_request),
         ));
     }
+    // In player mode, gameplay systems only run during Playing (not MainMenu)
+    #[cfg(feature = "player")]
+    let gameplay_guard = in_state(player_menu::PlayerPhase::Playing);
+    #[cfg(not(feature = "player"))]
+    let gameplay_guard = || true; // editor: always run
+
     app.add_systems(Update, (
             animate_node_width, update_hovered_cell,
             update_ghost_and_highlight.after(update_hovered_cell),
             animate_scale.after(update_ghost_and_highlight).after(move_bots).after(apply_bot_formation),
             animate_ui_slides, animate_border_fade, cleanup_despawned.after(animate_scale),
-        ))
+        ).run_if(gameplay_guard.clone()))
         .add_systems(Update, (escape_to_quit, quit_dialog_buttons, simulation::animate_sim_overlay_fade))
         .add_systems(Update, (
             overlay_button_interaction, play_stop_interaction.after(overlay_button_interaction),
@@ -164,7 +170,7 @@ fn main() {
             check_simulation_result.after(move_bots),
             spawn_simulation_overlay.after(check_simulation_result),
             adapt_camera, sync_ui_play_mode,
-        )); #[cfg(not(feature = "player"))]
+        ).run_if(gameplay_guard)); #[cfg(not(feature = "player"))]
     app.add_systems(Update, (
             button_interaction, inventory_interaction,
             update_inventory_visuals.after(inventory_interaction),
