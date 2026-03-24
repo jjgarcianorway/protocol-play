@@ -131,8 +131,6 @@ fn main() {
         app.insert_resource(tr);
         app.insert_resource(ps);
         app.insert_resource(player_settings::SettingsOpenRequest::default());
-        // Generate menu background level (before Startup so tiles can be spawned)
-        app.insert_resource(player_menu_bg::generate_menu_level());
         // Playing setup: triggered when transitioning MainMenu → Playing
         app.add_systems(OnEnter(PlayerPhase::Playing),
             player::setup_player.after(setup_scene).after(setup_ui));
@@ -148,8 +146,6 @@ fn main() {
             player_menu::menu_interaction, player_menu::menu_hover,
             player_menu_bg::menu_camera,
             player_menu_bg::menu_sim_loop,
-            // Run core bot systems during menu for the animated background
-            move_bots, paint_bots.after(move_bots), toggle_doors.after(move_bots),
         ).run_if(main_menu.clone()));
         app.add_systems(OnExit(PlayerPhase::MainMenu), (
             player_menu::exit_menu,
@@ -170,11 +166,16 @@ fn main() {
         ).run_if(playing.clone()));
         app.add_systems(Update, (escape_to_quit, quit_dialog_buttons, simulation::animate_sim_overlay_fade)
             .run_if(playing.clone()));
+        // Bot simulation runs in BOTH MainMenu (background) and Playing (gameplay)
+        let menu_or_playing = in_state(PlayerPhase::MainMenu).or(in_state(PlayerPhase::Playing));
+        app.add_systems(Update, (
+            move_bots, paint_bots.after(move_bots), toggle_doors.after(move_bots),
+        ).run_if(menu_or_playing));
+        // These only run during gameplay
         app.add_systems(Update, (
             overlay_button_interaction, play_stop_interaction.after(overlay_button_interaction),
-            move_bots.after(play_stop_interaction), update_bot_formation.after(move_bots),
+            update_bot_formation.after(move_bots),
             apply_bot_formation.after(update_bot_formation), animate_merge_flashes,
-            paint_bots.after(move_bots), toggle_doors.after(move_bots),
             check_simulation_result.after(move_bots),
             spawn_simulation_overlay.after(check_simulation_result),
             adapt_camera, sync_ui_play_mode,
