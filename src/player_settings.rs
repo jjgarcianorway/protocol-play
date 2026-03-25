@@ -32,10 +32,14 @@ pub struct PlayerSettings {
     /// Sound effects enabled.
     #[serde(default = "default_true")]
     pub sfx_enabled: bool,
+    /// Campaign seed — identifies this "world" (cosmetic for now).
+    #[serde(default = "default_campaign_seed")]
+    pub campaign_seed: u64,
 }
 fn default_sim_speed() -> f32 { 1.0 }
 fn default_true() -> bool { true }
 fn default_volume() -> f32 { 0.7 }
+fn default_campaign_seed() -> u64 { rand::random::<u64>() }
 
 impl Default for PlayerSettings {
     fn default() -> Self {
@@ -43,6 +47,7 @@ impl Default for PlayerSettings {
             anna_enabled: true, language: "en".to_string(), sim_speed: 1.0,
             fullscreen: true, bloom_enabled: true,
             master_volume: 0.7, sfx_enabled: true,
+            campaign_seed: rand::random::<u64>(),
         }
     }
 }
@@ -99,11 +104,8 @@ pub fn settings_reopen_tick(
 
 // ─── Overlay spawn ────────────────────────────────────────────────────────────
 
-pub fn spawn_settings_overlay(
-    commands: &mut Commands,
-    font: &Handle<Font>,
-    s: &PlayerSettings,
-    t: &Translations,
+pub fn spawn_settings_overlay(commands: &mut Commands, font: &Handle<Font>,
+    s: &PlayerSettings, t: &Translations,
 ) {
     let tf = |sz: f32| TextFont { font: font.clone(), font_size: sz, ..default() };
     let (anna_label, anna_bg) = if s.anna_enabled {
@@ -246,6 +248,14 @@ pub fn spawn_settings_overlay(
                 }
             });
 
+            // ── Seed row (read-only) ──
+            setting_row(p, &tf, t.ui_or("seed", "Seed"), |row| {
+                row.spawn((Node { padding: UiRect::axes(Val::Px(10.0), Val::Px(7.0)),
+                    border_radius: BorderRadius::all(Val::Px(4.0)), ..default() },
+                    BackgroundColor(Color::srgba(0.14, 0.16, 0.22, 0.70)),
+                )).with_child((Text::new(format!("{:012X}", s.campaign_seed)),
+                    tf(13.0), TextColor(Color::srgba(0.60, 0.65, 0.75, 1.0))));
+            });
             // ── Done ──
             p.spawn((
                 Button, SettingsCloseBtn,
@@ -260,11 +270,8 @@ pub fn spawn_settings_overlay(
 }
 
 /// Spawn a two-column label + controls row.
-fn setting_row(
-    parent: &mut ChildSpawnerCommands,
-    tf: &impl Fn(f32) -> TextFont,
-    label: &str,
-    build_controls: impl FnOnce(&mut ChildSpawnerCommands),
+fn setting_row(parent: &mut ChildSpawnerCommands, tf: &impl Fn(f32) -> TextFont,
+    label: &str, build_controls: impl FnOnce(&mut ChildSpawnerCommands),
 ) {
     parent.spawn(Node {
         flex_direction: FlexDirection::Row, align_items: AlignItems::Center,

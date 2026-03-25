@@ -181,6 +181,8 @@ fn embedded_es_player(m: &mut HashMap<String, String>) {
     m.insert("ui.volume_low".into(), "Bajo".into());
     m.insert("ui.volume_medium".into(), "Medio".into());
     m.insert("ui.volume_high".into(), "Alto".into());
+    m.insert("ui.seed".into(), "Semilla".into());
+    m.insert("ui.profile".into(), "Perfil".into());
     m.insert("ui.anna_desc".into(), "Consejos, datos y ánimos mientras juegas.\nDesactívalo para una experiencia tranquila.".into());
     m.insert("ui.reset".into(), "Reiniciar".into());
     m.insert("ui.no_levels".into(), "No se encontraron archivos de nivel".into());

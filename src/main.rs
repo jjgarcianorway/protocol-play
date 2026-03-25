@@ -17,6 +17,7 @@ pub mod anna_comments;
 #[cfg(feature = "player")] mod player_progress;
 #[cfg(feature = "player")] mod player_settings;
 #[cfg(feature = "player")] mod player_settings_gfx;
+#[cfg(feature = "player")] #[allow(dead_code)] mod player_profiles;
 #[cfg(feature = "player")] mod player_pause;
 #[cfg(feature = "player")] mod player_credits;
 #[cfg(feature = "player")] mod player_onboarding;
@@ -139,6 +140,10 @@ fn main() {
     {
         use player_menu::PlayerPhase;
         app.init_state::<PlayerPhase>();
+        // Initialize profile system — ensures active profile data is in working dir
+        let profile_state = player_profiles::init_profiles();
+        app.insert_resource(profile_state);
+        app.insert_resource(player_menu::MenuRebuildRequest::default());
         let ps = player_settings::load_player_settings();
         let tr = crate::i18n::load_translations(&ps.language);
         // Apply sound settings from saved preferences
@@ -171,6 +176,9 @@ fn main() {
             player_menu::menu_interaction,
             player_menu::menu_fade_transition,
             player_menu::menu_keys,
+            player_menu::profile_slot_interaction,
+            player_menu::rebuild_menu_on_request
+                .after(player_menu::profile_slot_interaction),
             player_menu_bg::menu_camera,
             player_menu_bg::menu_sim_loop,
         ).run_if(main_menu.clone()));

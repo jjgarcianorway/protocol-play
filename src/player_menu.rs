@@ -9,6 +9,7 @@ use crate::types::GameFont;
 use crate::i18n::Translations;
 use crate::ui_theme::{self, palette, typo, spacing};
 use crate::save_state::{exe_dir, load_game_state, save_game_state};
+use crate::player_profiles::{self, ProfileState, ProfileSlotBtn};
 
 // ─── State ───────────────────────────────────────────────────────────────────
 
@@ -26,7 +27,10 @@ pub enum PlayerPhase { #[default] MainMenu, Playing }
 
 // ─── Setup ───────────────────────────────────────────────────────────────────
 
-pub fn enter_menu(mut commands: Commands, font: Res<GameFont>, t: Res<Translations>) {
+pub fn enter_menu(
+    mut commands: Commands, font: Res<GameFont>, t: Res<Translations>,
+    profile: Res<ProfileState>, settings: Res<crate::player_settings::PlayerSettings>,
+) {
     let f = &font.0;
     let has_save = check_has_progress();
 
@@ -77,6 +81,22 @@ pub fn enter_menu(mut commands: Commands, font: Res<GameFont>, t: Res<Translatio
                     &t.ui_or("new_game", "New Game"));
             }
 
+            // ── Profile selector ──
+            player_profiles::spawn_profile_selector(panel, f, profile.active_slot, &t);
+
+            // ── Seed display ──
+            panel.spawn((
+                Node { margin: UiRect::top(Val::Px(8.0)), ..default() },
+            )).with_child((
+                Text::new(format!(
+                    "{}: {:012X}",
+                    t.ui_or("seed", "Seed"),
+                    settings.campaign_seed
+                )),
+                TextFont { font: f.clone(), font_size: typo::MICRO, ..default() },
+                TextColor(palette::TEXT_DIM),
+            ));
+
             // Bottom spacer (1.5× top for optical center)
             panel.spawn(Node { flex_grow: 1.5, ..default() });
 
@@ -120,11 +140,17 @@ pub fn menu_interaction(
     mut exit: MessageWriter<AppExit>,
     mut settings_req: ResMut<crate::player_settings::SettingsOpenRequest>,
     existing_fade: Query<Entity, With<MenuFadeOverlay>>,
+    mut player_settings: ResMut<crate::player_settings::PlayerSettings>,
 ) {
     if !existing_fade.is_empty() { return; }
     let wants_continue = continue_q.iter().any(|i| *i == Interaction::Pressed);
     let wants_new_game = new_game_q.iter().any(|i| *i == Interaction::Pressed);
-    if wants_new_game { reset_progress(); }
+    if wants_new_game {
+        // Generate new random seed for this new game
+        player_settings.campaign_seed = rand::random::<u64>();
+        crate::player_settings::save_player_settings(&player_settings);
+        reset_progress();
+    }
     if wants_continue || wants_new_game { spawn_fade(&mut commands); }
     if quit_q.iter().any(|i| *i == Interaction::Pressed) { exit.write(AppExit::Success); }
     if settings_q.iter().any(|i| *i == Interaction::Pressed) { settings_req.0 = true; }
@@ -174,6 +200,44 @@ fn spawn_fade(commands: &mut Commands) {
         GlobalZIndex(500),
         crate::types::UiBgFade { target: 1.0, despawn_at_zero: false },
     ));
+}
+
+/// Request to rebuild the main menu (e.g. after profile switch).
+#[derive(Resource, Default)]
+pub struct MenuRebuildRequest(pub bool);
+
+/// Handle profile slot button clicks — switch profiles and request menu rebuild.
+pub fn profile_slot_interaction(
+    slot_q: Query<(&ProfileSlotBtn, &Interaction), Changed<Interaction>>,
+    mut profile: ResMut<ProfileState>,
+    mut rebuild: ResMut<MenuRebuildRequest>,
+) {
+    for (btn, interaction) in slot_q.iter() {
+        if *interaction != Interaction::Pressed { continue; }
+        if btn.0 == profile.active_slot { continue; }
+        let old = profile.active_slot;
+        let new = btn.0;
+        player_profiles::switch_profile(old, new);
+        profile.active_slot = new;
+        rebuild.0 = true;
+        return;
+    }
+}
+
+/// Rebuild the menu when requested (after profile switch).
+pub fn rebuild_menu_on_request(
+    mut rebuild: ResMut<MenuRebuildRequest>,
+    menu_root: Query<Entity, With<MenuRoot>>,
+    mut commands: Commands,
+    font: Res<GameFont>,
+    t: Res<Translations>,
+    profile: Res<ProfileState>,
+    settings: Res<crate::player_settings::PlayerSettings>,
+) {
+    if !rebuild.0 { return; }
+    rebuild.0 = false;
+    for e in menu_root.iter() { commands.entity(e).despawn(); }
+    enter_menu(commands, font, t, profile, settings);
 }
 
 /// Reset all progress: delete .progress.json files and set bot_level to 0.
