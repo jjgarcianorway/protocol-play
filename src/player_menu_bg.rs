@@ -302,16 +302,15 @@ pub fn menu_camera(
         }
     };
 
-    // Ultra-smooth interpolation
+    // Position glides slowly, camera ALWAYS looks directly at the bot
     let settle = (t.time_on_shot / CAM_SETTLE_TIME).min(1.0);
-    let speed = CAM_LERP_SLOW + settle * (CAM_LERP_FAST - CAM_LERP_SLOW);
-    let lerp = (speed * dt).min(0.03);
+    let pos_speed = CAM_LERP_SLOW + settle * (CAM_LERP_FAST - CAM_LERP_SLOW);
+    let pos_lerp = (pos_speed * dt).min(0.04);
 
     for mut tf in cameras.iter_mut() {
-        let pos = tf.translation.lerp(cam_goal, lerp);
-        let cur_look = tf.forward() * 5.0 + tf.translation;
-        let look = cur_look.lerp(look_goal, lerp * 1.1);
-        *tf = Transform::from_translation(pos).looking_at(look, Vec3::Y);
+        let new_pos = tf.translation.lerp(cam_goal, pos_lerp);
+        // Look directly at the bot — no lerp on look target
+        *tf = Transform::from_translation(new_pos).looking_at(look_goal, Vec3::Y);
     }
 }
 

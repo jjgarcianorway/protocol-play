@@ -93,7 +93,7 @@ fn spawn_hint(
         HintOverlay,
         Node {
             position_type: PositionType::Absolute,
-            bottom: Val::Px(90.0),
+            top: Val::Px(20.0),
             width: Val::Percent(100.0),
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
