@@ -275,31 +275,30 @@ pub fn menu_camera(
     // Smooth zoom
     t.zoom += (t.target_zoom - t.zoom) * dt * 0.6;
 
-    // ── Camera position: close to bot, offset right for menu panel ──
-    let right_offset = Vec3::new(-1.8, 0.0, 0.3);
+    // Camera offset: shift camera position to the LEFT so the bot
+    // appears centered in the RIGHT 66% of screen (left 34% = menu panel)
+    let cam_shift = Vec3::new(-1.5, 0.0, 0.0);
+
+    let idx = t.bot_idx.min(n - 1);
+    let target = list[idx].0.translation;
 
     let (cam_goal, look_goal) = match t.shot {
         CamShot::Follow | CamShot::Wide => {
-            let idx = t.bot_idx.min(n - 1);
-            let target = list[idx].0.translation;
             let dir = list[idx].1.direction;
             let (fx, fz) = dir.grid_delta();
-            // Position slightly ahead and to the side of the bot (F1 style)
-            let face = Vec3::new(fx as f32 * 0.4, 0.0, fz as f32 * 0.4);
-            let h = 2.2 * t.zoom;  // close to ground
-            let d = 1.4 * t.zoom;  // close distance
-            (target + Vec3::new(d * 0.6, h, d * 0.8) + right_offset + face,
-             target + Vec3::new(0.0, 0.05, 0.0) + right_offset * 0.2)
+            let face = Vec3::new(fx as f32 * 0.3, 0.0, fz as f32 * 0.3);
+            let h = 2.0 * t.zoom;
+            let d = 1.2 * t.zoom;
+            // Camera position: behind-ish the bot, offset left for panel
+            (target + Vec3::new(d * 0.6, h, d * 0.8) + cam_shift + face,
+             target) // look DIRECTLY at the bot — no offset
         }
         CamShot::Sweep => {
             let a = t.sweep_angle;
-            let r = 2.5 * t.zoom;  // tight orbit
-            let h = 2.8 * t.zoom;
-            // Orbit around the current bot, not the board center
-            let idx = t.bot_idx.min(n - 1);
-            let target = list[idx].0.translation;
-            (target + Vec3::new(a.sin() * r, h, a.cos() * r) + right_offset,
-             target + right_offset * 0.3)
+            let r = 2.0 * t.zoom;
+            let h = 2.5 * t.zoom;
+            (target + Vec3::new(a.sin() * r, h, a.cos() * r) + cam_shift,
+             target) // look DIRECTLY at the bot
         }
     };
 
