@@ -282,23 +282,25 @@ pub fn menu_camera(
     let idx = t.bot_idx.min(n - 1);
     let target = list[idx].0.translation;
 
+    // Drone view: camera floats ABOVE the bot, looking DOWN
+    // Like a helicopter/drone tracking from ~3-4m up
     let (cam_goal, look_goal) = match t.shot {
         CamShot::Follow | CamShot::Wide => {
             let dir = list[idx].1.direction;
             let (fx, fz) = dir.grid_delta();
-            let face = Vec3::new(fx as f32 * 0.3, 0.0, fz as f32 * 0.3);
-            let h = 2.0 * t.zoom;
-            let d = 1.2 * t.zoom;
-            // Camera position: behind-ish the bot, offset left for panel
-            (target + Vec3::new(d * 0.6, h, d * 0.8) + cam_shift + face,
-             target) // look DIRECTLY at the bot — no offset
+            // Slightly behind the bot's direction of travel
+            let behind = Vec3::new(-fx as f32 * 0.3, 0.0, -fz as f32 * 0.3);
+            let height = 3.0 * t.zoom;     // high above
+            let offset = 0.6 * t.zoom;     // slightly off to one side
+            (target + Vec3::new(offset, height, offset * 0.5) + cam_shift + behind,
+             target) // look straight down at the bot
         }
         CamShot::Sweep => {
             let a = t.sweep_angle;
-            let r = 2.0 * t.zoom;
-            let h = 2.5 * t.zoom;
-            (target + Vec3::new(a.sin() * r, h, a.cos() * r) + cam_shift,
-             target) // look DIRECTLY at the bot
+            let r = 1.2 * t.zoom;          // tight circle above the bot
+            let height = 3.5 * t.zoom;
+            (target + Vec3::new(a.sin() * r, height, a.cos() * r) + cam_shift,
+             target)
         }
     };
 
