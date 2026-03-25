@@ -7,7 +7,7 @@ use crate::simulation::SimulationResult;
 use crate::messages::{pick_creative_msg, format_time, format_attempts, format_resets, format_stars, format_solution_count, star_label};
 use crate::i18n::Translations;
 use crate::player_settings::PlayerSettings;
-#[path = "player_progress.rs"] mod player_progress; use player_progress::*;
+#[path = "player_progress.rs"] pub(crate) mod player_progress; use player_progress::*;
 #[path = "player_chapter.rs"] pub mod player_chapter; pub use player_chapter::*;
 #[path = "player_reveal.rs"] pub mod player_reveal;
 

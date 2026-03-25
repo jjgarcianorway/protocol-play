@@ -195,6 +195,23 @@ fn embedded_es_player(m: &mut HashMap<String, String>) {
     m.insert("ui.two_paths".into(), "Dos caminos posibles en este puzle.".into());
     m.insert("ui.n_solutions".into(), "Existen {} soluciones posibles.".into());
     m.insert("ui.anna_name".into(), "ANNA".into());
+    // Pause menu
+    m.insert("ui.paused".into(), "Pausado".into());
+    m.insert("ui.resume".into(), "Reanudar".into());
+    m.insert("ui.main_menu".into(), "Menú Principal".into());
+    // Credits
+    m.insert("credits.thankyou".into(), "Gracias por jugar".into());
+    m.insert("credits.skip".into(), "[ pulsa cualquier tecla ]".into());
+    m.insert("credits.poem.0".into(), "14.892 almas dormidas".into());
+    m.insert("credits.poem.1".into(), "transportadas por una nave".into());
+    m.insert("credits.poem.2".into(), "mantenidas por una IA".into());
+    m.insert("credits.poem.3".into(), "reparadas por una persona".into());
+    m.insert("credits.poem.you".into(), "Tú.".into());
+    // Onboarding hints
+    m.insert("hint.route".into(), "Dirige el bot desde la fuente hasta la meta".into());
+    m.insert("hint.turns".into(), "Coloca giros para cambiar la dirección".into());
+    m.insert("hint.paths".into(), "Prueba diferentes caminos".into());
+    m.insert("hint.inventory".into(), "Arrastra baldosas del inventario al tablero".into());
     // In-game UI labels
     m.insert("ui.completed".into(), "(completado)".into());
     m.insert("ui.in_progress".into(), "(en progreso)".into());

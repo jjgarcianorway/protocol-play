@@ -16,6 +16,9 @@ pub mod anna_comments;
 #[cfg(feature = "player")] mod player_menu_bg;
 #[cfg(feature = "player")] mod player_progress;
 #[cfg(feature = "player")] mod player_settings;
+#[cfg(feature = "player")] mod player_pause;
+#[cfg(feature = "player")] mod player_credits;
+#[cfg(feature = "player")] mod player_onboarding;
 #[cfg(feature = "gathering")] mod gathering;
 #[cfg(feature = "converter")] mod converter;
 #[cfg(feature = "delivery")] mod delivery;
@@ -132,6 +135,7 @@ fn main() {
         app.insert_resource(ps);
         app.insert_resource(player_settings::SettingsOpenRequest::default());
         app.insert_resource(player_settings::SettingsReopenTimer::default());
+        app.insert_resource(player_onboarding::ShownHints::default());
         // Playing setup: triggered when transitioning MainMenu → Playing
         app.add_systems(OnEnter(PlayerPhase::Playing),
             player::setup_player.after(setup_scene).after(setup_ui));
@@ -174,7 +178,7 @@ fn main() {
             update_ghost_and_highlight.after(update_hovered_cell),
             animate_border_fade,
         ).run_if(playing.clone()));
-        app.add_systems(Update, (escape_to_quit, quit_dialog_buttons, simulation::animate_sim_overlay_fade)
+        app.add_systems(Update, (player_pause::handle_pause, player_pause::pause_interactions, simulation::animate_sim_overlay_fade)
             .run_if(playing.clone()));
         // Bot simulation runs in BOTH MainMenu (background) and Playing (gameplay)
         let menu_or_playing = in_state(PlayerPhase::MainMenu).or(in_state(PlayerPhase::Playing));
@@ -261,6 +265,10 @@ fn main() {
             player::speed_hud_interaction,
             player::player_reveal::tick_reveal,
             player::player_reveal::close_reveal,
+            player_credits::tick_credits,
+            player_credits::close_credits,
+            player_onboarding::check_onboarding_hint,
+            player_onboarding::animate_hint,
         ).run_if(playing));
     }
     app.run();

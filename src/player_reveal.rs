@@ -143,7 +143,7 @@ pub fn tick_reveal(
     }
 }
 
-/// Close reveal on any key press (after all lines shown).
+/// Close reveal on any key press (after all lines shown), then show credits.
 pub fn close_reveal(
     mut commands: Commands,
     keys: Res<ButtonInput<KeyCode>>,
@@ -151,6 +151,8 @@ pub fn close_reveal(
     screen: Query<Entity, With<RevealScreen>>,
     lines: Query<&RevealLine>,
     timer: Option<Res<RevealTimer>>,
+    font: Res<crate::types::GameFont>,
+    t: Res<Translations>,
 ) {
     if screen.is_empty() { return; }
     let Some(_timer) = timer else { return };
@@ -162,5 +164,7 @@ pub fn close_reveal(
             commands.entity(e).insert(crate::types::UiBgFade { target: 0.0, despawn_at_zero: true });
         }
         commands.remove_resource::<RevealTimer>();
+        // Spawn credits after reveal closes
+        crate::player_credits::spawn_credits(&mut commands, &font.0, &t);
     }
 }
