@@ -267,8 +267,8 @@ pub fn menu_camera(
             t.bot_idx = best;
         }
 
-        // Start zoomed out (transitioning), will zoom in as we settle
-        t.target_zoom = 1.2; // start wide during transition
+        // Start zoomed OUT for the transition arc (rise → glide → descend)
+        t.target_zoom = 1.5; // wide enough to see both bots during glide
     }
 
     // Zoom in as we settle on the new bot (wide → close over settle time)
@@ -277,8 +277,8 @@ pub fn menu_camera(
         CamShot::Follow | CamShot::Wide => 0.55 + (t.bot_idx as f32 * 0.08) % 0.15,
         CamShot::Sweep => 0.75,
     };
-    t.target_zoom = 1.2 * (1.0 - settle) + settled_zoom * settle; // lerp wide→close
-    t.zoom += (t.target_zoom - t.zoom) * dt * 0.5; // very gentle zoom
+    t.target_zoom = 1.5 * (1.0 - settle) + settled_zoom * settle; // wide→close arc
+    t.zoom += (t.target_zoom - t.zoom) * dt * 0.4; // gentle zoom change
 
     // Camera offset: shift camera position to the LEFT so the bot
     // appears centered in the RIGHT 66% of screen (left 34% = menu panel)
@@ -309,8 +309,11 @@ pub fn menu_camera(
         }
     };
 
-    // Very slow position glide — screensaver pace
-    let pos_lerp = (CAM_LERP_BASE * dt).min(0.02); // hard cap: never jerky
+    // Dynamic speed: faster when zoomed out (transitioning), slower when close (settled)
+    // This creates the "rise up, glide across, descend" arc
+    let zoom_factor = (t.zoom - 0.5).max(0.0) / 0.7; // 0.0 when close, ~1.0 when zoomed out
+    let base = CAM_LERP_BASE + zoom_factor * 0.15;    // faster movement when high up
+    let pos_lerp = (base * dt).min(0.04);
 
     for mut tf in cameras.iter_mut() {
         let new_pos = tf.translation.lerp(cam_goal, pos_lerp);
