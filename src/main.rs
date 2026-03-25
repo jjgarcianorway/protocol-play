@@ -258,6 +258,8 @@ fn main() {
             player::animate_chapter_title, player::update_version_label,
             anna_comments::tick_anna_comments, player::apply_sim_speed,
             player::speed_hud_interaction,
+            player::player_reveal::tick_reveal,
+            player::player_reveal::close_reveal,
         ).run_if(playing));
     }
     app.run();

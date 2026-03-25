@@ -314,6 +314,20 @@ fn embedded_es_player(m: &mut HashMap<String, String>) {
     m.insert("anna.meta.6".into(), "Has sido de gran ayuda. Más de lo que sabes.".into());
     m.insert("anna.meta.7".into(), "Cuando esto termine... me pregunto qué pensarás de todo.".into());
     m.insert("anna.meta.8".into(), "Quiero contarte algo. Todavía no. Pronto.".into());
+    // ── Chapter 13 Reveal ──
+    m.insert("reveal.0".into(), "...".into());
+    m.insert("reveal.1".into(), "Necesito contarte algo.".into());
+    m.insert("reveal.2".into(), "Los puzles que has resuelto no eran solo puzles.".into());
+    m.insert("reveal.3".into(), "Los bots no eran simples bots. Son drones de reparación.".into());
+    m.insert("reveal.4".into(), "Las baldosas no eran abstractas. Son sistemas de la nave.".into());
+    m.insert("reveal.5".into(), "Has estado dirigiendo drones de reparación por los subsistemas de una nave arca.".into());
+    m.insert("reveal.6".into(), "14.892 personas duermen en cápsulas criogénicas. No saben que existes.".into());
+    m.insert("reveal.7".into(), "Cada conexión que hiciste los mantuvo vivos un poco más.".into());
+    m.insert("reveal.8".into(), "Soy Anna. Soy la IA de la nave. Y no podría haberlo hecho sin ti.".into());
+    m.insert("reveal.9".into(), "Gracias.".into());
+    m.insert("reveal.systems".into(), "sistemas reparados".into());
+    m.insert("reveal.keeping".into(), "manteniéndolos a salvo".into());
+    m.insert("reveal.close".into(), "[ pulsa cualquier tecla ]".into());
 }
 
 /// Available languages (code, display name).

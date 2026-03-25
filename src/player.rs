@@ -9,6 +9,7 @@ use crate::i18n::Translations;
 use crate::player_settings::PlayerSettings;
 #[path = "player_progress.rs"] mod player_progress; use player_progress::*;
 #[path = "player_chapter.rs"] pub mod player_chapter; pub use player_chapter::*;
+#[path = "player_reveal.rs"] pub mod player_reveal;
 
 #[derive(Component)] pub struct SpeedHudBtn(pub f32);
 #[derive(Component)] pub struct SpeedHudContainer;
@@ -92,7 +93,11 @@ pub fn setup_player(
         &font.0, &mut play_mode, &player_levels, &p, &mut stats, true, &mut selected_tool, &t);
     set_chapter(start_idx, &mut commands, &font.0, &mut ch_state, &t);
     clear_color.0 = ch_state.bg_target;
-    if first_unsolved(&progress.data).is_none() { spawn_congrats(&mut commands, &font.0, &progress, &t); }
+    if first_unsolved(&progress.data).is_none() {
+        let tt = progress.data.iter().map(|p| p.stats.editing_time).sum::<f32>() as u64;
+        let ts: u32 = progress.data.iter().map(|p| p.stars as u32).sum();
+        player_reveal::spawn_reveal(&mut commands, &font.0, &t, progress.data.len(), ts, tt);
+    }
     commands.insert_resource(player_levels); commands.insert_resource(progress);
     commands.insert_resource(stats);
 }
@@ -248,29 +253,7 @@ fn spawn_player_buttons(commands: &mut Commands, f: &Handle<Font>, levels: &Play
     });
 }
 
-fn spawn_congrats(commands: &mut Commands, f: &Handle<Font>, progress: &PlayerProgress, t: &Translations) {
-    let (tt, ta, tr) = progress.data.iter().fold((0.0f32, 0u32, 0u32), |(tt, a, r), p| (tt + p.stats.editing_time, a + p.stats.play_count, r + p.stats.reset_count));
-    let total_stars: u32 = progress.data.iter().map(|p| p.stars as u32).sum();
-    let max_stars = (progress.data.len() * 3) as u32;
-    let (secs, tc, bf) = (tt as u64, TextColor(Color::WHITE), gf(DIALOG_BODY_FONT, f));
-    let (ct, cm) = pick_congrats(t);
-    commands.spawn((Node { position_type: PositionType::Absolute, width: Val::Percent(100.0), height: Val::Percent(100.0),
-        justify_content: JustifyContent::Center, align_items: AlignItems::Center, ..default() },
-        BackgroundColor(rgba(SIM_OVERLAY_BG)), GlobalZIndex(150), CongratsScreen, Interaction::default(),
-    )).with_children(|parent| {
-        parent.spawn((Node { flex_direction: FlexDirection::Column, padding: UiRect::all(Val::Px(SIM_CARD_PAD)),
-            align_items: AlignItems::Center, row_gap: Val::Px(SIM_CARD_GAP), ..default() },
-            BackgroundColor(rgb(SIM_CARD_BG)),
-        )).with_children(|card| {
-            card.spawn((Text::new(ct), gf(SIM_MSG_FONT, f), TextColor(rgb(SIM_SUCCESS_COLOR))));
-            card.spawn((Text::new(cm), gf(DIALOG_TITLE_FONT, f), tc));
-            card.spawn((Text::new(format!("★  {total_stars} / {max_stars}")), gf(DIALOG_TITLE_FONT, f), TextColor(Color::srgb(1.0, 0.85, 0.2))));
-            card.spawn((Text::new(format!("{} {}:{:02}", t.ui_or("total_time", "Total time:"), secs / 60, secs % 60)), bf.clone(), tc));
-            card.spawn((Text::new(format!("{} {ta}", t.ui_or("total_attempts", "Total attempts:"))), bf.clone(), tc));
-            if tr > 0 { card.spawn((Text::new(format!("{} {tr}", t.ui_or("total_resets", "Total resets:"))), bf, tc)); }
-        });
-    });
-}
+// spawn_congrats replaced by player_reveal::spawn_reveal
 
 pub fn player_nav_interaction(
     mut commands: Commands, mut levels: ResMut<PlayerLevels>,
@@ -393,7 +376,11 @@ pub fn handle_level_complete(
     let p = progress.data[next].clone();
     load_level(&mut commands, &assets, &mut board_size, &mut test_inv, &icons, &font.0, &mut play_mode, &levels, &p, &mut stats, false, &mut selected_tool, &t);
     set_chapter(next, &mut commands, &font.0, &mut ch_state, &t);
-    if first_unsolved(&progress.data).is_none() { spawn_congrats(&mut commands, &font.0, &progress, &t); }
+    if first_unsolved(&progress.data).is_none() {
+        let tt = progress.data.iter().map(|p| p.stats.editing_time).sum::<f32>() as u64;
+        let ts: u32 = progress.data.iter().map(|p| p.stars as u32).sum();
+        player_reveal::spawn_reveal(&mut commands, &font.0, &t, progress.data.len(), ts, tt);
+    }
 }
 
 pub fn cleanup_stale_inventory(
