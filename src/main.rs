@@ -212,12 +212,12 @@ fn main() {
         let menu_or_playing = in_state(PlayerPhase::MainMenu).or(in_state(PlayerPhase::Playing));
         app.add_systems(Update, (
             move_bots, paint_bots.after(move_bots), toggle_doors.after(move_bots),
+            update_bot_formation.after(move_bots),
+            apply_bot_formation.after(update_bot_formation), animate_merge_flashes,
         ).run_if(menu_or_playing));
         // These only run during gameplay
         app.add_systems(Update, (
             overlay_button_interaction, play_stop_interaction.after(overlay_button_interaction),
-            update_bot_formation.after(move_bots),
-            apply_bot_formation.after(update_bot_formation), animate_merge_flashes,
             check_simulation_result.after(move_bots),
             spawn_simulation_overlay.after(check_simulation_result),
             adapt_camera, sync_ui_play_mode,
