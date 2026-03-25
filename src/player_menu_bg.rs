@@ -33,13 +33,12 @@ pub struct MenuCamTracker {
 
 const MENU_BOT_SPEED: f32 = 0.35;
 const MENU_BOARD_SIZE: u32 = 11;
-const CELEBRATION_TIME: f32 = 3.0;
-const SHRINK_TIME: f32 = 1.0;      // seconds to shrink before despawn
-const CAM_SWITCH_MIN: f32 = 12.0;
-const CAM_SWITCH_MAX: f32 = 25.0;
-const CAM_LERP_SLOW: f32 = 0.12;
-const CAM_LERP_FAST: f32 = 0.25;
-const CAM_SETTLE_TIME: f32 = 4.0;
+const CELEBRATION_TIME: f32 = 5.0;  // enjoy the celebration
+const SHRINK_TIME: f32 = 2.0;      // very slow fade-out
+const CAM_SWITCH_MIN: f32 = 20.0;  // follow the adventure
+const CAM_SWITCH_MAX: f32 = 40.0;  // stay a long time
+const CAM_LERP_BASE: f32 = 0.08;   // very slow glide
+const CAM_SETTLE_TIME: f32 = 8.0;  // long transition between bots
 
 /// Generate a visually rich level using the actual game generator.
 fn generate_menu_board() -> (u32, Vec<(u32, u32, TileKind)>) {
@@ -264,16 +263,18 @@ pub fn menu_camera(
             t.bot_idx = best;
         }
 
-        // Close zoom with subtle variation — F1 camera style
-        t.target_zoom = match t.shot {
-            CamShot::Follow => 0.55 + (t.bot_idx as f32 * 0.1) % 0.2, // 0.55-0.75 (very close)
-            CamShot::Sweep => 0.9, // slightly further for sweep
-            CamShot::Wide => 0.75, // unused but just in case
-        };
+        // Start zoomed out (transitioning), will zoom in as we settle
+        t.target_zoom = 1.2; // start wide during transition
     }
 
-    // Smooth zoom
-    t.zoom += (t.target_zoom - t.zoom) * dt * 0.6;
+    // Zoom in as we settle on the new bot (wide → close over settle time)
+    let settle = (t.time_on_shot / CAM_SETTLE_TIME).clamp(0.0, 1.0);
+    let settled_zoom = match t.shot {
+        CamShot::Follow | CamShot::Wide => 0.55 + (t.bot_idx as f32 * 0.08) % 0.15,
+        CamShot::Sweep => 0.75,
+    };
+    t.target_zoom = 1.2 * (1.0 - settle) + settled_zoom * settle; // lerp wide→close
+    t.zoom += (t.target_zoom - t.zoom) * dt * 0.5; // very gentle zoom
 
     // Camera offset: shift camera position to the LEFT so the bot
     // appears centered in the RIGHT 66% of screen (left 34% = menu panel)
@@ -304,14 +305,11 @@ pub fn menu_camera(
         }
     };
 
-    // Position glides slowly, camera ALWAYS looks directly at the bot
-    let settle = (t.time_on_shot / CAM_SETTLE_TIME).min(1.0);
-    let pos_speed = CAM_LERP_SLOW + settle * (CAM_LERP_FAST - CAM_LERP_SLOW);
-    let pos_lerp = (pos_speed * dt).min(0.04);
+    // Very slow position glide — screensaver pace
+    let pos_lerp = (CAM_LERP_BASE * dt).min(0.02); // hard cap: never jerky
 
     for mut tf in cameras.iter_mut() {
         let new_pos = tf.translation.lerp(cam_goal, pos_lerp);
-        // Look directly at the bot — no lerp on look target
         *tf = Transform::from_translation(new_pos).looking_at(look_goal, Vec3::Y);
     }
 }
