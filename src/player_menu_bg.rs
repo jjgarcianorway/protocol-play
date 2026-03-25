@@ -31,14 +31,15 @@ pub struct MenuCamTracker {
     pub target_zoom: f32,    // target zoom (lerps toward this)
 }
 
-const MENU_BOT_SPEED: f32 = 0.35; // very slow, meditative
+const MENU_BOT_SPEED: f32 = 0.35;
 const MENU_BOARD_SIZE: u32 = 11;
-const CELEBRATION_TIME: f32 = 4.0; // seconds of spinning at goal
-const CAM_SWITCH_MIN: f32 = 15.0;  // minimum seconds before switching bot
-const CAM_SWITCH_MAX: f32 = 30.0;  // maximum seconds on one bot
-const CAM_LERP_SLOW: f32 = 0.15;   // lerp speed during transitions
-const CAM_LERP_FAST: f32 = 0.30;   // lerp speed when settled
-const CAM_SETTLE_TIME: f32 = 5.0;  // seconds to reach full speed after switch
+const CELEBRATION_TIME: f32 = 3.0;
+const SHRINK_TIME: f32 = 1.0;      // seconds to shrink before despawn
+const CAM_SWITCH_MIN: f32 = 12.0;
+const CAM_SWITCH_MAX: f32 = 25.0;
+const CAM_LERP_SLOW: f32 = 0.12;
+const CAM_LERP_FAST: f32 = 0.25;
+const CAM_SETTLE_TIME: f32 = 4.0;
 
 /// Generate a visually rich level using the actual game generator.
 fn generate_menu_board() -> (u32, Vec<(u32, u32, TileKind)>) {
@@ -46,29 +47,39 @@ fn generate_menu_board() -> (u32, Vec<(u32, u32, TileKind)>) {
     let config = GenConfig {
         board_size: size,
         num_bots: 4,
-        hole_percent: 8,
-        hole_placement: HolePlacement::Edges,
-        difficulty: 60,
-        weights: [8, 5, 8, 5, 6, 4, 6, 4, 3, 3, 3, 3], // all tile types enabled
+        hole_percent: 12,
+        hole_placement: HolePlacement::Both,
+        difficulty: 80, // higher = longer, more complex paths
+        weights: [10, 6, 10, 6, 8, 5, 8, 5, 4, 4, 4, 4], // heavy on turns+arrows
         unique_solution: false,
         inventory_target: 0,
-        door_chains: 1,
+        door_chains: 2,
         path_sharing: true,
         confusion_tiles: false,
-        chapter_idx: 4, // mid-game palette for color variety
+        chapter_idx: 6, // later chapter = more varied colors
         required_tile: None,
     };
 
-    // Try multiple seeds for a good-looking level
-    for seed in 0..100u64 {
-        let mut rng = rand::rngs::StdRng::seed_from_u64(0xCAFE_BABE + seed);
-        if let Some((tiles, _)) = generate_attempt(&config, &mut rng) {
-            let level: Vec<(u32, u32, TileKind)> = tiles.iter()
-                .map(|&(c, r, k, _)| (c, r, k)).collect();
-            return (size, level);
+    // Try seeds, pick the one with the most mechanic tiles (most interesting)
+    let mut best: Option<(Vec<(u32, u32, TileKind, bool)>, u32)> = None;
+    for seed in 0..80u64 {
+        let mut rng = rand::rngs::StdRng::seed_from_u64(0xDEAD_CAFE + seed);
+        if let Some((tiles, diff)) = generate_attempt(&config, &mut rng) {
+            // Score by number of non-floor mechanic tiles (more = more visually interesting)
+            let mechanic_count = tiles.iter().filter(|(_, _, k, _)| !matches!(k,
+                TileKind::Floor | TileKind::Empty | TileKind::Source(_, _) | TileKind::Goal(_)
+            )).count();
+            let score = mechanic_count as u32 * 10 + diff;
+            if best.as_ref().is_none_or(|(_, s)| score > *s) {
+                best = Some((tiles, score));
+            }
         }
     }
-    // Fallback: floor grid (should never happen)
+    if let Some((tiles, _)) = best {
+        let level: Vec<_> = tiles.iter().map(|&(c, r, k, _)| (c, r, k)).collect();
+        return (size, level);
+    }
+    // Fallback
     let mut tiles = Vec::new();
     for r in 0..size { for c in 0..size { tiles.push((c, r, TileKind::Floor)); } }
     (size, tiles)
@@ -99,15 +110,31 @@ pub fn setup_menu_background(
     });
 }
 
+/// Spawn bot at full size (for initial spawn).
 fn spawn_bot(commands: &mut Commands, assets: &GameAssets,
     col: u32, row: u32, size: u32, ci: usize, dir: Direction, si: usize,
+) {
+    spawn_bot_inner(commands, assets, col, row, size, ci, dir, si, Vec3::ONE);
+}
+
+/// Spawn bot at zero scale → grows smoothly via animate_scale.
+fn spawn_bot_smooth(commands: &mut Commands, assets: &GameAssets,
+    col: u32, row: u32, size: u32, ci: usize, dir: Direction, si: usize,
+) {
+    spawn_bot_inner(commands, assets, col, row, size, ci, dir, si, Vec3::ZERO);
+}
+
+fn spawn_bot_inner(commands: &mut Commands, assets: &GameAssets,
+    col: u32, row: u32, size: u32, ci: usize, dir: Direction, si: usize,
+    initial_scale: Vec3,
 ) {
     let pos = tile_world_pos(col, row, size, &TileKind::Source(ci, dir));
     let by = FLOOR_TOP_Y + BOT_SIZE / 2.0;
     commands.spawn((
         Mesh3d(assets.bot_mesh.clone()), MeshMaterial3d(assets.bot_materials[ci].clone()),
         Transform::from_translation(Vec3::new(pos.x, by, pos.z))
-            .with_rotation(Quat::from_rotation_y(dir.rotation())),
+            .with_rotation(Quat::from_rotation_y(dir.rotation()))
+            .with_scale(initial_scale),
         TargetScale(Vec3::ONE), Bot, BotFormation::default(),
         BotMovement { direction: dir, color_index: ci, col: col as i32, row: row as i32,
             progress: 0.5, speed: MENU_BOT_SPEED, phase: BotPhase::Cruising,
@@ -153,19 +180,25 @@ pub fn menu_sim_loop(
             .find(|(c, _)| c.col == mov.col as u32 && c.row == mov.row as u32)
             .is_none_or(|(_, k)| matches!(*k, TileKind::Empty));
 
-        // Bot reached goal — celebrate then quietly respawn
+        // Bot reached goal — start celebration timer
         if matches!(mov.phase, BotPhase::Spinning) && cel_q.get(entity).is_err() {
             commands.entity(entity).insert(MenuCelebrationTimer(CELEBRATION_TIME));
         }
-        let celebration_done = cel_q.get(entity).is_ok_and(|t| t.0 <= 0.0);
 
+        // When celebration nearly done → start shrinking
+        let should_shrink = cel_q.get(entity).is_ok_and(|t| t.0 <= SHRINK_TIME && t.0 > 0.0);
+        if should_shrink {
+            commands.entity(entity).insert(TargetScale(Vec3::ZERO));
+        }
+
+        // When fully shrunk or fell off → despawn and respawn
+        let celebration_done = cel_q.get(entity).is_ok_and(|t| t.0 <= 0.0);
         if off || on_empty || celebration_done {
             commands.entity(entity).despawn();
-            // Respawn at source — bot starts small and grows via TargetScale
             for (coord, kind) in tiles.iter() {
                 if let TileKind::Source(ci, dir) = *kind {
                     if ci == mov.color_index {
-                        spawn_bot(&mut commands, &assets, coord.col, coord.row,
+                        spawn_bot_smooth(&mut commands, &assets, coord.col, coord.row,
                             board_size.0, ci, dir, mov.spawn_index);
                         break;
                     }
@@ -214,15 +247,14 @@ pub fn menu_camera(
         t.time_on_shot = 0.0;
         t.dir_changes = 0;
 
-        // Pick next shot type (cycle: Follow → Follow → Sweep → Follow → Wide → ...)
-        let shot_cycle = (time.elapsed_secs() / 15.0) as u32 % 5;
+        // Mostly close follow shots, occasional slow sweep — never zoomed out
+        let shot_cycle = (time.elapsed_secs() / 20.0) as u32 % 7;
         t.shot = match shot_cycle {
-            3 => CamShot::Sweep,
-            4 => CamShot::Wide,
+            5 => CamShot::Sweep, // 1 in 7 is a sweep
             _ => CamShot::Follow,
         };
 
-        // For Follow shots: pick the most interesting non-ending bot
+        // Pick a non-ending bot
         if t.shot == CamShot::Follow {
             let mut best = t.bot_idx;
             for i in 0..n {
@@ -232,45 +264,42 @@ pub fn menu_camera(
             t.bot_idx = best;
         }
 
-        // Vary zoom per shot
+        // Close zoom with subtle variation — F1 camera style
         t.target_zoom = match t.shot {
-            CamShot::Follow => 0.8 + (t.bot_idx as f32 * 0.15) % 0.4, // 0.8-1.2
-            CamShot::Wide => 1.8,
-            CamShot::Sweep => 1.4,
+            CamShot::Follow => 0.55 + (t.bot_idx as f32 * 0.1) % 0.2, // 0.55-0.75 (very close)
+            CamShot::Sweep => 0.9, // slightly further for sweep
+            CamShot::Wide => 0.75, // unused but just in case
         };
     }
 
-    // Smooth zoom interpolation
-    t.zoom += (t.target_zoom - t.zoom) * dt * 0.8;
+    // Smooth zoom
+    t.zoom += (t.target_zoom - t.zoom) * dt * 0.6;
 
-    // ── Compute camera goal based on shot type ──
-    let right_offset = Vec3::new(-2.5, 0.0, 0.5);
-    let half = board_size.0 as f32 / 2.0;
-    let board_center = Vec3::new(-half + 0.5, 0.0, -half + 0.5) * 0.0; // board is centered at origin
+    // ── Camera position: close to bot, offset right for menu panel ──
+    let right_offset = Vec3::new(-1.8, 0.0, 0.3);
 
     let (cam_goal, look_goal) = match t.shot {
-        CamShot::Follow => {
+        CamShot::Follow | CamShot::Wide => {
             let idx = t.bot_idx.min(n - 1);
             let target = list[idx].0.translation;
             let dir = list[idx].1.direction;
             let (fx, fz) = dir.grid_delta();
-            let face = Vec3::new(fx as f32 * 0.6, 0.0, fz as f32 * 0.6);
-            let h = 3.5 * t.zoom;
-            let d = 2.0 * t.zoom;
-            (target + Vec3::new(d * 0.7, h, d * 0.7) + right_offset + face,
-             target + Vec3::new(0.0, 0.1, 0.0) + right_offset * 0.3)
-        }
-        CamShot::Wide => {
-            let h = 8.0 * t.zoom;
-            (board_center + Vec3::new(0.0, h, 3.0) + right_offset,
-             board_center + right_offset * 0.5)
+            // Position slightly ahead and to the side of the bot (F1 style)
+            let face = Vec3::new(fx as f32 * 0.4, 0.0, fz as f32 * 0.4);
+            let h = 2.2 * t.zoom;  // close to ground
+            let d = 1.4 * t.zoom;  // close distance
+            (target + Vec3::new(d * 0.6, h, d * 0.8) + right_offset + face,
+             target + Vec3::new(0.0, 0.05, 0.0) + right_offset * 0.2)
         }
         CamShot::Sweep => {
             let a = t.sweep_angle;
-            let r = 5.0 * t.zoom;
-            let h = 5.5 * t.zoom;
-            (board_center + Vec3::new(a.sin() * r, h, a.cos() * r) + right_offset,
-             board_center + right_offset * 0.4)
+            let r = 2.5 * t.zoom;  // tight orbit
+            let h = 2.8 * t.zoom;
+            // Orbit around the current bot, not the board center
+            let idx = t.bot_idx.min(n - 1);
+            let target = list[idx].0.translation;
+            (target + Vec3::new(a.sin() * r, h, a.cos() * r) + right_offset,
+             target + right_offset * 0.3)
         }
     };
 
