@@ -208,7 +208,7 @@ fn spawn_player_buttons(commands: &mut Commands, f: &Handle<Font>, levels: &Play
 ) {
     let (tf, tc) = (gf(LABEL_FONT, f), TextColor(Color::WHITE));
     let mut btn = text_btn_node(); btn.border_radius = BorderRadius::all(Val::Px(UI_CORNER_RADIUS));
-    let nav = Node { padding: UiRect::axes(Val::Px(TEXT_BTN_PAD.0), Val::Px(TEXT_BTN_PAD.1)), border_radius: BorderRadius::all(Val::Px(UI_CORNER_RADIUS)), ..default() };
+    let _nav = Node { padding: UiRect::axes(Val::Px(TEXT_BTN_PAD.0), Val::Px(TEXT_BTN_PAD.1)), border_radius: BorderRadius::all(Val::Px(UI_CORNER_RADIUS)), ..default() };
     let level = &levels.levels[levels.current];
     let stars = star_label(progress.stars);
     let suffix = if progress.completed {
@@ -218,23 +218,33 @@ fn spawn_player_buttons(commands: &mut Commands, f: &Handle<Font>, levels: &Play
     } else {
         String::new()
     };
-    let label = format!("{}{suffix} ({}/{})", level.name, levels.current + 1, levels.levels.len());
+    // Level name displayed without index/total — suffix shown separately
     let start_top = if animate { -50.0 } else { TOP_SLIDE_SHOW };
     let mut ec = commands.spawn((Node { position_type: PositionType::Absolute, left: Val::Px(10.0), top: Val::Px(start_top),
         flex_direction: FlexDirection::Row, column_gap: Val::Px(4.0), align_items: AlignItems::Center, ..default() },
         TestTopButtons));
     if animate { ec.insert(UiTopAnim { target: TOP_SLIDE_SHOW, despawn_at_target: false }); }
     ec.with_children(|p| {
-        if levels.levels.len() > 1 {
-            p.spawn((Button, PrevLevelButton, nav.clone(), BackgroundColor(btn_bg())))
-                .with_child((Text::new("<"), gf(NAV_ARROW_FONT, f), tc));
-        }
-        p.spawn(Node { min_width: Val::Px(LEVEL_NAME_MIN_W), justify_content: JustifyContent::Center, ..default() })
-            .with_child((Text::new(&label), gf(LEVEL_NAME_FONT, f), TextColor(Color::srgba(1.0, 1.0, 1.0, 0.5)), LevelNameText));
-        if levels.levels.len() > 1 {
-            p.spawn((Button, NextLevelButton, nav, BackgroundColor(btn_bg())))
-                .with_child((Text::new(">"), gf(NAV_ARROW_FONT, f), tc));
-        }
+        p.spawn(Node { min_width: Val::Px(LEVEL_NAME_MIN_W), justify_content: JustifyContent::Center,
+            flex_direction: FlexDirection::Column, align_items: AlignItems::Center, row_gap: Val::Px(2.0), ..default() })
+            .with_children(|col| {
+                // Chapter info (subtle, smaller text above the name)
+                let ch_idx = player_chapter::chapter_index(levels.current);
+                let ch_prefix = t.ui_or("chapter_prefix", "Chapter");
+                let ch_name_key = player_chapter::CHAPTER_KEYS[ch_idx.min(12)];
+                let ch_name_fallback = crate::constants::CHAPTER_NAMES[ch_idx.min(12)];
+                let ch_name = t.ui_or(ch_name_key, ch_name_fallback);
+                col.spawn((Text::new(format!("{} {} — {}", ch_prefix, ch_idx + 1, ch_name)),
+                    gf(12.0, f), TextColor(Color::srgba(1.0, 1.0, 1.0, 0.35))));
+                // Level name only (no "1/149")
+                col.spawn((Text::new(&level.name), gf(crate::ui_theme::typo::BODY, f),
+                    TextColor(crate::ui_theme::palette::TEXT_MAIN), LevelNameText));
+                // Status suffix on its own line if present
+                if !suffix.is_empty() {
+                    col.spawn((Text::new(suffix.trim()), gf(12.0, f),
+                        TextColor(Color::srgba(1.0, 1.0, 1.0, 0.4))));
+                }
+            });
         if progress.completed {
             let s = &progress.stats; let secs = s.editing_time as u64;
             let att_lbl = t.ui_or("attempts_short", "attempts");

@@ -31,6 +31,7 @@ pub fn enter_menu(
     mut commands: Commands, font: Res<GameFont>, t: Res<Translations>,
     profile: Res<ProfileState>, settings: Res<crate::player_settings::PlayerSettings>,
 ) {
+    bevy::log::info!("Menu language: {}", t.language);
     let f = &font.0;
     let has_save = check_has_progress();
 

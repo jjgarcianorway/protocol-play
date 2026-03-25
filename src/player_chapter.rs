@@ -6,7 +6,7 @@ use crate::constants::*;
 use crate::ui_helpers::gf;
 use crate::i18n::Translations;
 
-const CHAPTER_KEYS: &[&str] = &[
+pub const CHAPTER_KEYS: &[&str] = &[
     "ch_turns", "ch_turn_tiles", "ch_arrows", "ch_arrow_tiles",
     "ch_teleports", "ch_teleport_tiles", "ch_bounce", "ch_bounce_tiles",
     "ch_painters", "ch_doors_switches", "ch_color_switches", "ch_color_switch_tiles",

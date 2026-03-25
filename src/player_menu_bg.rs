@@ -34,11 +34,11 @@ pub struct MenuCamTracker {
 const MENU_BOT_SPEED: f32 = 0.35; // very slow, meditative
 const MENU_BOARD_SIZE: u32 = 11;
 const CELEBRATION_TIME: f32 = 4.0; // seconds of spinning at goal
-const CAM_SWITCH_MIN: f32 = 10.0;  // minimum seconds before switching bot
-const CAM_SWITCH_MAX: f32 = 20.0;  // maximum seconds on one bot
-const CAM_LERP_SLOW: f32 = 0.25;   // lerp speed during transitions
-const CAM_LERP_FAST: f32 = 0.50;   // lerp speed when settled
-const CAM_SETTLE_TIME: f32 = 3.0;  // seconds to reach full speed after switch
+const CAM_SWITCH_MIN: f32 = 15.0;  // minimum seconds before switching bot
+const CAM_SWITCH_MAX: f32 = 30.0;  // maximum seconds on one bot
+const CAM_LERP_SLOW: f32 = 0.15;   // lerp speed during transitions
+const CAM_LERP_FAST: f32 = 0.30;   // lerp speed when settled
+const CAM_SETTLE_TIME: f32 = 5.0;  // seconds to reach full speed after switch
 
 /// Generate a visually rich level using the actual game generator.
 fn generate_menu_board() -> (u32, Vec<(u32, u32, TileKind)>) {
@@ -277,7 +277,7 @@ pub fn menu_camera(
     // Ultra-smooth interpolation
     let settle = (t.time_on_shot / CAM_SETTLE_TIME).min(1.0);
     let speed = CAM_LERP_SLOW + settle * (CAM_LERP_FAST - CAM_LERP_SLOW);
-    let lerp = (speed * dt).min(0.05);
+    let lerp = (speed * dt).min(0.03);
 
     for mut tf in cameras.iter_mut() {
         let pos = tf.translation.lerp(cam_goal, lerp);
