@@ -153,7 +153,7 @@ pub fn close_reveal(
     timer: Option<Res<RevealTimer>>,
 ) {
     if screen.is_empty() { return; }
-    let Some(timer) = timer else { return };
+    let Some(_timer) = timer else { return };
     // Only close after all lines are shown
     let all_shown = lines.iter().all(|l| l.shown);
     if !all_shown { return; }

@@ -38,7 +38,7 @@ fn main() {
         .unwrap_or_else(|| "campaign_levels".into());
     let dir = std::path::PathBuf::from(&dir_arg);
     let max_solutions: u32 = 10; // cap at 10 — if we hit this, we know it's "many"
-    let fast_only = std::env::args().any(|a| a == "--fast");
+    let _fast_only = std::env::args().any(|a| a == "--fast");
 
     let mut files: Vec<_> = std::fs::read_dir(&dir)
         .unwrap_or_else(|_| panic!("Directory not found: {}", dir.display()))

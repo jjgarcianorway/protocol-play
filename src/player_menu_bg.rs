@@ -82,7 +82,7 @@ pub fn setup_menu_background(
     board_size.0 = size;
 
     // Spawn all cells
-    let present: std::collections::HashSet<(u32, u32)> =
+    let _present: std::collections::HashSet<(u32, u32)> =
         tiles.iter().map(|&(c, r, _)| (c, r)).collect();
     for r in 0..size { for c in 0..size {
         let kind = tiles.iter().find(|&&(tc, tr, _)| tc == c && tr == r)

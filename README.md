@@ -1,4 +1,4 @@
-# protocol play: repairing
+# protocol play: puzzle
 
 > *"The beauty isn't in perfection. It's in continuing after the mistake."*
 
@@ -10,7 +10,7 @@ A tile-based puzzle game where you guide colored bots from source to goal by pla
 
 ## Status
 
-**v0.57.0** — Beta
+**v0.58.0** — Beta
 
 - 149 campaign levels across 13 chapters
 - 14 tile types (turns, arrows, teleports, bouncers, painters, color switches, doors)
@@ -33,19 +33,19 @@ Pre-built binaries for **Linux** (and eventually Windows/macOS):
 
 ### Linux
 ```sh
-tar xzf protocol-play-repairing-linux.tar.gz
-cd protocol-play-repairing-linux
-./protocol-play-repairing
+tar xzf protocol-play-puzzle-linux.tar.gz
+cd protocol-play-puzzle-linux
+./protocol-play-puzzle
 ```
 
 ### Windows
-Extract the zip, double-click `protocol-play-repairing.exe`.
+Extract the zip, double-click `protocol-play-puzzle.exe`.
 
 ### macOS
 ```sh
-cd ~/Downloads/protocol-play-repairing-macos
-xattr -cr . && chmod +x protocol-play-repairing
-./protocol-play-repairing
+cd ~/Downloads/protocol-play-puzzle-macos
+xattr -cr . && chmod +x protocol-play-puzzle
+./protocol-play-puzzle
 ```
 
 ## Building from Source
@@ -55,7 +55,7 @@ Requires [Rust](https://www.rust-lang.org/tools/install).
 ```sh
 ./build-all.sh
 cd target/release
-./protocol-play-repairing
+./protocol-play-puzzle
 ```
 
 ## The 13 Chapters

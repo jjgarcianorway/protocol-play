@@ -166,12 +166,13 @@ fn main() {
         // Systems needed in ALL states (menu + gameplay)
         app.add_systems(Update, animate_ui_slides);
         app.add_systems(Update, animate_scale.after(move_bots)); // teleports need scale animation
+        app.add_systems(Update, cleanup_despawned.after(animate_scale)); // despawn at zero scale (teleports in menu + gameplay)
         // Gameplay-only systems
         let playing = in_state(PlayerPhase::Playing);
         app.add_systems(Update, (
             animate_node_width, update_hovered_cell,
             update_ghost_and_highlight.after(update_hovered_cell),
-            animate_border_fade, cleanup_despawned.after(animate_scale),
+            animate_border_fade,
         ).run_if(playing.clone()));
         app.add_systems(Update, (escape_to_quit, quit_dialog_buttons, simulation::animate_sim_overlay_fade)
             .run_if(playing.clone()));

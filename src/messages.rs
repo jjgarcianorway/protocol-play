@@ -45,6 +45,7 @@ pub fn pick_creative_msg(t: &Translations) -> String {
 }
 
 #[cfg(feature = "player")]
+#[allow(dead_code)]
 pub fn pick_congrats(t: &Translations) -> (String, String) {
     const PAIRS: &[(&str, &str)] = &[
         ("Congratulations!", "All levels completed!"),
