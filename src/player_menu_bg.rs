@@ -220,27 +220,31 @@ pub fn menu_camera(
     if n == 0 { return; }
     let dt = time.delta_secs();
     t.time_on_shot += dt;
-    t.sweep_angle += dt * 0.08; // slow sweep rotation
+    t.sweep_angle += dt * 0.025; // very slow sweep — no dizziness
 
     // Track current bot's activity
     if let Some((_, mov)) = list.get(t.bot_idx) {
         if mov.direction != t.last_dir { t.dir_changes += 1; t.last_dir = mov.direction; }
     }
 
+    // Never target a bot that's ending, teleporting, or disappearing
+    let bot_is_ending = |idx: usize| -> bool {
+        list.get(idx).is_some_and(|(_, m)| matches!(m.phase,
+            BotPhase::Spinning | BotPhase::Falling(_) | BotPhase::FallingPause(_)
+            | BotPhase::TeleportShrink { .. } | BotPhase::TeleportGrow
+            | BotPhase::Crushing(_)))
+    };
+
     // ── Director logic: when to cut ──
     let interest = (t.dir_changes as f32 * 1.0).min(6.0);
     let min_time = match t.shot {
         CamShot::Follow => CAM_SWITCH_MIN + interest,
         CamShot::Wide => 8.0,
-        CamShot::Sweep => 12.0,
+        CamShot::Sweep => 15.0,
     };
-    let should_cut = t.time_on_shot > min_time.min(CAM_SWITCH_MAX);
-
-    // Don't cut to a bot that's celebrating (about to disappear)
-    let bot_is_ending = |idx: usize| -> bool {
-        list.get(idx).is_some_and(|(_, m)| matches!(m.phase,
-            BotPhase::Spinning | BotPhase::Falling(_) | BotPhase::FallingPause(_)))
-    };
+    let current_ending = bot_is_ending(t.bot_idx);
+    let should_cut = t.time_on_shot > min_time.min(CAM_SWITCH_MAX)
+        || (current_ending && t.time_on_shot > 2.0);
 
     if should_cut && n > 0 {
         t.time_on_shot = 0.0;
