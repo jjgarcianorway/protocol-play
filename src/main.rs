@@ -16,6 +16,7 @@ pub mod anna_comments;
 #[cfg(feature = "player")] mod player_menu_bg;
 #[cfg(feature = "player")] mod player_progress;
 #[cfg(feature = "player")] mod player_settings;
+#[cfg(feature = "player")] mod player_settings_gfx;
 #[cfg(feature = "player")] mod player_pause;
 #[cfg(feature = "player")] mod player_credits;
 #[cfg(feature = "player")] mod player_onboarding;
@@ -106,10 +107,19 @@ fn main() {
     }
     gen_textures::ensure_textures();
     let title = if cfg!(feature = "player") { "protocol play: puzzle" } else { "protocol: play" };
+    // Load settings early so we can apply fullscreen to the window
+    #[cfg(feature = "player")]
+    let _ps_early = player_settings::load_player_settings();
+    let _window_mode = {
+        #[cfg(feature = "player")]
+        { if _ps_early.fullscreen { bevy::window::WindowMode::BorderlessFullscreen(bevy::window::MonitorSelection::Current) } else { bevy::window::WindowMode::Windowed } }
+        #[cfg(not(feature = "player"))]
+        { bevy::window::WindowMode::Windowed }
+    };
     let mut app = App::new();
     app.set_error_handler(bevy::ecs::error::warn);
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window { title: title.into(), ..default() }), ..default() }))
+            primary_window: Some(Window { title: title.into(), mode: _window_mode, ..default() }), ..default() }))
         .add_plugins(sound::SoundPlugin)
         .insert_resource(ClearColor(Color::srgb(CLEAR_COLOR.0, CLEAR_COLOR.1, CLEAR_COLOR.2)))
         .insert_resource(GlobalAmbientLight { color: Color::srgb(AMBIENT_COLOR.0, AMBIENT_COLOR.1, AMBIENT_COLOR.2), brightness: AMBIENT_BRIGHTNESS, ..default() })
@@ -131,11 +141,20 @@ fn main() {
         app.init_state::<PlayerPhase>();
         let ps = player_settings::load_player_settings();
         let tr = crate::i18n::load_translations(&ps.language);
+        // Apply sound settings from saved preferences
+        let snd = crate::sound::SoundSettings {
+            master_volume: ps.master_volume,
+            sfx_volume: if ps.sfx_enabled { 1.0 } else { 0.0 },
+            muted: !ps.sfx_enabled,
+        };
+        app.insert_resource(snd);
         app.insert_resource(tr);
         app.insert_resource(ps);
         app.insert_resource(player_settings::SettingsOpenRequest::default());
         app.insert_resource(player_settings::SettingsReopenTimer::default());
         app.insert_resource(player_onboarding::ShownHints::default());
+        // Apply bloom setting from saved preferences at startup
+        app.add_systems(Startup, player_settings::apply_bloom_setting.after(setup_scene));
         // Playing setup: triggered when transitioning MainMenu → Playing
         app.add_systems(OnEnter(PlayerPhase::Playing),
             player::setup_player.after(setup_scene).after(setup_ui));
@@ -166,6 +185,7 @@ fn main() {
             player_settings::settings_reopen_tick,
             player_settings::settings_request.after(player_settings::settings_reopen_tick),
             player_settings::settings_overlay_input.after(player_settings::settings_request),
+            player_settings::settings_gfx_sound_input.after(player_settings::settings_overlay_input),
         ));
         // Systems needed in ALL states (menu + gameplay)
         app.add_systems(Update, animate_ui_slides);

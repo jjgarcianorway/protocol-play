@@ -20,11 +20,31 @@ pub struct PlayerSettings {
     /// Simulation playback speed multiplier: 1.0 / 2.0 / 4.0.
     #[serde(default = "default_sim_speed")]
     pub sim_speed: f32,
+    /// Fullscreen mode (borderless).
+    #[serde(default = "default_true")]
+    pub fullscreen: bool,
+    /// Post-processing bloom effect.
+    #[serde(default = "default_true")]
+    pub bloom_enabled: bool,
+    /// Master volume: 0.3 (low), 0.7 (medium), 1.0 (high).
+    #[serde(default = "default_volume")]
+    pub master_volume: f32,
+    /// Sound effects enabled.
+    #[serde(default = "default_true")]
+    pub sfx_enabled: bool,
 }
 fn default_sim_speed() -> f32 { 1.0 }
+fn default_true() -> bool { true }
+fn default_volume() -> f32 { 0.7 }
 
 impl Default for PlayerSettings {
-    fn default() -> Self { Self { anna_enabled: true, language: "en".to_string(), sim_speed: 1.0 } }
+    fn default() -> Self {
+        Self {
+            anna_enabled: true, language: "en".to_string(), sim_speed: 1.0,
+            fullscreen: true, bloom_enabled: true,
+            master_volume: 0.7, sfx_enabled: true,
+        }
+    }
 }
 
 pub fn load_player_settings() -> PlayerSettings {
@@ -47,6 +67,10 @@ pub fn save_player_settings(s: &PlayerSettings) {
 #[derive(Component)] pub struct AnnaToggleBtn;
 #[derive(Component)] pub struct LangBtn(pub String);
 #[derive(Component)] pub struct SimSpeedBtn(pub f32);
+#[derive(Component)] pub struct FullscreenToggleBtn;
+#[derive(Component)] pub struct BloomToggleBtn;
+#[derive(Component)] pub struct VolumeBtn(pub f32);
+#[derive(Component)] pub struct SfxToggleBtn;
 /// Settings link in the main menu.
 #[derive(Component)] pub struct MenuSettingsBtn;
 
@@ -157,6 +181,58 @@ pub fn spawn_settings_overlay(
                 }
             });
 
+            // ── Fullscreen row ──
+            let (fs_label, fs_bg) = toggle_label_bg(s.fullscreen, t);
+            setting_row(p, &tf, t.ui_or("fullscreen", "Fullscreen"), |row| {
+                row.spawn((
+                    Button, FullscreenToggleBtn,
+                    Node { padding: UiRect::axes(Val::Px(18.0), Val::Px(7.0)),
+                        border_radius: BorderRadius::all(Val::Px(4.0)), ..default() },
+                    BackgroundColor(fs_bg),
+                )).with_child((Text::new(fs_label), tf(13.0), TextColor(Color::WHITE)));
+            });
+
+            // ── Bloom row ──
+            let (bl_label, bl_bg) = toggle_label_bg(s.bloom_enabled, t);
+            setting_row(p, &tf, t.ui_or("bloom", "Bloom"), |row| {
+                row.spawn((
+                    Button, BloomToggleBtn,
+                    Node { padding: UiRect::axes(Val::Px(18.0), Val::Px(7.0)),
+                        border_radius: BorderRadius::all(Val::Px(4.0)), ..default() },
+                    BackgroundColor(bl_bg),
+                )).with_child((Text::new(bl_label), tf(13.0), TextColor(Color::WHITE)));
+            });
+
+            // ── Volume row ──
+            let vol_active_bg   = Color::srgba(0.25, 0.45, 0.70, 0.90);
+            let vol_inactive_bg = Color::srgba(0.18, 0.20, 0.26, 0.70);
+            setting_row(p, &tf, t.ui_or("volume", "Volume"), |row| {
+                for (val, key, fallback) in &[
+                    (0.3_f32, "volume_low", "Low"),
+                    (0.7_f32, "volume_medium", "Medium"),
+                    (1.0_f32, "volume_high", "High"),
+                ] {
+                    let active = (s.master_volume - val).abs() < 0.05;
+                    row.spawn((
+                        Button, VolumeBtn(*val),
+                        Node { padding: UiRect::axes(Val::Px(12.0), Val::Px(7.0)),
+                            border_radius: BorderRadius::all(Val::Px(4.0)), ..default() },
+                        BackgroundColor(if active { vol_active_bg } else { vol_inactive_bg }),
+                    )).with_child((Text::new(t.ui_or(key, fallback)), tf(13.0), TextColor(Color::WHITE)));
+                }
+            });
+
+            // ── Sound Effects row ──
+            let (sfx_label, sfx_bg) = toggle_label_bg(s.sfx_enabled, t);
+            setting_row(p, &tf, t.ui_or("sfx", "Sound Effects"), |row| {
+                row.spawn((
+                    Button, SfxToggleBtn,
+                    Node { padding: UiRect::axes(Val::Px(18.0), Val::Px(7.0)),
+                        border_radius: BorderRadius::all(Val::Px(4.0)), ..default() },
+                    BackgroundColor(sfx_bg),
+                )).with_child((Text::new(sfx_label), tf(13.0), TextColor(Color::WHITE)));
+            });
+
             // ── Language row ──
             setting_row(p, &tf, t.ui_or("language", "Language"), |row| {
                 for (code, label) in &[("en", "English"), ("es", "Español")] {
@@ -203,6 +279,15 @@ fn setting_row(
             build_controls(btns);
         });
     });
+}
+
+/// ON/OFF label and background color for a boolean toggle.
+fn toggle_label_bg<'a>(enabled: bool, t: &'a Translations) -> (&'a str, Color) {
+    if enabled {
+        (t.ui_or("anna_on", "ON"),  Color::srgba(0.25, 0.68, 0.42, 1.0))
+    } else {
+        (t.ui_or("anna_off", "OFF"), Color::srgba(0.40, 0.40, 0.45, 1.0))
+    }
 }
 
 // ─── Systems ──────────────────────────────────────────────────────────────────
@@ -301,3 +386,6 @@ pub fn settings_overlay_input(
         }
     }
 }
+
+// Graphics & sound settings input is in player_settings_gfx.rs
+pub use crate::player_settings_gfx::{settings_gfx_sound_input, apply_bloom_setting};
